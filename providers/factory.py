@@ -49,3 +49,26 @@ def create_tts(settings: Settings) -> TTSProvider:
 
         return OpenAITTSProvider(api_key=settings.tts_api_key)
     raise ValueError(f"Неизвестный TTS_PROVIDER={provider!r}. Доступные: edge-tts, openai")
+
+
+def create_embedder(settings: Settings):
+    """Асинхронный эмбеддер для RAG (OpenAI-совместимый API провайдера).
+
+    Возвращает ``async (texts: list[str]) -> list[list[float]]``.
+    Если провайдер не умеет эмбеддинги — вызов упадёт, а RAG-тьютор
+    корректно откатится на обычный чат (см. core/rag.py).
+    """
+    from openai import AsyncOpenAI
+
+    client = AsyncOpenAI(
+        base_url=settings.resolved_llm_base_url,
+        api_key=settings.llm_api_key or "not-needed",
+        max_retries=0,
+    )
+    model = settings.rag_embed_model
+
+    async def embed(texts: list[str]) -> list[list[float]]:
+        response = await client.embeddings.create(model=model, input=texts)
+        return [item.embedding for item in response.data]
+
+    return embed

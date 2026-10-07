@@ -6,6 +6,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 MINI_APP_BUTTON_TEXT = "📱 Урок в Mini App"
 CLASSIC_LESSON_BUTTON_TEXT = "📚 Классический урок"
+TUTOR_BUTTON_TEXT = "🎓 Спросить грамматику"
 
 # Публичный HTTPS-URL Mini App. Задаётся один раз при старте (см. bot/main.py),
 # чтобы кнопка появлялась во всех main_menu() без правок всех вызывающих мест.
@@ -41,6 +42,7 @@ def _base_menu_rows(due_words: int = 0) -> list[list[InlineKeyboardButton]]:
         rows.append([miniapp])
     rows += [
         [InlineKeyboardButton(text=review_text, callback_data="review:start")],
+        [InlineKeyboardButton(text=TUTOR_BUTTON_TEXT, callback_data="tutor:start")],
         [InlineKeyboardButton(text="🎯 Определить уровень", callback_data="diagnostic_start")],
         [InlineKeyboardButton(text="📊 Статистика", callback_data="stats")],
         [
@@ -68,6 +70,15 @@ def main_menu() -> InlineKeyboardMarkup:
 def main_menu_with_srs(due_words: int = 0) -> InlineKeyboardMarkup:
     """Главное меню с указанием количества слов для повторения."""
     return InlineKeyboardMarkup(inline_keyboard=_base_menu_rows(due_words))
+
+
+def tutor_keyboard() -> InlineKeyboardMarkup:
+    """Кнопки режима тьютора (RAG-грамматика): только выход."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="⏹️ Выйти из тьютора", callback_data="tutor:cancel")],
+        ]
+    )
 
 
 def premium_upsell_keyboard(days: int = 7) -> InlineKeyboardMarkup:

@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     # 1 = не проверять HMAC-подпись initData (только для локальной отладки вне Telegram)
     webapp_insecure_auth: int = 0
 
+    # RAG-тьютор грамматики (/tutor): эмбеддинги корпуса + порог роутинга.
+    # Threshold: score >= порога → ответ по правилам, ниже → обычный чат.
+    rag_embed_model: str = "openai/text-embedding-3-small"
+    rag_threshold: float = 0.30
+
     @property
     def webapp_enabled(self) -> bool:
         """Mini App включён, если задан публичный URL."""

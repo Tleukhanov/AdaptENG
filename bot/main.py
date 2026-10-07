@@ -21,8 +21,9 @@ from core.lesson_plan import LessonPlanService
 from core.lessons import LessonService
 from core.practice import PracticeService
 from core.profile import ProfileService
+from core.rag import RAGGrammarTutor
 from core.srs import SRSService
-from providers import create_llm, create_stt, create_tts
+from providers import create_embedder, create_llm, create_stt, create_tts
 from storage.sqlite import SQLiteRepository
 
 from .config import get_settings
@@ -36,6 +37,7 @@ from .handlers.interests import router as interests_router
 from .handlers.progress import router as progress_router
 from .handlers.achievements import router as achievements_router
 from .handlers.review import router as review_router
+from .handlers.tutor import router as tutor_router
 from .handlers.onboarding import router as onboarding_router
 from .handlers.leaderboard import router as leaderboard_router
 from .handlers.promo import router as promo_router
@@ -57,6 +59,7 @@ COMMANDS = [
     BotCommand(command="interests", description="🎯 Мои интересы"),
     BotCommand(command="diagnostic", description="🎯 Определить уровень"),
     BotCommand(command="review", description="📚 Повторить слова"),
+    BotCommand(command="tutor", description="🎓 Спросить грамматику (RAG)"),
     BotCommand(command="stats", description="Моя статистика"),
     BotCommand(command="progress", description="📊 Мой прогресс"),
     BotCommand(command="achievements", description="🎮 Достижения"),
@@ -142,6 +145,11 @@ async def main() -> None:
     note_service = LessonNoteService(llm)
     plan_service = LessonPlanService(llm)
     srs_service = SRSService(repo)
+    rag_tutor = RAGGrammarTutor(
+        chat=llm,
+        embedder=create_embedder(settings),
+        threshold=settings.rag_threshold,
+    )
 
     bot = Bot(
         settings.telegram_bot_token,
@@ -159,6 +167,7 @@ async def main() -> None:
     dp["note_service"] = note_service
     dp["plan_service"] = plan_service
     dp["srs"] = srs_service
+    dp["tutor"] = rag_tutor
     dp["stt"] = stt
     dp["tts"] = tts
     dp["settings"] = settings
@@ -179,6 +188,7 @@ async def main() -> None:
     dp.include_router(lessons_router)
     dp.include_router(diagnostic_router)
     dp.include_router(review_router)
+    dp.include_router(tutor_router)
     dp.include_router(promo_router)
     dp.include_router(wheel_router)
     dp.include_router(premium_router)
