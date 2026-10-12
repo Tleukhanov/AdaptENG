@@ -5,13 +5,19 @@ import { useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Character } from '@/lib/characters';
+import { API, apiFetch } from '@/lib/api';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? '';
-
-export default function CharacterCard({ character }: { character: Character }) {
+export default function CharacterCard({
+  character,
+  selected = false,
+}: {
+  character: Character;
+  selected?: boolean;
+}) {
   const t = useTranslations('character');
   const tRoot = useTranslations();
   const [toast, setToast] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const name = character.name;
   const tagline = character.tagline;
@@ -27,16 +33,43 @@ export default function CharacterCard({ character }: { character: Character }) {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  function handleSelect(event: MouseEvent<HTMLAnchorElement>) {
-    if (API) {
+  async function handleSelect(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    if (busy) {
       return;
     }
-    event.preventDefault();
-    setToast(tRoot('demo.toast'));
+    if (!API) {
+      setToast(tRoot('demo.toast'));
+      return;
+    }
+    setBusy(true);
+    try {
+      await apiFetch('/api/me/character', {
+        method: 'PUT',
+        body: { character_id: character.id },
+      });
+      setToast(tRoot('chat.selected'));
+      window.setTimeout(() => {
+        window.location.href = '/chat';
+      }, 600);
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : tRoot('chat.error'));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <article className="group flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+    <article className="group relative flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+      {selected ? (
+        <span
+          className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white shadow"
+          aria-hidden="true"
+        >
+          ✓
+        </span>
+      ) : null}
+
       <div className="flex items-center gap-4">
         {character.avatar ? (
           <img
@@ -63,8 +96,9 @@ export default function CharacterCard({ character }: { character: Character }) {
       <p className="mt-4 line-clamp-3 flex-1 text-sm text-slate-600">{description}</p>
 
       <Link
-        href="/dashboard"
+        href="/chat"
         onClick={handleSelect}
+        aria-busy={busy}
         className="mt-5 inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
       >
         {t('select')}
