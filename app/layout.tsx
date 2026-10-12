@@ -1,0 +1,48 @@
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import Link from 'next/link';
+import { NextIntlClientProvider } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
+import { getLocale, getMessages } from '@/lib/i18n';
+import LocaleToggle from '@/components/LocaleToggle';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'AdaptENG — AI English Tutor',
+  description: 'Adaptive AI English tutor with personality characters.',
+};
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const locale = await getLocale();
+  const messages = getMessages(locale);
+  const t = await getTranslations({ locale });
+
+  return (
+    <html lang={locale}>
+      <body className="antialiased">
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur">
+            <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+              <Link href="/" className="flex items-center gap-2 text-lg font-bold">
+                <span className="adapteng-gradient flex h-8 w-8 items-center justify-center rounded-xl text-sm font-bold text-white">
+                  AE
+                </span>
+                <span className="adapteng-text-gradient">AdaptENG</span>
+              </Link>
+              <nav className="flex items-center gap-5 text-sm font-medium text-slate-600">
+                <Link href="/" className="transition hover:text-slate-900">
+                  {t('nav.home')}
+                </Link>
+                <Link href="/dashboard" className="transition hover:text-slate-900">
+                  {t('nav.profile')}
+                </Link>
+                <LocaleToggle />
+              </nav>
+            </div>
+          </header>
+          {children}
+        </NextIntlClientProvider>
+      </body>
+    </html>
+  );
+}
