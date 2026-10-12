@@ -1,0 +1,73 @@
+"""FastAPI-приложение AdaptENG: сборка, lifespan (репозиторий), CORS.
+
+Фабрика ``create_app(settings)`` позволяет тестам поднимать изолированные
+приложения с переопределёнными настройками и временной SQLite-БД.
+"""
+
+from __future__ import annotations
+
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from core.config import Settings, get_settings
+from storage import create_repository
+
+from .routers import auth, characters, health, users
+from .security import require_secret
+
+logger = logging.getLogger(__name__)
+
+
+def create_app(settings: Settings | None = None) -> FastAPI:
+    settings = settings or get_settings()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        require_secret(settings)
+        repo = create_repository(
+            database_url=settings.database_url,
+            database_path=settings.database_path,
+        )
+        await repo.connect()
+        app.state.repo = repo
+        logger.info(
+            "AdaptENG api started (db=%s)",
+            "postgres" if settings.database_url else "sqlite",
+        )
+        try:
+            yield
+        finally:
+            await repo.close()
+
+    app = FastAPI(
+        title="AdaptENG API",
+        version="0.1.0",
+        description="Персональный AI-репетитор английского с персонажами.",
+        lifespan=lifespan,
+    )
+    app.state.settings = settings
+
+    origins = settings.cors_origins_list or [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    app.include_router(health.router)
+    app.include_router(auth.router)
+    app.include_router(users.router)
+    app.include_router(characters.router)
+
+    return app
+
+
+app = create_app()
