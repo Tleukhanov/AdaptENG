@@ -24,6 +24,14 @@ data/
 *.log
 .bot_pid
 
+# Frontend (Next.js)
+node_modules/
+.next/
+out/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
 # IDE / OS
 .idea/
 .vscode/

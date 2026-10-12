@@ -11,3 +11,7 @@ imageio-ffmpeg==0.6.0
 # PostgreSQL-бэкенд хранилища (Heroku). Импортируется лениво — для локального
 # SQLite-запуска и тестов без него не нужен.
 asyncpg==0.32.0
+# Web-продукт AdaptENG (api/): отдельный FastAPI-сервис на том же ядре.
+fastapi==0.139.2
+uvicorn[standard]==0.51.0
+PyJWT==2.10.1
