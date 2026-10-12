@@ -1,13 +1,21 @@
 # PLAN_WEB — AdaptENG: перевод продукта в Web
 
 ## Статус
+- **Фаза B — выполнена**:
+  - `PUT /api/me/character` — выбор/смена наставника (валидация id, создание профиля при отсутствии).
+  - `POST /api/chat` — живой чат с персонажем: полностью повторяет практический ход бота (квота → профиль-сниппет → character-промпт → weak areas → PracticeService → запись сообщений и статистики → списание квоты), без импорта из `bot`.
+  - `POST /api/chat/tts` — синтез речи персонажа (голос из `character_voice`), возвращает audio/mpeg.
+  - `api/quota.py` — два шага квоты (проверка до, списание после; безопасен для unlimited/подписки).
+  - LLM/TTS в `app.state` с мягким фолбэком: нет провайдера → `/api/chat*` отвечает 503, api не падает.
+  - Фронт: страница `/chat` (шапка с аватаром-градиентом персонажа, баблы, индикатор печати, передача ввода, микрофон-заглушка, переключатель наставника), выбор наставника с карточек лендинга (PUT + редирект в `/chat`), демо-режим без API работает без логина.
+  - Тесты: `tests/test_chat.py` (6) — полный сьют **516 passed, 5 skipped**.
 - **Фаза A — выполнена (ветка `feat/adapteng-web`)**:
   - `core/config.py` — общие настройки (из `bot/config.py` сделан шим).
   - `core/tg_auth.py` — HMAC-проверка Telegram Login Widget.
   - `core/characters.py` — персонажи с RU/EN-полями (`name`/`tagline`/`description`/`backstory`), `avatar`, `palette`.
   - `api/` — FastAPI-сервис: `GET /api/health`, `POST /api/auth/tg` (JWT), `GET /api/me`, `GET /api/characters?lang=`.
   - `frontend/` — Next.js 15 + Tailwind v4 + next-intl: лендинг с героем и галереей персонажей, вход через Telegram, `/dashboard` (профиль).
-  - Тесты: `tests/test_tg_auth.py`, `tests/test_api.py` (21 passed); полный сьют бота не тронут.
+  - Тесты: `tests/test_tg_auth.py`, `tests/test_api.py`.
 - **Запуск локально**: 1) `uvicorn api.main:app --port 8000` (+ `.env` с `JWT_SECRET`, `API_INSECURE_AUTH=1` для отладки входа); 2) `cd frontend && npm install && npm run dev` с `NEXT_PUBLIC_API_URL=http://localhost:8000`.
 - **Деплой**: `Procfile` получил процесс `api` (для `adapteng-api`: `heroku ps:scale web=0 api=1`). Развёртывание трёх приложений Heroku — Фаза D.
 - **Заметка по авторизации**: для MVP токен хранится в `localStorage` и шлётся в `Authorization`. В проде (отдельные домены web/api) желательно HttpOnly-cookie + проксирование `/api/*` через Next.js — отложено до Фазы D.
