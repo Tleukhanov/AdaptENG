@@ -1,0 +1,38 @@
+{
+  "name": "English Practice Bot",
+  "description": "Telegram-бот для практики английского: адаптивная практика, структурированные уроки, Mini App, RAG-тьютор грамматики.",
+  "stack": "heroku-24",
+  "env": {
+    "TELEGRAM_BOT_TOKEN": {
+      "required": true,
+      "description": "Токен бота от @BotFather."
+    },
+    "USE_WEBHOOK": {
+      "value": "1",
+      "description": "1 = принимать апдейты Telegram через webhook вместо polling."
+    },
+    "LLM_PROVIDER": {
+      "value": "openrouter"
+    },
+    "LLM_API_KEY": {
+      "required": true,
+      "description": "API-ключ провайдера LLM."
+    },
+    "RAG_EMBED_MODEL": {
+      "value": "openai/text-embedding-3-small",
+      "description": "Эмбеддинг-модель для RAG-тьютора (/tutor), должна поддерживаться LLM_PROVIDER."
+    },
+    "WEBAPP_PUBLIC_URL": {
+      "required": true,
+      "description": "Публичный HTTPS-URL приложения, например https://<app-name>.herokuapp.com"
+    },
+    "ADMIN_TG_ID": {
+      "description": "Telegram ID админа для подтверждения Kaspi-оплат."
+    }
+  },
+  "addons": ["heroku-postgresql:mini"],
+  "buildpacks": [
+    { "url": "heroku/python" },
+    { "url": "https://github.com/heroku/heroku-buildpack-apt" }
+  ]
+}
