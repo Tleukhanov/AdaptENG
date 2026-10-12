@@ -35,5 +35,20 @@
   "dashboard.progressDesc": "Vocabulary, streaks and level",
   "dashboard.characters": "Characters",
   "dashboard.charactersDesc": "Change your mentor's communication style",
-  "dashboard.soon": "Demo"
+  "dashboard.soon": "Demo",
+  "chat.title": "Chat with your mentor",
+  "chat.subtitle": "Your personal AI mentor",
+  "chat.placeholder": "Message…",
+  "chat.send": "Send",
+  "chat.mic": "Voice",
+  "chat.micSoon": "Voice arrives in Phase B",
+  "chat.typing": "typing…",
+  "chat.quota": "Daily limit reached",
+  "chat.error": "Could not get a reply",
+  "chat.needLogin": "Sign in to start",
+  "chat.selected": "Mentor selected",
+  "chat.switch": "Switch mentor",
+  "chat.back": "Back",
+  "chat.demoNote": "Demo mode: the server is not connected, replies are generated locally.",
+  "chat.greeting": "Hi! I'm your English mentor. Write me something in English and I'll help you fix it."
 }

@@ -26,6 +26,16 @@ def get_repository(request: Request) -> Repository:
     return repo
 
 
+def get_practice(request: Request):
+    """PracticeService, собранный в lifespan (None, если LLM не настроен)."""
+    return getattr(request.app.state, "practice", None)
+
+
+def get_tts(request: Request):
+    """TTS-провайдер, собранный в lifespan (None, если TTS не настроен)."""
+    return getattr(request.app.state, "tts", None)
+
+
 def get_current_tg_id(
     settings: Settings = Depends(get_settings_dep),
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),

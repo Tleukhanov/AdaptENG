@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class TelegramUserAuth(BaseModel):
@@ -54,6 +54,56 @@ class CharacterPublic(BaseModel):
     description: str
     tagline: str = ""
     backstory: str = ""
+
+
+class SetCharacterRequest(BaseModel):
+    character_id: str
+
+
+class CharacterSetResponse(BaseModel):
+    character: dict[str, object]
+
+
+class ChatRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=2000)
+
+    @field_validator("text")
+    @classmethod
+    def _strip_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("text must not be empty")
+        return value
+
+
+class IssueOut(BaseModel):
+    category: str = ""
+    problem: str = ""
+    suggestion: str = ""
+    correction: str = ""
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    tone: str = ""
+    corrected_text: str = ""
+    is_correct: bool
+    next_question: str = ""
+    issues: list[IssueOut] = Field(default_factory=list)
+    character: dict[str, object]
+
+
+class TTSRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=4000)
+    character_id: str = "default"
+
+    @field_validator("text")
+    @classmethod
+    def _strip_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("text must not be empty")
+        return value
 
 
 class HealthResponse(BaseModel):

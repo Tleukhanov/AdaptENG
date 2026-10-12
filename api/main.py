@@ -13,9 +13,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import Settings, get_settings
+from core.practice import PracticeService
+from providers import create_llm, create_tts
 from storage import create_repository
 
-from .routers import auth, characters, health, users
+from .routers import auth, characters, chat, health, users
 from .security import require_secret
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         await repo.connect()
         app.state.repo = repo
+        app.state.llm = None
+        app.state.practice = None
+        app.state.tts = None
+        try:
+            app.state.llm = create_llm(settings)
+            app.state.practice = PracticeService(llm=app.state.llm, max_history=settings.max_context_messages)
+        except Exception as exc:
+            logger.warning("LLM не настроен, /api/chat недоступен: %s", exc)
+            app.state.practice = None
+            app.state.llm = None
+        try:
+            app.state.tts = create_tts(settings)
+        except Exception as exc:
+            logger.warning("TTS не настроен, /api/chat/tts недоступен: %s", exc)
+            app.state.tts = None
         logger.info(
             "AdaptENG api started (db=%s)",
             "postgres" if settings.database_url else "sqlite",
@@ -66,6 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(users.router)
     app.include_router(characters.router)
+    app.include_router(chat.router)
 
     return app
 
