@@ -392,8 +392,20 @@ async def cache_headers_middleware(request: web.Request, handler) -> web.StreamR
     return response
 
 
-def create_webapp(settings: Settings, bot: Bot, deps: Mapping[str, Any] | Any) -> web.Application:
-    """Собирает aiohttp-приложение Mini App: статика + /api/init + /api/tts + под-роуты уроков."""
+def create_webapp(
+    settings: Settings,
+    bot: Bot,
+    deps: Mapping[str, Any] | Any,
+    *,
+    webhook_path: str = "",
+    webhook_handler: web.Handler | None = None,
+) -> web.Application:
+    """Собирает aiohttp-приложение: Mini App + опциональный webhook Telegram.
+
+    ``webhook_handler`` (например, aiogram ``SimpleRequestHandler.handle``)
+    регистрируется на ``POST webhook_path`` ПЕРЕД статикой: корневой ``add_static``
+    является catch-all'ом и перекрыл бы POST-роут, дав 405.
+    """
     # Импорт внутри функции: bot.mini_api импортирует хелперы отсюда (без цикла).
     from . import mini_api
 
@@ -401,6 +413,10 @@ def create_webapp(settings: Settings, bot: Bot, deps: Mapping[str, Any] | Any) -
     app[SETTINGS_KEY] = settings
     app[BOT_KEY] = bot
     app[DEPS_KEY] = deps
+
+    if webhook_path and webhook_handler is not None:
+        app.router.add_post(webhook_path, webhook_handler)
+        logger.info("Webhook route registered: POST %s", webhook_path)
 
     app.router.add_get("/", handle_index)
     app.router.add_get("/api/health", handle_health)

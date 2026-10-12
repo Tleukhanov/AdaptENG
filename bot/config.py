@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     tts_api_key: str = ""
 
     database_path: str = "data/english_bot.db"
+    # PostgreSQL (Heroku): заполнено -> хранилище на asyncpg вместо SQLite.
+    database_url: str = ""
 
     max_context_messages: int = 6
     max_voice_duration_sec: int = 60
@@ -62,6 +64,17 @@ class Settings(BaseSettings):
     # 1 = не проверять HMAC-подпись initData (только для локальной отладки вне Telegram)
     webapp_insecure_auth: int = 0
 
+    # Режим деплоя (Heroku): 1 = принимать апдейты Telegram через webhook на $PORT,
+    # 0 = обычный локальный polling. Секретный путь webhook при пустом
+    # WEBHOOK_PATH генерируется при каждом старте (см. bot/main.py).
+    use_webhook: int = 0
+    webhook_path: str = ""
+    # Публичный HTTPS-корень для webhook и Mini App в проде. Если не задан —
+    # используется WEBAPP_URL (единый публичный адрес).
+    webapp_public_url: str = ""
+    # Порт webhook-сервера: выставляется платформой (Heroku: $PORT).
+    port: int | None = None
+
     # RAG-тьютор грамматики (/tutor): эмбеддинги корпуса + порог роутинга.
     # Threshold: score >= порога → ответ по правилам, ниже → обычный чат.
     rag_embed_model: str = "openai/text-embedding-3-small"
@@ -71,6 +84,15 @@ class Settings(BaseSettings):
     def webapp_enabled(self) -> bool:
         """Mini App включён, если задан публичный URL."""
         return bool(self.webapp_url.strip())
+
+    @property
+    def webhook_enabled(self) -> bool:
+        return bool(self.use_webhook)
+
+    @property
+    def public_webapp_url(self) -> str:
+        """Публичный HTTPS-корень: WEBAPP_PUBLIC_URL, иначе WEBAPP_URL."""
+        return self.webapp_public_url.strip() or self.webapp_url.strip()
 
     @property
     def subscription_plan_list(self) -> list[tuple[int, int]]:

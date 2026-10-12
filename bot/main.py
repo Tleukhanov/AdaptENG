@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import secrets
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -24,7 +25,7 @@ from core.profile import ProfileService
 from core.rag import RAGGrammarTutor
 from core.srs import SRSService
 from providers import create_embedder, create_llm, create_stt, create_tts
-from storage.sqlite import SQLiteRepository
+from storage import create_repository
 
 from .config import get_settings
 from .diagnostic import router as diagnostic_router
@@ -106,6 +107,69 @@ async def _start_webapp(settings, bot: Bot, deps: dict) -> "aiohttp_web.AppRunne
     return runner
 
 
+async def _run_webhook_mode(settings, bot: Bot, dp: Dispatcher, deps: dict) -> None:
+    """Webhook-режим для Heroku: один aiohttp-сервер (Mini App + webhook) на $PORT.
+
+    Требует публичного HTTPS-корня (WEBAPP_PUBLIC_URL или WEBAPP_URL). Секретный
+    путь webhook при пустом WEBHOOK_PATH генерируется на каждом старте через
+    ``secrets.token_urlsafe`` и сразу пере-регистрируется через set_webhook —
+    это безопасно для перезапусков (dyno sleep/recycle) и не даёт подглядывать
+    адрес webhook в истории коммитов.
+    """
+    from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+
+    public_root = settings.public_webapp_url
+    if not public_root:
+        raise SystemExit("Webhook-режим требует WEBAPP_PUBLIC_URL или WEBAPP_URL")
+
+    webhook_path = resolve_webhook_path(settings.webhook_path)
+    webhook_url = build_webhook_url(public_root, webhook_path)
+    secret_token = secrets.token_urlsafe(24).rstrip("=")
+
+    set_webapp_url(public_root)
+    handler = SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=secret_token)
+    app = create_webapp(
+        settings,
+        bot,
+        deps,
+        webhook_path=webhook_path,
+        webhook_handler=handler.handle,
+    )
+    setup_application(app, dp)
+
+    await bot.set_webhook(webhook_url, secret_token=secret_token, drop_pending_updates=True)
+    logger.info("Telegram webhook set: %s (secret %d chars)", webhook_url, len(secret_token))
+
+    port = settings.port or settings.webapp_port
+    runner = aiohttp_web.AppRunner(app, access_log=None)
+    try:
+        await runner.setup()
+        site = aiohttp_web.TCPSite(runner, "0.0.0.0", port)
+        await site.start()
+    except OSError:
+        logger.exception("Не удалось занять 0.0.0.0:%s — webhook-сервер не поднят", port)
+        await runner.cleanup()
+        raise
+    logger.info("Webhook server started: 0.0.0.0:%s (path %s)", port, webhook_path)
+    try:
+        await asyncio.Event().wait()
+    finally:
+        await runner.cleanup()
+
+
+def resolve_webhook_path(configured: str) -> str:
+    """Секретный путь webhook: заданный (нормализован до '/...') или случайный."""
+    path = configured.strip()
+    if path:
+        return path if path.startswith("/") else "/" + path
+    return "/webhook/" + secrets.token_urlsafe(15)
+
+
+def build_webhook_url(public_root: str, path: str) -> str:
+    """Склеивает публичный корень и путь webhook в один URL."""
+    return public_root.rstrip("/") + (path if path.startswith("/") else "/" + path)
+
+
 async def main() -> None:
     settings = get_settings()
     if not settings.telegram_bot_token:
@@ -132,7 +196,10 @@ async def main() -> None:
             "KASPI_QR_PATH не задан: QR будет показан текстом, без картинки."
         )
 
-    repo = SQLiteRepository(settings.database_path)
+    repo = create_repository(
+        database_url=settings.database_url,
+        database_path=settings.database_path,
+    )
     await repo.connect()
 
     llm = create_llm(settings)
@@ -220,20 +287,27 @@ async def main() -> None:
     scheduler.start()
     logger.info("Scheduler started: reminders every %d hours", 24)
 
-    runner = await _start_webapp(
-        settings,
-        bot,
-        {
-            "repo": repo,
-            "llm": llm,
-            "tts": tts,
-            "stt": stt,
-            "quota": quota,
-            "srs": srs_service,
-            "plan_service": plan_service,
-            "note_service": note_service,
-        },
-    )
+    deps = {
+        "repo": repo,
+        "llm": llm,
+        "tts": tts,
+        "stt": stt,
+        "quota": quota,
+        "srs": srs_service,
+        "plan_service": plan_service,
+        "note_service": note_service,
+    }
+
+    if settings.webhook_enabled:
+        try:
+            await _run_webhook_mode(settings, bot, dp, deps)
+        finally:
+            scheduler.shutdown(wait=False)
+            await repo.close()
+            await bot.session.close()
+        return
+
+    runner = await _start_webapp(settings, bot, deps)
 
     try:
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
