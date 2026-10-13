@@ -175,10 +175,50 @@ class ReviewDueWord(BaseModel):
 
 
 class ReviewAnswerRequest(BaseModel):
-    """Ответ на повтор слова: id и оценка качества (0-5)."""
+    """Тело на запись слова: id и качество ответа (0-5)."""
 
     word_id: int
     quality: int
+
+
+class AchievementItem(BaseModel):
+    """Одно достижение с признаком полученности."""
+
+    id: str
+    name: str
+    emoji: str
+    description: str
+    condition: str
+    earned: bool = False
+
+
+class LevelInfo(BaseModel):
+    """Текущий уровень и прогресс до следующего."""
+
+    name: str
+    emoji: str
+    xp: int = 0
+    next_level: str | None = None
+    xp_needed: int | None = None
+
+
+class AchievementsResponse(BaseModel):
+    """Достижения пользователя + уровень."""
+
+    level: LevelInfo
+    achievements: list[AchievementItem] = Field(default_factory=list)
+
+
+class LeaderboardEntry(BaseModel):
+    """Строка лидерборда."""
+
+    user_id: int
+    username: str | None = None
+    first_name: str | None = None
+    level: str | None = None
+    xp: int = 0
+    total_lessons: int = 0
+    streak_days: int = 0
 
 
 class HealthResponse(BaseModel):

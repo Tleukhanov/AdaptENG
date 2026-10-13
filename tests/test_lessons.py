@@ -408,7 +408,7 @@ from core.deck import (
     Slide,
     VocabCard,
 )
-from storage.repo import SRSWord
+from storage.repo import LessonNote, SRSWord
 
 LESSONS_SECRET = "test-secret-0123456789abcdef0123456789"
 TG_ID = 999
@@ -759,3 +759,46 @@ def test_review_answer_missing_word_404(tmp_path) -> None:
             headers=_headers(token),
         )
     assert response.status_code == 404
+
+
+def test_achievements_fresh_user(tmp_path) -> None:
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        response = client.get("/api/achievements", headers=_headers(token))
+    assert response.status_code == 200
+    data = response.json()
+    assert data["level"]["name"] == "Новичок"
+    assert data["level"]["emoji"] == "🌱"
+    assert data["level"]["xp"] == 0
+    assert data["level"]["next_level"] == "Ученик"
+    assert data["level"]["xp_needed"] == 50
+    assert len(data["achievements"]) == 15
+    assert all(a["earned"] is False for a in data["achievements"])
+
+
+async def test_achievements_earned_after_lesson(tmp_path) -> None:
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        repo = client.app.state.repo
+        user = await repo.get_or_create_user(TG_ID)
+        await repo.add_lesson_note(
+            LessonNote(user_id=user.id, lesson_id=1, topic="Coffee", vocabulary="brew")
+        )
+        response = client.get("/api/achievements", headers=_headers(token))
+    assert response.status_code == 200
+    by_id = {a["id"]: a["earned"] for a in response.json()["achievements"]}
+    assert by_id["first_lesson"] is True
+    assert by_id["first_correct"] is False
+
+
+def test_leaderboard_ok(tmp_path) -> None:
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        response = client.get("/api/leaderboard", headers=_headers(token))
+    assert response.status_code == 200
+    rows = response.json()
+    assert isinstance(rows, list)
+    assert all("user_id" in r and "xp" in r for r in rows)
