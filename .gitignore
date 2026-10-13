@@ -31,6 +31,8 @@ out/
 frontend/.env
 frontend/.env.local
 frontend/.env.*.local
+next-env.d.ts
+*.tsbuildinfo
 
 # IDE / OS
 .idea/
