@@ -104,8 +104,8 @@ export default function DashboardPage() {
   const interests = data?.user?.interests ?? [];
 
   const cards: { title: string; description: string; href?: string }[] = [
-    { title: t('lesson'), description: t('lessonDesc') },
-    { title: t('progress'), description: t('progressDesc') },
+    { title: t('lesson'), description: t('lessonDesc'), href: '/lesson' },
+    { title: t('progress'), description: t('progressDesc'), href: '/progress' },
     { title: t('characters'), description: t('charactersDesc'), href: '/#characters' },
   ];
 

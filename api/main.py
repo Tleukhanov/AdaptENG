@@ -14,10 +14,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import Settings, get_settings
 from core.practice import PracticeService
-from providers import create_llm, create_tts
+from providers import create_llm, create_stt, create_tts
 from storage import create_repository
 
-from .routers import auth, characters, chat, health, users
+from .routers import auth, characters, chat, health, lessons, progress, users
 from .security import require_secret
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.llm = None
         app.state.practice = None
         app.state.tts = None
+        app.state.stt = None
         try:
             app.state.llm = create_llm(settings)
             app.state.practice = PracticeService(llm=app.state.llm, max_history=settings.max_context_messages)
@@ -50,6 +51,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except Exception as exc:
             logger.warning("TTS не настроен, /api/chat/tts недоступен: %s", exc)
             app.state.tts = None
+        try:
+            app.state.stt = create_stt(settings)
+        except Exception as exc:
+            logger.warning("STT не настроен, /api/lesson/voice недоступен: %s", exc)
+            app.state.stt = None
         logger.info(
             "AdaptENG api started (db=%s)",
             "postgres" if settings.database_url else "sqlite",
@@ -84,6 +90,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(users.router)
     app.include_router(characters.router)
     app.include_router(chat.router)
+    app.include_router(lessons.router)
+    app.include_router(progress.router)
 
     return app
 
