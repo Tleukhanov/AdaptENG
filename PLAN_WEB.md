@@ -3,11 +3,11 @@
 ## Статус
 - **Фаза C — выполнена**:
   - `api/routers/lessons.py` — порт урока из Mini App: `POST /api/lesson/new|answer|finish|voice` (квота до/после, контекст урока, план темы, заметка/XP через `ProgressService`, слова в SRS, голосовая реплика base64 → STT → оценка). Контракт ответов совпадает с мини-app. Провайдеры LLM/STT в `app.state` с мягким фолбэком.
-  - `api/routers/progress.py` — `GET /api/progress` (агрегированный прогресс + тема следующего урока + число слов к повтору), `GET /api/review/due` + `POST /api/review/answer` (SRS-повторение).
+  - `api/routers/progress.py` — `GET /api/progress` (агрегированный прогресс + тема следующего урока + число слов к повтору), `GET /api/review/due` + `POST /api/review/answer` (SRS-повторение), `GET /api/achievements` (достижения + уровень по XP через `core/achievements`), `GET /api/leaderboard` (топ по XP через `repo.get_leaderboard`).
   - `api/deps.py` — `get_stt`; `api/schemas.py` — модели урока/голоса/прогресса.
-  - Фронт: `/lesson` (старт → презентация → карточки «Знаю/Повторю» → квиз с мгновенной подсветкой → диалог с выбором реплики + голосовой записью (MediaRecorder→base64) + TTS → итог с XP/след. темой), `/progress` (статистика, следующая тема, «Повторить слова»), демо-режим без API; ссылки с дашборда.
+  - Фронт: `/lesson` (старт → презентация → карточки «Знаю/Повторю» → квиз с мгновенной подсветкой → диалог с выбором реплики + голосовой записью (MediaRecorder→base64) + TTS → итог с XP/след. темой), `/progress` (статистика, следующая тема, «Повторить слова»), `/achievements`, `/leaderboard`, демо-режим без API; ссылки с дашборда.
   - Адаптер серверной деки (`apiDeckToLocal`) + демо-дека `sampleDeck(locale)`.
-  - Тесты: `tests/test_lessons.py` (+13) — полный сьют **529 passed, 5 skipped**.
+  - Тесты: `tests/test_lessons.py` (+16) — полный сьют **532 passed, 5 skipped**.
 - **Фаза B — выполнена**:
   - `PUT /api/me/character` — выбор/смена наставника (валидация id, создание профиля при отсутствии).
   - `POST /api/chat` — живой чат с персонажем: полностью повторяет практический ход бота (квота → профиль-сниппет → character-промпт → weak areas → PracticeService → запись сообщений и статистики → списание квоты), без импорта из `bot`.

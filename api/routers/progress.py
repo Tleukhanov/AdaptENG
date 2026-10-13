@@ -9,14 +9,23 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from core.achievements import check_achievements, get_level_for_xp, get_next_level
 from core.lesson_plan import LessonPlan, next_plan_index
 from core.progress import ProgressService
 from core.srs import SRSService
 
 from ..deps import get_current_tg_id, get_repository
-from ..schemas import ProgressResponse, ReviewAnswerRequest, ReviewDueWord
+from ..schemas import (
+    AchievementItem,
+    AchievementsResponse,
+    LeaderboardEntry,
+    LevelInfo,
+    ProgressResponse,
+    ReviewAnswerRequest,
+    ReviewDueWord,
+)
 
 router = APIRouter(prefix="/api", tags=["progress"])
 
@@ -93,3 +102,64 @@ async def review_answer(
 
     await srs.review(body.word_id, body.quality)
     return {"ok": True}
+
+
+@router.get("/achievements", response_model=AchievementsResponse)
+async def achievements(
+    tg_id: int = Depends(get_current_tg_id),
+    repo=Depends(get_repository),
+) -> AchievementsResponse:
+    """Все достижения пользователя (earned=True/False) + уровень по XP."""
+    user = await repo.get_or_create_user(tg_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Пользователь не найден")
+
+    data = await ProgressService(repo).get_progress(user.id, level=user.level)
+    level_name, level_emoji = get_level_for_xp(data.xp)
+    next_level, xp_needed = get_next_level(data.xp)
+    return AchievementsResponse(
+        level=LevelInfo(
+            name=level_name,
+            emoji=level_emoji,
+            xp=data.xp,
+            next_level=next_level,
+            xp_needed=xp_needed,
+        ),
+        achievements=[
+            AchievementItem(
+                id=a.id,
+                name=a.name,
+                emoji=a.emoji,
+                description=a.description,
+                condition=a.condition,
+                earned=a.earned,
+            )
+            for a in check_achievements(data)
+        ],
+    )
+
+
+@router.get("/leaderboard", response_model=list[LeaderboardEntry])
+async def leaderboard(
+    limit: int = Query(default=20, ge=1, le=50),
+    tg_id: int = Depends(get_current_tg_id),
+    repo=Depends(get_repository),
+) -> list[LeaderboardEntry]:
+    """Топ пользователей по XP."""
+    user = await repo.get_or_create_user(tg_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Пользователь не найден")
+
+    rows = await repo.get_leaderboard(limit=limit)
+    return [
+        LeaderboardEntry(
+            user_id=r.user_id,
+            username=r.username,
+            first_name=r.first_name,
+            level=r.level,
+            xp=r.xp,
+            total_lessons=r.total_lessons,
+            streak_days=r.streak_days,
+        )
+        for r in rows
+    ]

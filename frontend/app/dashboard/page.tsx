@@ -106,6 +106,8 @@ export default function DashboardPage() {
   const cards: { title: string; description: string; href?: string }[] = [
     { title: t('lesson'), description: t('lessonDesc'), href: '/lesson' },
     { title: t('progress'), description: t('progressDesc'), href: '/progress' },
+    { title: t('achievements'), description: t('achievementsDesc'), href: '/achievements' },
+    { title: t('leaderboard'), description: t('leaderboardDesc'), href: '/leaderboard' },
     { title: t('characters'), description: t('charactersDesc'), href: '/#characters' },
   ];
 

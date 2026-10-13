@@ -220,3 +220,43 @@ export function reviewWord(wordId: string | number, quality: number): Promise<Re
     body: { word_id: wordId, quality } satisfies ReviewWordPayload,
   });
 }
+
+export type AchievementItem = {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  condition: string;
+  earned: boolean;
+};
+
+export type LevelInfo = {
+  name: string;
+  emoji: string;
+  xp: number;
+  next_level?: string | null;
+  xp_needed?: number | null;
+};
+
+export type AchievementsResponse = {
+  level: LevelInfo;
+  achievements: AchievementItem[];
+};
+
+export function getAchievements(): Promise<AchievementsResponse> {
+  return apiFetch<AchievementsResponse>('/api/achievements');
+}
+
+export type LeaderboardEntry = {
+  user_id: number;
+  username?: string | null;
+  first_name?: string | null;
+  level?: string | null;
+  xp: number;
+  total_lessons: number;
+  streak_days: number;
+};
+
+export function getLeaderboard(limit = 20): Promise<LeaderboardEntry[]> {
+  return apiFetch<LeaderboardEntry[]>(`/api/leaderboard?limit=${limit}`);
+}
