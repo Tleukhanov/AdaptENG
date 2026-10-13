@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { sampleCharacters } from '@/lib/characters';
+import type { Locale } from '@/lib/i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 const TOKEN_KEY = 'adapteng_token';
@@ -54,7 +55,7 @@ function Stat({
 }
 
 export default function DashboardPage() {
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
   const t = useTranslations('dashboard');
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<MeResponse | null>(null);
@@ -156,7 +157,7 @@ export default function DashboardPage() {
               <Stat label={t('character')} value={characterName} />
               <Stat
                 label={t('quota')}
-                value={data.quota_left != null ? String(data.quota_left) : '—'}
+                value={data.user.quota_left != null ? String(data.user.quota_left) : '—'}
               />
               <Stat label={t('interests')}>
                 {interests.length ? (
