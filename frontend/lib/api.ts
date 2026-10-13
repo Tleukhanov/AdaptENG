@@ -38,6 +38,32 @@ export function clearToken(): void {
   window.localStorage.removeItem(TOKEN_KEY);
 }
 
+export type Level = string;
+
+export type ProgressData = {
+  level?: Level | null;
+  xp?: number;
+  total_lessons?: number;
+  total_turns?: number;
+  correct?: number;
+  errors?: number;
+  accuracy?: number;
+  weak_areas?: string[];
+  strong_areas?: string[];
+  streak_days?: number;
+  character?: unknown;
+  interests?: string[];
+  next_topic?: string | null;
+  due_words?: number | null;
+};
+
+export type ReviewWord = {
+  id: string | number;
+  word: string;
+  translation: string;
+  example: string;
+};
+
 async function request(
   path: string,
   options: ApiOptions,
@@ -89,4 +115,108 @@ export function apiFetch<T = unknown>(path: string, options: ApiOptions = {}): P
 
 export function apiBlob(path: string, options: ApiOptions = {}): Promise<Blob> {
   return request(path, options, 'blob') as Promise<Blob>;
+}
+
+export type StartLessonResponse = {
+  deck?: unknown;
+  session_id?: number;
+  preset?: string;
+  topic?: string;
+  plan_hint?: string;
+};
+
+export function startLesson(topic?: string, preset?: string): Promise<StartLessonResponse> {
+  const body = {
+    ...(topic !== undefined ? { topic } : {}),
+    ...(preset !== undefined ? { preset } : {}),
+  };
+  return apiFetch<StartLessonResponse>('/api/lesson/new', { method: 'POST', body });
+}
+
+export type AnswerQuizResponse = {
+  correct: boolean;
+  answer_index: number;
+  explanation?: string;
+  explanation_ru?: string;
+};
+
+export function answerQuiz(quizIndex: number, chosen: number): Promise<AnswerQuizResponse> {
+  return apiFetch<AnswerQuizResponse>('/api/lesson/answer', {
+    method: 'POST',
+    body: { quiz_index: quizIndex, chosen },
+  });
+}
+
+export type QuizAnswerItem = {
+  quiz_index: number;
+  chosen: number;
+  correct: boolean;
+};
+
+export type FinishLessonPayload = {
+  score: number;
+  preset?: string;
+  quiz_answers: QuizAnswerItem[];
+  flashcards: Record<string, boolean>;
+  session_id?: number;
+};
+
+export type FinishLessonResponse = {
+  score: number;
+  xp?: number;
+  next_topic?: string | null;
+  preset?: string;
+  repeat_words?: string[];
+};
+
+export function finishLesson(payload: FinishLessonPayload): Promise<FinishLessonResponse> {
+  return apiFetch<FinishLessonResponse>('/api/lesson/finish', { method: 'POST', body: payload });
+}
+
+export type VoiceAnswerPayload = {
+  audio_base64: string;
+  expected_line?: string;
+  word?: string;
+};
+
+export type VoiceAnswerResponse = {
+  transcript?: string;
+  rating?: number;
+  tip?: string;
+  expected_line?: string;
+};
+
+export function voiceAnswer(payload: VoiceAnswerPayload): Promise<VoiceAnswerResponse> {
+  return apiFetch<VoiceAnswerResponse>('/api/lesson/voice', { method: 'POST', body: payload });
+}
+
+export type GetProgressResponse = ProgressData & {
+  next_topic?: string | null;
+  due_words?: number | null;
+};
+
+export function getProgress(): Promise<GetProgressResponse> {
+  return apiFetch<GetProgressResponse>('/api/progress');
+}
+
+export type GetDueWordsResponse = ReviewWord[];
+
+export function getDueWords(): Promise<GetDueWordsResponse> {
+  return apiFetch<GetDueWordsResponse>('/api/review/due');
+}
+
+export type ReviewWordPayload = {
+  word_id: string | number;
+  quality: number;
+};
+
+export type ReviewWordResponse = {
+  ok: boolean;
+};
+
+export function reviewWord(wordId: string | number, quality: number): Promise<ReviewWordResponse> {
+  return apiFetch<ReviewWordResponse>('/api/review/answer', {
+    method: 'POST',
+    body: { word_id: wordId, quality } satisfies ReviewWordPayload,
+  });
 }

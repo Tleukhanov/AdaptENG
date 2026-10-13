@@ -36,6 +36,11 @@ def get_tts(request: Request):
     return getattr(request.app.state, "tts", None)
 
 
+def get_stt(request: Request):
+    """STT-провайдер, собранный в lifespan (None, если STT не настроен)."""
+    return getattr(request.app.state, "stt", None)
+
+
 def get_current_tg_id(
     settings: Settings = Depends(get_settings_dep),
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),

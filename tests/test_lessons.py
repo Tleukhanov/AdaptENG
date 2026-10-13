@@ -382,3 +382,380 @@ async def test_generate_without_plan_hint_has_no_plan_block():
     for messages in llm.messages_by_call:
         text = " ".join(m["content"] for m in messages)
         assert "LESSON PLAN CONTEXT" not in text
+
+
+# ---------------------------------------------------------------------------
+# Phase C: API уроков Mini App (api/routers/lessons.py) + progress/SRS.
+#
+# Порт bot/mini_api.py в FastAPI. Проверяем контракт ответов, квоту, SRS,
+# заметки/XP и голосовую реплику (STT и to_wav подменяются).
+# ---------------------------------------------------------------------------
+
+import base64
+import time
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+from api.main import create_app
+from core.config import Settings
+from core.deck import (
+    DECK_PRESETS,
+    Deck,
+    DialogueScene,
+    QuizItem,
+    Slide,
+    VocabCard,
+)
+from storage.repo import SRSWord
+
+LESSONS_SECRET = "test-secret-0123456789abcdef0123456789"
+TG_ID = 999
+
+
+class FakeSTT:
+    """STT-заглушка: возвращает заранее заданный транскрипт."""
+
+    def __init__(self, transcript: str):
+        self.transcript = transcript
+
+    async def transcribe(self, audio_path: str) -> str:
+        return self.transcript
+
+
+async def _fake_to_wav(src: str, dst: str, sample_rate: int = 16000) -> None:
+    """to_wav без ffmpeg: пишем заглушку во временный wav-файл."""
+    Path(dst).write_bytes(b"RIFF")
+
+
+def _make_deck(topic: str = "Coffee") -> Deck:
+    return Deck(
+        title=topic,
+        subtitle_ru="Про кофе",
+        preset="mixed",
+        emoji="☕",
+        slides=[Slide(headline="Coffee", body="Coffee is great.", emoji="☕")],
+        vocabulary=[
+            VocabCard(
+                word="brew",
+                translation="заваривать",
+                example="I brew coffee.",
+                transcription="bruː",
+            )
+        ],
+        quiz=[
+            QuizItem(
+                question="Pick?",
+                options=["Tea", "Coffee"],
+                answer_index=1,
+                explanation_ru="Кофе",
+            )
+        ],
+        dialogue=DialogueScene(
+            scene_ru="Кафе",
+            lines=[{"character": "Barista", "line": "Hi!"}],
+            choices=[{"line": "Coffee", "next": -1}],
+        ),
+    )
+
+
+def _patch_deck(monkeypatch) -> None:
+    async def fake_generate_deck(
+        llm,
+        topic=None,
+        level=None,
+        profile=None,
+        recent_topics=None,
+        character_prompt=None,
+        plan_hint=None,
+        preset="mixed",
+    ):
+        return _make_deck(topic or "Coffee")
+
+    monkeypatch.setattr("api.routers.lessons.generate_deck", fake_generate_deck)
+
+
+def _lessons_app(tmp_path, *, llm_daily_limit: int = 1000) -> TestClient:
+    settings = Settings(
+        database_path=str(tmp_path / "adapteng_lessons.db"),
+        jwt_secret=LESSONS_SECRET,
+        api_insecure_auth=1,
+        llm_daily_limit=llm_daily_limit,
+        stt_provider="openai",
+        stt_api_key="",
+    )
+    return TestClient(create_app(settings))
+
+
+def _lessons_auth(client: TestClient) -> str:
+    payload = {
+        "id": TG_ID,
+        "first_name": "T",
+        "username": "t",
+        "auth_date": int(time.time()),
+        "hash": "",
+    }
+    return client.post("/api/auth/tg", json=payload).json()["token"]
+
+
+def _headers(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_lesson_new_ok(tmp_path, monkeypatch) -> None:
+    _patch_deck(monkeypatch)
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        response = client.post(
+            "/api/lesson/new",
+            json={"topic": "Coffee", "preset": "cards"},
+            headers=_headers(token),
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert set(data) == {"deck", "session_id", "preset", "topic", "plan_hint"}
+    assert isinstance(data["session_id"], int)
+    assert data["topic"] == "Coffee"
+    assert data["deck"]["title"] == "Coffee"
+    assert data["deck"]["slides"][0]["headline"] == "Coffee"
+    assert data["deck"]["quiz"][0]["answer_index"] == 1
+    assert data["preset"] in DECK_PRESETS
+    assert data["plan_hint"] is None
+
+
+def test_lesson_new_requires_auth(tmp_path) -> None:
+    client = _lessons_app(tmp_path)
+    with client:
+        response = client.post("/api/lesson/new", json={"topic": "Coffee"})
+    assert response.status_code == 401
+
+
+async def test_lesson_new_quota_exceeded_429(tmp_path, monkeypatch) -> None:
+    _patch_deck(monkeypatch)
+    client = _lessons_app(tmp_path, llm_daily_limit=5)
+    with client:
+        token = _lessons_auth(client)
+        repo = client.app.state.repo
+        user = await repo.get_or_create_user(TG_ID)
+        await repo.increment_llm_usage(user.id, date.today().isoformat(), 10)
+        response = client.post(
+            "/api/lesson/new",
+            json={"topic": "Coffee"},
+            headers=_headers(token),
+        )
+    assert response.status_code == 429
+    assert response.json()["detail"] == "Дневной лимит исчерпан"
+
+
+def test_lesson_new_without_llm_503(tmp_path, monkeypatch) -> None:
+    _patch_deck(monkeypatch)
+    client = _lessons_app(tmp_path)
+    with client:
+        client.app.state.llm = None
+        token = _lessons_auth(client)
+        response = client.post(
+            "/api/lesson/new",
+            json={"topic": "Coffee"},
+            headers=_headers(token),
+        )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "LLM не настроен"
+
+
+def test_lesson_answer_correct_and_incorrect(tmp_path, monkeypatch) -> None:
+    _patch_deck(monkeypatch)
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        client.post("/api/lesson/new", json={"topic": "Coffee"}, headers=_headers(token))
+
+        good = client.post(
+            "/api/lesson/answer",
+            json={"quiz_index": 0, "chosen": 1},
+            headers=_headers(token),
+        )
+        bad = client.post(
+            "/api/lesson/answer",
+            json={"quiz_index": 0, "chosen": 0},
+            headers=_headers(token),
+        )
+    assert good.status_code == 200
+    assert good.json() == {
+        "correct": True,
+        "answer_index": 1,
+        "explanation": "Кофе",
+        "explanation_ru": "Кофе",
+    }
+    assert bad.status_code == 200
+    assert bad.json()["correct"] is False
+    assert bad.json()["answer_index"] == 1
+
+
+def test_lesson_answer_without_session_404(tmp_path, monkeypatch) -> None:
+    _patch_deck(monkeypatch)
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        response = client.post(
+            "/api/lesson/answer",
+            json={"quiz_index": 0, "chosen": 1},
+            headers=_headers(token),
+        )
+    assert response.status_code == 404
+
+
+async def test_lesson_finish_ok_and_can_start_new(tmp_path, monkeypatch) -> None:
+    _patch_deck(monkeypatch)
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        client.post("/api/lesson/new", json={"topic": "Coffee"}, headers=_headers(token))
+
+        response = client.post(
+            "/api/lesson/finish",
+            json={
+                "score": 1,
+                "preset": "cards",
+                "quiz_answers": [{"quiz_index": 0, "chosen": 1, "correct": True}],
+                "flashcards": {"brew": False, "coffee": True},
+            },
+            headers=_headers(token),
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["score"] == 1
+        assert data["xp"] == 10
+        assert data["next_topic"] == ""
+        assert data["repeat_words"] == ["brew"]
+
+        repo = client.app.state.repo
+        user = await repo.get_or_create_user(TG_ID)
+        notes = await repo.get_lesson_notes(user.id, limit=10)
+        assert len(notes) == 1
+        assert notes[0].lesson_id >= 0
+        assert "brew" in notes[0].vocabulary
+        words = await repo.get_srs_words(user.id, limit=10)
+        assert any(w.word == "brew" for w in words)
+        assert await repo.get_active_mini_lesson(user.id) is None
+
+        again = client.post("/api/lesson/new", json={"topic": "Travel"}, headers=_headers(token))
+    assert again.status_code == 200
+    assert again.json()["topic"] == "Travel"
+
+
+def test_lesson_voice_ok(tmp_path, monkeypatch) -> None:
+    _patch_deck(monkeypatch)
+    monkeypatch.setattr("api.routers.lessons.to_wav", _fake_to_wav)
+    client = _lessons_app(tmp_path)
+    with client:
+        client.app.state.stt = FakeSTT("I brew coffee")
+        token = _lessons_auth(client)
+        client.post("/api/lesson/new", json={"topic": "Coffee"}, headers=_headers(token))
+        audio = base64.b64encode(b"fake-audio-bytes").decode()
+        response = client.post(
+            "/api/lesson/voice",
+            json={"audio_base64": audio, "expected_line": "brew coffee"},
+            headers=_headers(token),
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["transcript"] == "I brew coffee"
+    assert data["rating"] == 100
+    assert data["tip"] == "Отлично произнесено!"
+    assert data["expected_line"] == "brew coffee"
+
+
+def test_lesson_voice_without_stt_503(tmp_path, monkeypatch) -> None:
+    _patch_deck(monkeypatch)
+    client = _lessons_app(tmp_path)
+    with client:
+        client.app.state.stt = None
+        token = _lessons_auth(client)
+        client.post("/api/lesson/new", json={"topic": "Coffee"}, headers=_headers(token))
+        audio = base64.b64encode(b"fake-audio-bytes").decode()
+        response = client.post(
+            "/api/lesson/voice",
+            json={"audio_base64": audio, "expected_line": "brew coffee"},
+            headers=_headers(token),
+        )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "STT не настроен"
+
+
+def test_progress_ok(tmp_path) -> None:
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        response = client.get("/api/progress", headers=_headers(token))
+    assert response.status_code == 200
+    data = response.json()
+    assert data["level"] == "—"
+    assert data["total_lessons"] == 0
+    assert data["xp"] == 0
+    assert data["character"] == "default"
+    assert data["next_topic"] == ""
+    assert data["due_words"] == 0
+
+
+def test_progress_requires_auth(tmp_path) -> None:
+    client = _lessons_app(tmp_path)
+    with client:
+        response = client.get("/api/progress")
+    assert response.status_code == 401
+
+
+async def test_review_due_and_answer(tmp_path) -> None:
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        repo = client.app.state.repo
+        user = await repo.get_or_create_user(TG_ID)
+        past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        word_id = await repo.add_srs_word(
+            SRSWord(
+                user_id=user.id,
+                word="brew",
+                translation="заваривать",
+                example="I brew coffee.",
+                next_review=past,
+                interval_days=1,
+                ease_factor=2.5,
+                created_at=past,
+            )
+        )
+
+        due = client.get("/api/review/due", headers=_headers(token))
+        assert due.status_code == 200
+        items = due.json()
+        assert len(items) == 1
+        assert items[0] == {
+            "id": word_id,
+            "word": "brew",
+            "translation": "заваривать",
+            "example": "I brew coffee.",
+        }
+
+        answer = client.post(
+            "/api/review/answer",
+            json={"word_id": word_id, "quality": 5},
+            headers=_headers(token),
+        )
+        assert answer.status_code == 200
+        assert answer.json() == {"ok": True}
+
+        due_after = client.get("/api/review/due", headers=_headers(token))
+        assert due_after.json() == []
+
+
+def test_review_answer_missing_word_404(tmp_path) -> None:
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        response = client.post(
+            "/api/review/answer",
+            json={"word_id": 123456, "quality": 5},
+            headers=_headers(token),
+        )
+    assert response.status_code == 404
