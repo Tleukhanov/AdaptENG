@@ -244,6 +244,7 @@ def build_deck_prompt(
     character_prompt: str | None = None,
     plan_hint: str | None = None,
     preset: str = "mixed",
+    weak_areas_prompt: str | None = None,
 ) -> list[dict[str, str]]:
     """Собирает system/user-сообщения для одной генерации деки."""
     normalized_preset = _normalized_preset(preset)
@@ -262,6 +263,13 @@ def build_deck_prompt(
         system += (
             f"\n\n{profile_text}\n"
             "Use the student's interests to make the topic and examples engaging, and use weak areas to choose useful language."
+        )
+    weak_text = _text(weak_areas_prompt)
+    if weak_text:
+        system += (
+            f"\n\n{weak_text}\n"
+            "Weave these weak areas into the tasks so the student practices them naturally: "
+            "pick vocabulary and grammar points that target them, without mentioning the weakness list."
         )
     recent = _normalized_recent_topics(recent_topics)
     if recent:
@@ -724,6 +732,7 @@ class DeckService:
         character_prompt: str | None = None,
         plan_hint: str | None = None,
         preset: str = "mixed",
+        weak_areas_prompt: str | None = None,
     ) -> Deck | None:
         normalized_preset = _normalized_preset(preset)
         messages = build_deck_prompt(
@@ -734,6 +743,7 @@ class DeckService:
             character_prompt=character_prompt,
             plan_hint=plan_hint,
             preset=normalized_preset,
+            weak_areas_prompt=weak_areas_prompt,
         )
         try:
             raw = await self._llm.chat(messages, temperature=0.7, json_mode=True)
@@ -760,6 +770,7 @@ async def generate_deck(
     character_prompt: str | None = None,
     plan_hint: str | None = None,
     preset: str = "mixed",
+    weak_areas_prompt: str | None = None,
 ) -> Deck | None:
     return await DeckService(llm).generate(
         topic,
@@ -769,6 +780,7 @@ async def generate_deck(
         character_prompt=character_prompt,
         plan_hint=plan_hint,
         preset=preset,
+        weak_areas_prompt=weak_areas_prompt,
     )
 
 

@@ -186,6 +186,19 @@ def test_prompt_demands_english_examples():
     assert "Cyrillic" in system
 
 
+def test_prompt_includes_profile_and_weak_areas():
+    messages = build_deck_prompt(
+        "Coffee",
+        preset="mixed",
+        profile="Goal: Работа в IT; Interests: chess, travel",
+        weak_areas_prompt="Student weak areas (ask about these): Present Perfect",
+    )
+    system = messages[0]["content"] + messages[1]["content"] + messages[2]["content"]
+    assert "Работа в IT" in system
+    assert "chess" in system
+    assert "Present Perfect" in system
+
+
 async def test_plan_hint_sets_deck_topic_and_reaches_prompt():
     llm = FakeLLM(VALID_DECK_JSON)
     deck = await generate_deck(
