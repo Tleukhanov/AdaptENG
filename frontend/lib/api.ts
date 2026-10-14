@@ -260,3 +260,64 @@ export type LeaderboardEntry = {
 export function getLeaderboard(limit = 20): Promise<LeaderboardEntry[]> {
   return apiFetch<LeaderboardEntry[]>(`/api/leaderboard?limit=${limit}`);
 }
+
+export type ProfileData = {
+  goal: string;
+  interests: string[];
+  weak_areas: string[];
+  preferred_format: string;
+  notes: string;
+  level: string | null;
+  character: string;
+  has_profile: boolean;
+};
+
+export type ProfilePayload = {
+  goal?: string;
+  interests?: string[];
+  weak_areas?: string[];
+  preferred_format?: string;
+  notes?: string;
+  level?: string;
+};
+
+export function getProfile(): Promise<ProfileData> {
+  return apiFetch<ProfileData>('/api/me/profile');
+}
+
+export function updateProfile(payload: ProfilePayload): Promise<ProfileData> {
+  return apiFetch<ProfileData>('/api/me/profile', {
+    method: 'PUT',
+    body: payload satisfies ProfilePayload,
+  });
+}
+
+export type DiagnosticTask = {
+  text: string;
+  level_hint: string;
+};
+
+export type DiagnosticResult = {
+  level: string;
+  confidence: number;
+  explanation_ru: string;
+  strengths: string[];
+  weaknesses: string[];
+  recommendation: string;
+};
+
+export function startDiagnostic(): Promise<{ tasks: DiagnosticTask[] }> {
+  return apiFetch<{ tasks: DiagnosticTask[] }>('/api/diagnostic/start', {
+    method: 'POST',
+  });
+}
+
+export function finishDiagnostic(
+  answers: string[],
+  tasks: DiagnosticTask[],
+): Promise<DiagnosticResult> {
+  return apiFetch<DiagnosticResult>('/api/diagnostic/finish', {
+    method: 'POST',
+    body: { answers, tasks },
+  });
+}

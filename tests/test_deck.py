@@ -148,10 +148,42 @@ def test_partial_fields_are_safe_and_defaults_are_used():
     assert len(deck.vocabulary) == 1
     assert deck.vocabulary[0].word == "check"
     assert deck.vocabulary[0].translation == ""
-    assert deck.vocabulary[0].example == ""
     assert deck.vocabulary[0].transcription == ""
     assert deck.title == "English lesson"
     assert deck.emoji == "📚"
+
+
+def test_vocabulary_example_in_russian_is_cleared():
+    raw = {
+        "preset": "cards",
+        "vocabulary": [
+            {
+                "word": "humiliate",
+                "translation": "унижать",
+                "example": "Он унижает её каждое утро.",
+            },
+            {
+                "word": "brew",
+                "translation": "заваривать",
+                "example": "I brew coffee every morning.",
+            },
+        ],
+    }
+    deck = deck_from_json(json.dumps(raw))
+
+    assert deck is not None
+    assert len(deck.vocabulary) == 2
+    assert deck.vocabulary[0].example == ""
+    assert deck.vocabulary[0].word == "humiliate"
+    assert deck.vocabulary[1].example == "I brew coffee every morning."
+
+
+def test_prompt_demands_english_examples():
+    messages = build_deck_prompt("Coffee", preset="cards")
+    system = messages[0]["content"]
+    assert "example" in system
+    assert "English" in system
+    assert "Cyrillic" in system
 
 
 async def test_plan_hint_sets_deck_topic_and_reaches_prompt():

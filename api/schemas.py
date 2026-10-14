@@ -221,6 +221,78 @@ class LeaderboardEntry(BaseModel):
     streak_days: int = 0
 
 
+class ProfileUpdateRequest(BaseModel):
+    """Память студента: цель, интересы, формат, заметки и уровень."""
+
+    goal: str | None = Field(default=None, max_length=300)
+    interests: list[str] | None = Field(default=None)
+    weak_areas: list[str] | None = Field(default=None)
+    preferred_format: str | None = Field(default=None, max_length=16)
+    notes: str | None = Field(default=None, max_length=1000)
+    level: str | None = Field(default=None, max_length=4)
+
+    @field_validator("preferred_format")
+    @classmethod
+    def _check_format(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        candidate = value.strip().lower()
+        if candidate and candidate not in {"voice", "text"}:
+            raise ValueError("preferred_format должен быть voice, text или пустым")
+        return candidate
+
+    @field_validator("interests", "weak_areas")
+    @classmethod
+    def _check_list(cls, value: list[str] | None) -> list[str] | None:
+        if value is None:
+            return None
+        return [item.strip() for item in value if item and item.strip()][:12]
+
+
+class ProfileResponse(BaseModel):
+    """Профиль-память пользователя для веба."""
+
+    goal: str = ""
+    interests: list[str] = Field(default_factory=list)
+    weak_areas: list[str] = Field(default_factory=list)
+    preferred_format: str = ""
+    notes: str = ""
+    level: str | None = None
+    character: str = ""
+    has_profile: bool = False
+
+
+class DiagnosticTaskOut(BaseModel):
+    """Задание диагностики уровня."""
+
+    text: str
+    level_hint: str = ""
+
+
+class DiagnosticStartResponse(BaseModel):
+    """Лестница из заданий для определения уровня."""
+
+    tasks: list[DiagnosticTaskOut] = Field(default_factory=list)
+
+
+class DiagnosticFinishRequest(BaseModel):
+    """Ответы студента + задания (клиент возвращает их из /start)."""
+
+    answers: list[str] = Field(default_factory=list)
+    tasks: list[DiagnosticTaskOut] = Field(default_factory=list)
+
+
+class DiagnosticFinishResponse(BaseModel):
+    """Итог диагностики: уровень CEFR с обоснованием."""
+
+    level: str
+    confidence: float = 0.0
+    explanation_ru: str = ""
+    strengths: list[str] = Field(default_factory=list)
+    weaknesses: list[str] = Field(default_factory=list)
+    recommendation: str = ""
+
+
 class HealthResponse(BaseModel):
     ok: bool = True
 

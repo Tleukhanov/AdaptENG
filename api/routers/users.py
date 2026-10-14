@@ -1,4 +1,4 @@
-"""GET /api/me и PUT /api/me/character — профиль авторизованного пользователя."""
+"""GET /api/me, PUT /api/me/character и профиль-память студента."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from core.characters import character_localized, get_character, list_characters
 from core.config import Settings
+from core.lessons import LEVEL_DESCRIPTIONS
 from storage.repo import Repository, UserProfile
 
 from ..deps import (
@@ -17,9 +18,24 @@ from ..deps import (
     get_settings_dep,
     resolve_locale,
 )
-from ..schemas import CharacterSetResponse, MeResponse, SetCharacterRequest, UserPublic
+from ..schemas import (
+    CharacterSetResponse,
+    MeResponse,
+    ProfileResponse,
+    ProfileUpdateRequest,
+    SetCharacterRequest,
+    UserPublic,
+)
 
 router = APIRouter(prefix="/api", tags=["users"])
+
+
+def _split_list(value: str) -> list[str]:
+    return [part.strip() for part in value.split(",") if part.strip()]
+
+
+def _join_list(values: list[str]) -> str:
+    return ", ".join(item.strip() for item in values if item.strip())
 
 
 @router.get("/me", response_model=MeResponse)
@@ -71,3 +87,90 @@ async def set_character(
     locale = resolve_locale(request)
     character_view = character_localized(get_character(body.character_id), locale)
     return CharacterSetResponse(character=character_view)
+
+
+@router.get("/me/profile", response_model=ProfileResponse)
+async def get_profile(
+    tg_id: int = Depends(get_current_tg_id),
+    repo: Repository = Depends(get_repository),
+) -> ProfileResponse:
+    """Память студента: цель, интересы, формат, заметки, уровень."""
+    user = await repo.get_or_create_user(tg_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Пользователь не найден")
+
+    profile = await repo.get_profile(user.id)
+    has_profile = bool(
+        profile
+        and (
+            profile.goal
+            or profile.interests
+            or profile.weak_areas
+            or profile.preferred_format
+            or profile.notes
+        )
+    )
+    return ProfileResponse(
+        goal=profile.goal if profile else "",
+        interests=_split_list(profile.interests) if profile else [],
+        weak_areas=_split_list(profile.weak_areas) if profile else [],
+        preferred_format=profile.preferred_format if profile else "",
+        notes=profile.notes if profile else "",
+        level=user.level,
+        character=profile.character if profile else "",
+        has_profile=has_profile,
+    )
+
+
+@router.put("/me/profile", response_model=ProfileResponse)
+async def update_profile(
+    body: ProfileUpdateRequest,
+    tg_id: int = Depends(get_current_tg_id),
+    repo: Repository = Depends(get_repository),
+) -> ProfileResponse:
+    """Сохраняет ответы онбординга: уровень, цель, интересы, формат, заметки."""
+    user = await repo.get_or_create_user(tg_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Пользователь не найден")
+
+    profile = await repo.get_profile(user.id)
+    if profile is None:
+        profile = UserProfile(user_id=user.id)
+
+    if body.level is not None:
+        candidate = body.level.strip().upper()
+        if candidate and candidate not in LEVEL_DESCRIPTIONS:
+            raise HTTPException(status_code=400, detail="Уровень должен быть A1..C1")
+        await repo.set_level(user.id, candidate)
+        user.level = candidate or None
+
+    if body.goal is not None:
+        profile.goal = body.goal.strip()
+    if body.interests is not None:
+        profile.interests = _join_list(body.interests)
+    if body.weak_areas is not None:
+        profile.weak_areas = _join_list(body.weak_areas)
+    if body.preferred_format is not None:
+        profile.preferred_format = body.preferred_format
+    if body.notes is not None:
+        profile.notes = body.notes.strip()
+
+    profile.updated_at = datetime.now(timezone.utc).isoformat()
+    await repo.save_profile(profile)
+
+    return ProfileResponse(
+        goal=profile.goal,
+        interests=_split_list(profile.interests),
+        weak_areas=_split_list(profile.weak_areas),
+        preferred_format=profile.preferred_format,
+        notes=profile.notes,
+        level=user.level,
+        character=profile.character,
+        has_profile=bool(
+            profile.goal
+            or profile.interests
+            or profile.weak_areas
+            or profile.preferred_format
+            or profile.notes
+        ),
+    )

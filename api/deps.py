@@ -31,6 +31,11 @@ def get_practice(request: Request):
     return getattr(request.app.state, "practice", None)
 
 
+def get_llm(request: Request):
+    """LLM-провайдер, собранный в lifespan (None, если LLM не настроен)."""
+    return getattr(request.app.state, "llm", None)
+
+
 def get_tts(request: Request):
     """TTS-провайдер, собранный в lifespan (None, если TTS не настроен)."""
     return getattr(request.app.state, "tts", None)

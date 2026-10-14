@@ -105,7 +105,8 @@ export default function LessonPage() {
         setStatus('cover');
         return;
       }
-      const res = await startLesson();
+      const topicFromUrl = new URLSearchParams(window.location.search).get('topic') ?? undefined;
+      const res = await startLesson(topicFromUrl || undefined);
       const d = res.deck ? apiDeckToLocal(res.deck as ApiDeck) : sampleDeck(locale);
       setDeck(d);
       setSessionId(res.session_id ?? undefined);
