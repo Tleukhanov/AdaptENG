@@ -82,34 +82,36 @@ export default function LeaderboardPage() {
 
       {(status === 'ready' || status === 'unauth') && (
         <div className="mt-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
-                <th className="px-5 py-3">{t('rank')}</th>
-                <th className="px-5 py-3">{t('name')}</th>
-                <th className="px-5 py-3 text-right">{t('xp')}</th>
-                <th className="px-5 py-3 text-right">{t('lessons')}</th>
-                <th className="px-5 py-3 text-right">{t('streak')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.user_id} className={`border-b border-slate-100 last:border-0 ${r.isMe ? 'bg-indigo-50' : ''}`}>
-                  <td className="px-5 py-3 font-semibold text-slate-500">
-                    {r.rank}
-                    {r.isMe ? <span className="ml-2 rounded-full bg-indigo-500 px-2 py-0.5 text-[10px] font-bold text-white">{t('you')}</span> : null}
-                  </td>
-                  <td className="px-5 py-3">
-                    <p className="font-semibold text-slate-900">{r.first_name || r.username || `#${r.user_id}`}</p>
-                    {r.level ? <p className="text-xs text-slate-500">{r.level}</p> : null}
-                  </td>
-                  <td className="px-5 py-3 text-right font-semibold text-slate-900">{r.xp}</td>
-                  <td className="px-5 py-3 text-right text-slate-600">{r.total_lessons}</td>
-                  <td className="px-5 py-3 text-right text-slate-600">{r.streak_days}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[280px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <th className="px-3 py-3 sm:px-5">{t('rank')}</th>
+                  <th className="px-3 py-3 sm:px-5">{t('name')}</th>
+                  <th className="px-3 py-3 text-right sm:px-5">{t('xp')}</th>
+                  <th className="px-3 py-3 text-right sm:px-5">{t('lessons')}</th>
+                  <th className="hidden px-5 py-3 text-right sm:table-cell">{t('streak')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.user_id} className={`border-b border-slate-100 last:border-0 ${r.isMe ? 'bg-indigo-50' : ''}`}>
+                    <td className="px-3 py-3 font-semibold text-slate-500 sm:px-5">
+                      {r.rank}
+                      {r.isMe ? <span className="ml-2 rounded-full bg-indigo-500 px-2 py-0.5 text-[10px] font-bold text-white">{t('you')}</span> : null}
+                    </td>
+                    <td className="px-3 py-3 sm:px-5">
+                      <p className="font-semibold text-slate-900">{r.first_name || r.username || `#${r.user_id}`}</p>
+                      {r.level ? <p className="text-xs text-slate-500">{r.level}</p> : null}
+                    </td>
+                    <td className="px-3 py-3 text-right font-semibold text-slate-900 sm:px-5">{r.xp}</td>
+                    <td className="px-3 py-3 text-right text-slate-600 sm:px-5">{r.total_lessons}</td>
+                    <td className="hidden px-5 py-3 text-right text-slate-600 sm:table-cell">{r.streak_days}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {rows.length === 0 && <p className="p-6 text-slate-600">{t('noPlace')}</p>}
         </div>
       )}
