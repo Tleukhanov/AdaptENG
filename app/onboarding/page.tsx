@@ -108,13 +108,41 @@ export default function OnboardingPage() {
       return;
     }
     let active = true;
+    const force =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('force') === '1';
     (async () => {
       try {
         const profile = await getProfile();
         if (!active) return;
-        if (profile.has_profile) {
+        if (profile.has_profile && !force) {
           router.replace('/menu');
           return;
+        }
+        if (force && profile) {
+          // предзаполнение: онбординг работает как редактор профиля
+          if (profile.level) {
+            setLevel(profile.level);
+          }
+          if (profile.interests) {
+            setInterests(
+              profile.interests.filter((id) => INTERESTS.some((item) => item.id === id)),
+            );
+          }
+          if (profile.preferred_format) {
+            setFormat(profile.preferred_format);
+          }
+          if (profile.goal) {
+            setGoal('other');
+            setCustomGoal(profile.goal);
+          }
+          const hoursMatch = profile.notes.match(/1.2|3.5|5.10|10\+|\d+[-+]\d*\+?/);
+          if (hoursMatch) {
+            const found = HOURS.find((item) => item.id === hoursMatch[0]);
+            if (found) {
+              setHours(found.id);
+            }
+          }
         }
       } catch {
         // профиль недоступен — идём по онбордингу дальше
