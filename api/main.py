@@ -17,7 +17,7 @@ from core.practice import PracticeService
 from providers import create_llm, create_stt, create_tts
 from storage import create_repository
 
-from .routers import auth, characters, chat, health, lessons, progress, users
+from .routers import auth, characters, chat, diagnostic, health, lessons, progress, users
 from .security import require_secret
 
 logger = logging.getLogger(__name__)
@@ -92,6 +92,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(chat.router)
     app.include_router(lessons.router)
     app.include_router(progress.router)
+    app.include_router(diagnostic.router)
 
     return app
 

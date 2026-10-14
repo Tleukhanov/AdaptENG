@@ -43,7 +43,7 @@ export default function LoginButton({ locale }: { locale: string }) {
         const data = (await response.json()) as { token?: string; error?: string };
         if (data.token) {
           window.localStorage.setItem(TOKEN_KEY, data.token);
-          window.location.href = '/dashboard';
+          window.location.href = '/onboarding';
         } else {
           window.alert(data.error ?? 'Auth failed');
         }

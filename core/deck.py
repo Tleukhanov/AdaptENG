@@ -38,7 +38,7 @@ JSON schema:
     {"headline": "short English headline", "body": "one or two concise English sentences", "emoji": "one fitting emoji"}
   ],
   "vocabulary": [
-    {"word": "English word or phrase", "translation": "Russian translation", "example": "short English example", "transcription": "IPA transcription or pronunciation"}
+    {"word": "English word or phrase", "translation": "Russian translation", "example": "short English sentence (4-10 words) in English only", "transcription": "IPA transcription or pronunciation"}
   ],
   "quiz": [
     {"question": "English question", "options": ["English option", "..."], "answer_index": 0, "explanation_ru": "short Russian explanation"}
@@ -60,6 +60,7 @@ Preset rules:
 Content rules:
 - title, slide headlines and bodies, vocabulary words and examples, quiz questions and options, dialogue lines and choices are in ENGLISH.
 - subtitle_ru, vocabulary translations, quiz explanation_ru and dialogue scene_ru are in RUSSIAN.
+- ABSOLUTELY CRITICAL: every vocabulary "example" is an ENGLISH sentence. It is the sentence the student reads to learn the word. A Russian or Cyrillic "example" is a critical error. The Russian text belongs only in "translation".
 - The answer_index is a zero-based integer that points to the correct item in options; every question must have at least 2 valid options.
 - A dialogue has 3 to 6 lines, 2 to 3 choices for each of at most 2 student turns, and the choices must fit the student's level.
 - Keep the content short, useful and suitable for the requested CEFR level. Do not repeat the same idea in several sections.
@@ -89,6 +90,21 @@ def _text(value: Any) -> str:
     if isinstance(value, str):
         return value.strip()
     return ""
+
+
+_CYRILLIC_RE = re.compile(r"[\u0400-\u04FF]")
+
+
+def _looks_russian(text: str) -> bool:
+    """True, если текст содержит кириллицу (пример на русском вместо английского)."""
+    return bool(_CYRILLIC_RE.search(text))
+
+
+def _cyrillic_ratio(text: str) -> float:
+    letters = [ch for ch in text if ch.isalpha()]
+    if not letters:
+        return 0.0
+    return sum(1 for ch in letters if _CYRILLIC_RE.match(ch)) / len(letters)
 
 
 def _int(value: Any) -> int | None:
@@ -330,10 +346,16 @@ class VocabCard:
     def from_dict(cls, data: Any) -> "VocabCard":
         if not isinstance(data, dict):
             return cls()
+        example = _text(data.get("example"))
+        # LLM иногда кладёт русский перевод в example: показывать его нельзя —
+        # слово остаётся, а пустой пример фронт просто скрывает.
+        if _cyrillic_ratio(example) > 0.1:
+            logger.warning("deck vocab: example на русском (%r) — очищен", example[:40])
+            example = ""
         return cls(
             word=_text(data.get("word")),
             translation=_text(data.get("translation")),
-            example=_text(data.get("example")),
+            example=example,
             transcription=_text(data.get("transcription")),
         )
 
