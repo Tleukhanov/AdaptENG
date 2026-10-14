@@ -36,6 +36,7 @@ from core.lesson_plan import (
 from core.profile import to_profile_snippet
 from core.progress import ProgressService
 from core.srs import SRSService
+from core.weak_areas import WeakAreaService
 from storage.repo import LessonNote, LessonPlanRow
 
 from ..deps import get_current_tg_id, get_repository, get_settings_dep, get_stt
@@ -98,15 +99,17 @@ def _preset_or_default(value: Any) -> str:
 
 
 async def _lesson_context(repo, user) -> dict[str, Any]:
-    """Профиль, персонаж и недавние темы — те же источники, что у чат-урока."""
+    """Профиль, персонаж, слабые области и недавние темы — как у бота."""
     profile = await repo.get_profile(user.id)
     recent_notes = await repo.get_lesson_notes(user.id, limit=50)
     recent_topics = list(reversed([note.topic for note in recent_notes])) if recent_notes else None
+    weak_prompt = await WeakAreaService(repo).get_top_for_prompt(user.id)
     return {
         "level": user.level,
         "profile": to_profile_snippet(profile) or None,
         "recent_topics": recent_topics,
         "character_prompt": character_prompt(profile.character if profile else ""),
+        "weak_areas_prompt": weak_prompt or None,
     }
 
 

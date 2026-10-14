@@ -340,7 +340,7 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="mx-auto flex h-[calc(100vh-4rem)] max-w-3xl flex-col overflow-hidden px-4">
+    <main className="mx-auto flex h-[calc(100dvh-4rem)] max-w-3xl flex-col overflow-hidden px-4">
       <header className="-mx-4 border-b border-slate-200/70 bg-white/85 px-4 backdrop-blur">
         <div className="flex items-center gap-3 py-3">
           <Link

@@ -395,6 +395,7 @@ import base64
 import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 
 from fastapi.testclient import TestClient
 
@@ -408,9 +409,11 @@ from core.deck import (
     Slide,
     VocabCard,
 )
-from storage.repo import LessonNote, SRSWord
+from storage.repo import LessonNote, SRSWord, UserProfile
 
 LESSONS_SECRET = "test-secret-0123456789abcdef0123456789"
+
+DECK_CALLS: list[dict[str, Any]] = []
 TG_ID = 999
 
 
@@ -461,6 +464,8 @@ def _make_deck(topic: str = "Coffee") -> Deck:
 
 
 def _patch_deck(monkeypatch) -> None:
+    captured: dict[str, Any] = {}
+
     async def fake_generate_deck(
         llm,
         topic=None,
@@ -470,9 +475,22 @@ def _patch_deck(monkeypatch) -> None:
         character_prompt=None,
         plan_hint=None,
         preset="mixed",
+        weak_areas_prompt=None,
     ):
+        captured.update(
+            {
+                "topic": topic,
+                "level": level,
+                "profile": profile,
+                "character_prompt": character_prompt,
+                "weak_areas_prompt": weak_areas_prompt,
+                "preset": preset,
+            }
+        )
         return _make_deck(topic or "Coffee")
 
+    captured["deck"] = _make_deck()
+    DECK_CALLS.append(captured)
     monkeypatch.setattr("api.routers.lessons.generate_deck", fake_generate_deck)
 
 
@@ -643,6 +661,37 @@ async def test_lesson_finish_ok_and_can_start_new(tmp_path, monkeypatch) -> None
         again = client.post("/api/lesson/new", json={"topic": "Travel"}, headers=_headers(token))
     assert again.status_code == 200
     assert again.json()["topic"] == "Travel"
+
+
+async def test_lesson_passes_profile_and_weak_areas_to_generation(tmp_path, monkeypatch) -> None:
+    DECK_CALLS.clear()
+    _patch_deck(monkeypatch)
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        repo = client.app.state.repo
+        user = await repo.get_or_create_user(TG_ID)
+        await repo.save_profile(
+            UserProfile(
+                user_id=user.id,
+                goal="Работа в IT",
+                interests="chess, travel",
+                character="chill",
+            )
+        )
+        now = datetime.now(timezone.utc).isoformat()
+        await repo.upsert_weak_area(user.id, "Present Perfect", incorrect_increment=1, last_seen=now)
+
+        response = client.post("/api/lesson/new", json={"topic": "Coffee"}, headers=_headers(token))
+
+    assert response.status_code == 200
+    assert DECK_CALLS
+    context = DECK_CALLS[-1]
+    assert context["profile"]
+    assert "Работа в IT" in context["profile"]
+    assert "chess" in context["profile"]
+    assert context["weak_areas_prompt"]
+    assert "Present Perfect" in context["weak_areas_prompt"]
 
 
 def test_lesson_voice_ok(tmp_path, monkeypatch) -> None:
