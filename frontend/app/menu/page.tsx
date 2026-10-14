@@ -150,6 +150,15 @@ export default function MenuPage() {
           {t('demoHint')}
         </p>
       ) : null}
+
+      {hasToken && API ? (
+        <Link
+          href="/onboarding?force=1"
+          className="mt-4 inline-block text-sm font-semibold text-slate-500 hover:text-indigo-600"
+        >
+          {t('toOnboarding')}
+        </Link>
+      ) : null}
     </main>
   );
 }
