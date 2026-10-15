@@ -17,6 +17,8 @@ from core.practice import PracticeService
 from providers import create_llm, create_stt, create_tts
 from storage import create_repository
 
+from .loadguard import ActionThrottle, AsyncQueueGuard, ClientWindowLimiter
+from .ratelimit import RateLimitMiddleware
 from .routers import auth, characters, chat, diagnostic, health, lessons, progress, users
 from .security import require_secret
 
@@ -56,6 +58,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except Exception as exc:
             logger.warning("STT не настроен, /api/lesson/voice недоступен: %s", exc)
             app.state.stt = None
+
+        # Защита от перегрузки: очередь LLM, пул STT, троттлинги.
+        app.state.llm_guard = AsyncQueueGuard(
+            settings.llm_max_concurrency,
+            settings.llm_queue_max,
+            settings.llm_queue_timeout_sec,
+        )
+        app.state.stt_guard = AsyncQueueGuard(
+            settings.stt_max_concurrency,
+            max(4, settings.stt_max_concurrency * 2),
+            settings.llm_queue_timeout_sec,
+        )
+        app.state.action_throttle = ActionThrottle(
+            window_sec=60.0,
+            limit=settings.api_llm_actions_per_min,
+            min_interval=settings.api_llm_min_interval_sec,
+        )
+        app.state.client_limiter = ClientWindowLimiter(
+            window_sec=settings.api_rate_limit_window_sec,
+            limit=settings.api_rate_limit_per_min,
+        )
+        logger.info(
+            "Load guard: llm_concurrency=%s queue_max=%s stt_concurrency=%s",
+            settings.llm_max_concurrency,
+            settings.llm_queue_max,
+            settings.stt_max_concurrency,
+        )
         logger.info(
             "AdaptENG api started (db=%s)",
             "postgres" if settings.database_url else "sqlite",
@@ -84,6 +113,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Лимит запросов на клиента; лимитер создаётся в lifespan, поэтому
+    # middleware-обёртка достаёт его из app.state по первому запросу.
+    app.add_middleware(RateLimitMiddleware)
 
     app.include_router(health.router)
     app.include_router(auth.router)

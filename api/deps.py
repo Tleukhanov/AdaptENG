@@ -46,6 +46,29 @@ def get_stt(request: Request):
     return getattr(request.app.state, "stt", None)
 
 
+def get_llm_guard(request: Request):
+    """Очередь LLM-вызовов (семафор + лимит ожидания)."""
+    return getattr(request.app.state, "llm_guard", None)
+
+
+def get_stt_guard(request: Request):
+    """Пул для распознавания речи."""
+    return getattr(request.app.state, "stt_guard", None)
+
+
+def get_action_throttle(request: Request):
+    """Троттлинг LLM-действий на пользователя."""
+    return getattr(request.app.state, "action_throttle", None)
+
+
+def client_key(request: Request) -> str:
+    """Ключ клиента для лимита запросов: IP клиента (за заголовками прокси)."""
+    forwarded = request.headers.get("x-forwarded-for") or ""
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
 def get_current_tg_id(
     settings: Settings = Depends(get_settings_dep),
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),

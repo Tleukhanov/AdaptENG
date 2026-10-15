@@ -113,6 +113,17 @@ export function apiFetch<T = unknown>(path: string, options: ApiOptions = {}): P
   return request(path, options, 'json') as Promise<T>;
 }
 
+/**
+ * Текст ошибки от сервера (он более точный, чем локализованный запасной):
+ * «Дневной лимит исчерпан» ≠ «очередь переполнена» ≠ «слишком часто пишешь».
+ */
+export function errorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError && error.message && error.message !== 'request failed') {
+    return error.message;
+  }
+  return fallback;
+}
+
 export function apiBlob(path: string, options: ApiOptions = {}): Promise<Blob> {
   return request(path, options, 'blob') as Promise<Blob>;
 }

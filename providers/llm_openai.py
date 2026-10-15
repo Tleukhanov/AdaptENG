@@ -27,11 +27,13 @@ class OpenAIChatProvider(LLMProvider):
         default_temperature: float = 0.3,
         retries: int = _MAX_RETRIES,
         backoff: tuple[float, ...] = _BACKOFF_SECONDS,
+        timeout: float = 90.0,
     ):
         self._client = AsyncOpenAI(
             base_url=base_url,
             api_key=api_key,
             max_retries=0,
+            timeout=timeout,
         )
         self._model = model
         self._temperature = default_temperature

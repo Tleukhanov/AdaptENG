@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   API,
+  errorMessage,
   finishDiagnostic,
   getProfile,
   getToken,
@@ -206,8 +207,8 @@ export default function OnboardingPage() {
         setResult(res);
         setLevel(res.level);
         setStage('test-result');
-      } catch {
-        setError(t('testError'));
+      } catch (e) {
+        setError(errorMessage(e, t('testError')));
       } finally {
         setTestBusy(false);
       }
@@ -228,8 +229,8 @@ export default function OnboardingPage() {
         notes: hoursText ? `${t('hoursNote')}: ${hoursText}` : undefined,
       });
       router.replace('/menu');
-    } catch {
-      setError(t('saveError'));
+    } catch (e) {
+      setError(errorMessage(e, t('saveError')));
       setSaving(false);
     }
   }

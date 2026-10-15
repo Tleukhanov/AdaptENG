@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from core.diagnostic import (
     DiagnosticService,
@@ -19,6 +19,7 @@ from core.diagnostic import (
 from storage.repo import Repository
 
 from ..deps import get_current_tg_id, get_llm, get_repository, get_settings_dep
+from ..loadguard import QueueFull
 from ..quota import QuotaExceeded, check_quota, consume_quota
 from ..schemas import (
     DiagnosticFinishRequest,
@@ -30,6 +31,8 @@ from ..schemas import (
 router = APIRouter(prefix="/api", tags=["diagnostic"])
 
 logger = logging.getLogger(__name__)
+
+QUEUE_FULL_ERROR = "Сейчас много запросов — очередь переполнена, попробуй через минуту"
 
 
 async def _user_or_401(repo: Repository, tg_id: int):
@@ -47,6 +50,7 @@ def _service(llm) -> DiagnosticService:
 
 @router.post("/diagnostic/start", response_model=DiagnosticStartResponse)
 async def start(
+    request: Request,
     tg_id: int = Depends(get_current_tg_id),
     repo: Repository = Depends(get_repository),
     settings=Depends(get_settings_dep),
@@ -55,13 +59,27 @@ async def start(
     """Генерирует 6 заданий разной сложности для определения уровня."""
     user = await _user_or_401(repo, tg_id)
     service = _service(llm)
+    throttle = getattr(request.app.state, "action_throttle", None)
+    if throttle is not None and not throttle.allow(f"diag:{user.id}"):
+        raise HTTPException(status_code=429, detail=QUEUE_FULL_ERROR)
     try:
         await check_quota(repo, settings, user.id)
     except QuotaExceeded as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
 
+    guard = getattr(request.app.state, "llm_guard", None)
     try:
-        tasks = await service.generate_tasks()
+        if guard is not None:
+            try:
+                async with guard.slot():
+                    tasks = await service.generate_tasks()
+            except QueueFull:
+                logger.warning("Очередь LLM переполнена (diagnostic): user=%s", user.id)
+                raise HTTPException(status_code=429, detail=QUEUE_FULL_ERROR)
+        else:
+            tasks = await service.generate_tasks()
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=502, detail="Не удалось сгенерировать задания") from exc
 
@@ -73,6 +91,7 @@ async def start(
 
 @router.post("/diagnostic/finish", response_model=DiagnosticFinishResponse)
 async def finish(
+    request: Request,
     body: DiagnosticFinishRequest,
     tg_id: int = Depends(get_current_tg_id),
     repo: Repository = Depends(get_repository),
@@ -101,8 +120,17 @@ async def finish(
         raise HTTPException(status_code=429, detail=str(exc)) from exc
 
     if questions:
+        guard = getattr(request.app.state, "llm_guard", None)
         try:
-            assessment = await service.assess(questions, answers)
+            if guard is not None:
+                try:
+                    async with guard.slot():
+                        assessment = await service.assess(questions, answers)
+                except QueueFull:
+                    logger.warning("Очередь LLM переполнена (diagnostic): user=%s", user.id)
+                    raise HTTPException(status_code=429, detail=QUEUE_FULL_ERROR)
+            else:
+                assessment = await service.assess(questions, answers)
             await consume_quota(repo, settings, user.id)
             return DiagnosticFinishResponse(
                 level=assessment.level,
@@ -112,6 +140,8 @@ async def finish(
                 weaknesses=assessment.weaknesses,
                 recommendation=assessment.recommendation,
             )
+        except HTTPException:
+            raise
         except Exception:
             logger.warning("Диагностика: LLM-оценка не удалась", exc_info=True)
 

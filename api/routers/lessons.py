@@ -40,6 +40,7 @@ from core.weak_areas import WeakAreaService
 from storage.repo import LessonNote, LessonPlanRow
 
 from ..deps import get_current_tg_id, get_repository, get_settings_dep, get_stt
+from ..loadguard import QueueFull
 from ..quota import QuotaExceeded, check_quota, consume_quota
 from ..schemas import (
     DeckAnswerRequest,
@@ -61,6 +62,7 @@ DEFAULT_PRESET = "mixed"
 MAX_AUDIO_BYTES = 8 * 1024 * 1024
 
 LLM_MISSING_ERROR = "LLM не настроен"
+QUEUE_FULL_ERROR = "Сейчас много уроков — очередь переполнена, попробуй через минуту"
 DECK_GENERATION_ERROR = "Не удалось сгенерировать урок"
 SESSION_NOT_FOUND_ERROR = "Активный урок не найден"
 CORRUPT_DECK_ERROR = "Урок повреждён"
@@ -172,9 +174,24 @@ async def lesson_new(
         raise HTTPException(status_code=429, detail="Дневной лимит исчерпан")
 
     llm = request.app.state.llm
+    guard = getattr(request.app.state, "llm_guard", None)
     try:
         context = await _lesson_context(repo, user)
-        deck = await generate_deck(llm, topic=topic, plan_hint=plan_hint, preset=preset, **context)
+        if guard is not None:
+            try:
+                async with guard.slot():
+                    deck = await generate_deck(
+                        llm, topic=topic, plan_hint=plan_hint, preset=preset, **context
+                    )
+            except QueueFull:
+                logger.warning("Очередь LLM переполнена: user=%s", user.id)
+                raise HTTPException(status_code=429, detail=QUEUE_FULL_ERROR)
+        else:
+            deck = await generate_deck(
+                llm, topic=topic, plan_hint=plan_hint, preset=preset, **context
+            )
+    except HTTPException:
+        raise
     except Exception:
         logger.exception("Ошибка генерации деки: user=%s topic=%s", user.id, topic)
         raise HTTPException(status_code=502, detail=DECK_GENERATION_ERROR)
@@ -504,6 +521,7 @@ async def _convert_to_wav(src: str, dst: str) -> None:
 
 @router.post("/lesson/voice")
 async def lesson_voice(
+    request: Request,
     body: VoiceAnswerRequest,
     tg_id: int = Depends(get_current_tg_id),
     repo=Depends(get_repository),
@@ -526,10 +544,21 @@ async def lesson_voice(
     fd, raw_path = tempfile.mkstemp(suffix=".webm")
     os.close(fd)
     wav_path = raw_path + ".wav"
+    stt_guard = getattr(request.app.state, "stt_guard", None)
     try:
         Path(raw_path).write_bytes(audio)
         await _convert_to_wav(raw_path, wav_path)
-        transcript = (await stt.transcribe(wav_path)).strip()
+        if stt_guard is not None:
+            try:
+                async with stt_guard.slot():
+                    transcript = (await stt.transcribe(wav_path)).strip()
+            except QueueFull:
+                logger.warning("Очередь STT переполнена: user=%s", user.id)
+                raise HTTPException(status_code=429, detail=QUEUE_FULL_ERROR)
+        else:
+            transcript = (await stt.transcribe(wav_path)).strip()
+    except HTTPException:
+        raise
     except Exception:
         logger.exception("Ошибка STT голосовой реплики: user=%s", user.id)
         raise HTTPException(status_code=502, detail=STT_FAILED_ERROR)
