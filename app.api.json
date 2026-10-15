@@ -1,0 +1,64 @@
+{
+  "name": "AdaptENG API",
+  "description": "REST API AdaptENG: уроки, чат с персонажами, прогресс, SRS, достижения, лидерборд, диагностика уровня.",
+  "website": "https://adapteng.app",
+  "success_url": "/api/health",
+  "stack": "heroku-24",
+  "env": {
+    "JWT_SECRET": {
+      "required": true,
+      "generator": "secret",
+      "description": "Секрет подписи JWT (openssl rand -hex 32). Обязателен в проде."
+    },
+    "API_INSECURE_AUTH": {
+      "value": "0",
+      "description": "0 = проверять HMAC-подпись Telegram Login Widget (в проде всегда 0)."
+    },
+    "API_CORS_ORIGINS": {
+      "required": true,
+      "description": "Домены фронта через запятую, например https://adapteng.app,https://www.adapteng.app"
+    },
+    "LLM_PROVIDER": {
+      "value": "openrouter"
+    },
+    "LLM_API_KEY": {
+      "required": true,
+      "description": "API-ключ провайдера LLM."
+    },
+    "TTS_PROVIDER": {
+      "value": "edge-tts",
+      "description": "Синтез речи. edge-tts бесплатный; openai — надёжнее."
+    },
+    "STT_PROVIDER": {
+      "value": "faster-whisper",
+      "description": "Распознавание голоса (модель small качается при первом старте)."
+    },
+    "LLM_DAILY_LIMIT": {
+      "value": "30",
+      "description": "Дневной лимит LLM-действий на пользователя (0 = без лимита)."
+    },
+    "LLM_MAX_CONCURRENCY": {
+      "value": "8",
+      "description": "Сколько LLM-вызовов одновременно; остальные ждут в очереди."
+    },
+    "LLM_QUEUE_MAX": {
+      "value": "64",
+      "description": "Размер очереди LLM; лишние запросы получают 429."
+    },
+    "API_RATE_LIMIT_PER_MIN": {
+      "value": "240",
+      "description": "Лимит запросов с одного IP в минуту."
+    }
+  },
+  "addons": ["heroku-postgresql:essential-0"],
+  "buildpacks": [
+    { "url": "heroku/python" },
+    { "url": "https://github.com/heroku/heroku-buildpack-apt" }
+  ],
+  "formation": {
+    "api": { "quantity": 1, "size": "basic" }
+  },
+  "scripts": {
+    "postdeploy": "python -c \"import urllib.request; print(urllib.request.urlopen('https://$APP/api/health').read())\""
+  }
+}

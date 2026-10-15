@@ -1,0 +1,29 @@
+{
+  "name": "AdaptENG Web",
+  "description": "Frontend AdaptENG (Next.js 15 standalone) + API (FastAPI).",
+  "keywords": ["education", "english", "nextjs", "fastapi", "ai"],
+  "website": "https://adapteng.app",
+  "success_url": "/",
+  "stack": "heroku-24",
+  "buildpacks": [
+    { "url": "heroku/nodejs" }
+  ],
+  "scripts": {
+    "postdeploy": "node -e \"console.log('AdaptENG web готов')\""
+  },
+  "env": {
+    "NEXT_PUBLIC_API_URL": {
+      "description": "URL FastAPI, например https://adapteng-api.herokuapp.com",
+      "value": "https://adapteng-api.herokuapp.com"
+    },
+    "NEXT_PUBLIC_TG_BOT_USERNAME": {
+      "description": "Юзернейм бота без @ для Telegram Login Widget",
+      "required": false
+    },
+    "NEXT_TELEMETRY_DISABLED": { "value": "1" }
+  },
+  "formation": {
+    "web": { "quantity": 1, "size": "basic" }
+  },
+  "addons": []
+}
