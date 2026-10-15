@@ -6,7 +6,7 @@ import type { FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { sampleCharacters } from '@/lib/characters';
 import type { Character, Locale } from '@/lib/characters';
-import { API, ApiError, apiBlob, apiFetch, getToken } from '@/lib/api';
+import { API, ApiError, apiBlob, apiFetch, errorMessage, getToken } from '@/lib/api';
 
 type ChatCharacter = {
   id: string;
@@ -308,7 +308,7 @@ export default function ChatPage() {
       const quota =
         (error instanceof ApiError && error.status === 429) ||
         (error instanceof ApiError && /quota|limit|лимит/i.test(error.message));
-      setBanner(quota ? t('quota') : t('error'));
+      setBanner(errorMessage(error, quota ? t('quota') : t('error')));
     } finally {
       setSending(false);
     }
