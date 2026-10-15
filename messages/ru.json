@@ -183,5 +183,8 @@
   "onboarding.testError": "Тест не запустился — попробуй ещё раз",
   "onboarding.testEmpty": "Тест вернулся пустым — попробуй ещё раз",
   "dashboard.menu": "Главное меню",
-  "dashboard.menuDesc": "Быстрый старт урока и все разделы"
+  "dashboard.menuDesc": "Быстрый старт урока и все разделы",
+  "lesson.dialogue.finish": "Завершить урок",
+  "chat.correction": "Исправленная версия",
+  "chat.voiceOff": "Озвучка временно недоступна — ответы приходят текстом."
 }
