@@ -20,6 +20,7 @@ def create_llm(settings: Settings) -> LLMProvider:
         api_key=api_key,
         model=settings.resolved_llm_model,
         default_temperature=settings.llm_temperature,
+        timeout=getattr(settings, "llm_timeout_sec", 90.0),
     )
 
 

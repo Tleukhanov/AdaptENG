@@ -7,6 +7,7 @@ import {
   API,
   ApiError,
   apiBlob,
+  errorMessage,
   finishLesson,
   getToken,
   startLesson,
@@ -63,6 +64,7 @@ export default function LessonPage() {
   const [voiceResult, setVoiceResult] = useState<{ transcript?: string; rating?: number; tip?: string } | null>(null);
   const [finish, setFinish] = useState<FinishResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<'quota' | 'retry' | null>(null);
   const [sessionId, setSessionId] = useState<number | undefined>();
   const [demo] = useState(() => !API);
   const [starting, setStarting] = useState(false);
@@ -115,17 +117,10 @@ export default function LessonPage() {
       resetSteps();
       setStatus('cover');
     } catch (e) {
-      if (e instanceof ApiError && e.status === 429) {
-        setError(t('error.quota'));
-        setStatus('cover');
-        return;
-      }
-      if (e instanceof ApiError && (e.status === 502 || e.status === 503)) {
-        setError(t('error.generic'));
-        setStatus('cover');
-        return;
-      }
-      setError(t('error.generic'));
+      const text = errorMessage(e, t('error.generic'));
+      // Дневной лимит → предложить прогресс; очередь/троттлинг → повторить.
+      setError(text);
+      setErrorKind(/лимит исчерпан|дневной лимит/i.test(text) ? 'quota' : 'retry');
       setStatus('cover');
     } finally {
       setStarting(false);
@@ -302,12 +297,9 @@ export default function LessonPage() {
       });
       setStatus('finish');
     } catch (e) {
-      if (e instanceof ApiError && e.status === 429) {
-        setError(t('error.quota'));
-        setStatus('cover');
-        return;
-      }
-      setError(t('error.generic'));
+      const text = errorMessage(e, t('error.generic'));
+      setError(text);
+      setErrorKind(/лимит исчерпан|дневной лимит/i.test(text) ? 'quota' : 'retry');
       setStatus('cover');
     }
   }
@@ -397,14 +389,13 @@ export default function LessonPage() {
       {error && (
         <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           <p>{error}</p>
-          {error === t('error.quota') && (
+          {errorKind === 'quota' ? (
             <div className="mt-2 flex gap-2">
               <Link href="/progress" className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm">
                 {t('error.toProgress')}
               </Link>
             </div>
-          )}
-          {error !== t('error.quota') && (
+          ) : (
             <button onClick={start} className="mt-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm">
               {t('error.retry')}
             </button>

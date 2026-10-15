@@ -55,6 +55,24 @@ class Settings(BaseSettings):
     llm_daily_limit: int = 30
     promo_unlimited_code: str = ""
 
+    # ---- Защита api от перегрузки (очередь и троттлинг) ----
+    # Сколько LLM-вызововapi делает одновременно (остальные ждут в очереди).
+    llm_max_concurrency: int = 8
+    # Максимум ожидающих в очереди; кто не влез — получает 429 сразу (не копит).
+    llm_queue_max: int = 64
+    # Сколько секунд запрос может ждать свободный слот, потом 429.
+    llm_queue_timeout_sec: float = 25.0
+    # Таймаут одного LLM-вызова: зависший запрос не должен держать слот вечно.
+    llm_timeout_sec: float = 90.0
+    # Распознавание речи (faster-whisper) — тяжёлое по CPU, свой маленький пул.
+    stt_max_concurrency: int = 2
+    # Троттлинг LLM-действий на пользователя (как LLMThrottle в боте).
+    api_llm_actions_per_min: int = 12
+    api_llm_min_interval_sec: float = 2.0
+    # Общий лимит запросов на клиента в минуту (0 = выключить).
+    api_rate_limit_per_min: int = 240
+    api_rate_limit_window_sec: float = 60.0
+
     # Подписки через Kaspi QR: оплата вручную (перевод с комментарием),
     # подтверждение по скриншоту чека. Суммы — целые тенге.
     subscription_plans: str = "1:990,7:1990,30:1990"
