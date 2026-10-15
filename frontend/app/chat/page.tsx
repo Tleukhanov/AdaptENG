@@ -21,6 +21,9 @@ type Message = {
   id: number;
   role: 'user' | 'assistant';
   text: string;
+  correctedText?: string;
+  isCorrect?: boolean;
+  issues?: { category?: string; note?: string }[];
 };
 
 type MeResponse = {
@@ -43,6 +46,9 @@ type MeResponse = {
 type ChatResponse = {
   reply?: string;
   next_question?: string;
+  corrected_text?: string;
+  is_correct?: boolean;
+  issues?: { category?: string; note?: string }[];
   character?: { id: string; name: string; emoji?: string };
 };
 
@@ -138,6 +144,7 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [voiceOff, setVoiceOff] = useState(false);
 
   const idRef = useRef(0);
   const demoRef = useRef(0);
@@ -227,7 +234,8 @@ export default function ChatPage() {
       audio.onended = () => URL.revokeObjectURL(url);
       await audio.play();
     } catch {
-      // TTS is best-effort; ignore playback failures.
+      // TTS — best-effort: показываем заметку один раз.
+      setVoiceOff(true);
     }
   }
 
@@ -240,7 +248,8 @@ export default function ChatPage() {
 
     setInput('');
     setBanner(null);
-    setMessages((prev) => [...prev, { id: nextId(), role: 'user', text }]);
+    const userMessageId = nextId();
+    setMessages((prev) => [...prev, { id: userMessageId, role: 'user', text }]);
     setSending(true);
 
     if (!API) {
@@ -263,6 +272,23 @@ export default function ChatPage() {
         return;
       }
       setMessages((prev) => [...prev, { id: nextId(), role: 'assistant', text: reply }]);
+
+      const corrected = data.corrected_text?.trim() ?? '';
+      const wrong = corrected && corrected !== text && data.is_correct === false;
+      if (wrong) {
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === userMessageId
+              ? {
+                  ...message,
+                  correctedText: corrected,
+                  isCorrect: false,
+                  issues: data.issues ?? [],
+                }
+              : message,
+          ),
+        );
+      }
 
       const returned = data.character;
       if (returned && returned.id) {
@@ -375,10 +401,25 @@ export default function ChatPage() {
 
         {messages.map((message) =>
           message.role === 'user' ? (
-            <div key={message.id} className="flex justify-end">
+            <div key={message.id} className="flex flex-col items-end">
               <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-slate-900 px-4 py-2.5 text-sm text-white">
                 {message.text}
               </div>
+              {message.correctedText ? (
+                <div className="mt-1 max-w-[80%] rounded-2xl rounded-br-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800">
+                  <p className="font-semibold">{t('correction')}</p>
+                  <p className="mt-0.5">{message.correctedText}</p>
+                  {message.issues && message.issues.length > 0 ? (
+                    <ul className="mt-1 space-y-0.5 text-emerald-700">
+                      {message.issues.map((issue, idx) => (
+                        <li key={idx}>
+                          · {issue.note || issue.category || ''}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : (
             <div key={message.id} className="flex items-start gap-2">
@@ -410,6 +451,10 @@ export default function ChatPage() {
           <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             {banner}
           </div>
+        ) : null}
+
+        {voiceOff ? (
+          <p className="mb-2 text-xs text-slate-500">{t('voiceOff')}</p>
         ) : null}
 
         {characters.length > 0 ? (

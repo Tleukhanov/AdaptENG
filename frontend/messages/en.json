@@ -183,5 +183,8 @@
   "onboarding.testError": "Test failed to start — try again",
   "onboarding.testEmpty": "Test came back empty — try again",
   "dashboard.menu": "Main menu",
-  "dashboard.menuDesc": "Quick lesson start and all sections"
+  "dashboard.menuDesc": "Quick lesson start and all sections",
+  "lesson.dialogue.finish": "Finish lesson",
+  "chat.correction": "Corrected version",
+  "chat.voiceOff": "Voice is temporarily unavailable — replies are text-only."
 }

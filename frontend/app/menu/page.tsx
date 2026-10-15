@@ -44,8 +44,12 @@ export default function MenuPage() {
   const [quota, setQuota] = useState<number | null>(null);
   const [level, setLevel] = useState<string | null>(null);
   const [progress, setProgress] = useState<GetProgressResponse | null>(null);
+  const [hasToken, setHasToken] = useState(false);
 
-  const hasToken = typeof window === 'undefined' ? false : !!getToken();
+  useEffect(() => {
+    setHasToken(!!getToken() && !!API);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!hasToken || !API) {
@@ -73,7 +77,7 @@ export default function MenuPage() {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasToken]);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
@@ -119,7 +123,7 @@ export default function MenuPage() {
           {TOPICS.map((topic) => (
             <Link
               key={topic.id}
-              href={`/lesson?topic=${encodeURIComponent(ru ? topic.ru : topic.en)}`}
+              href={`/lesson?topic=${encodeURIComponent(topic.en)}`}
               className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
               <span className="text-xl">{topic.emoji}</span>

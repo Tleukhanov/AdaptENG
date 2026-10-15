@@ -57,6 +57,7 @@ export default function LessonPage() {
   const [quizAnswers, setQuizAnswers] = useState<QuizAnswer[]>([]);
   const [dialogueBubbles, setDialogueBubbles] = useState<DialogueTurn[]>([]);
   const [dialogueLine, setDialogueLine] = useState(0);
+  const [dialogueTurns, setDialogueTurns] = useState(0);
   const [recording, setRecording] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
   const [voiceResult, setVoiceResult] = useState<{ transcript?: string; rating?: number; tip?: string } | null>(null);
@@ -72,6 +73,7 @@ export default function LessonPage() {
   useEffect(() => {
     if (status === 'dialogue' && deck) {
       const lines = deck.dialogue.lines;
+      setDialogueTurns(0);
       if (lines.length > 0) {
         setDialogueBubbles([{ speaker: lines[0].speaker, line: lines[0].line }]);
         setDialogueLine(0);
@@ -141,6 +143,7 @@ export default function LessonPage() {
     setQuizAnswers([]);
     setDialogueBubbles([]);
     setDialogueLine(0);
+    setDialogueTurns(0);
     setVoiceResult(null);
     setRecording(false);
     setMicError(null);
@@ -229,6 +232,8 @@ export default function LessonPage() {
     setVoiceResult(null);
   }
 
+  const MAX_STUDENT_TURNS = 2;
+
   function pickChoice(choice: DialogueChoice) {
     if (!deck) {
       return;
@@ -237,10 +242,12 @@ export default function LessonPage() {
       ...dialogueBubbles,
       { speaker: 'student', line: choice.line },
     ];
+    const turn = dialogueTurns + 1;
     const n = typeof choice.next === 'number' ? choice.next : -1;
+    setDialogueTurns(turn);
     if (n >= 0 && n < deck.dialogue.lines.length) {
-      const turn = deck.dialogue.lines[n];
-      bubbles.push({ speaker: turn.speaker, line: turn.line });
+      const reply = deck.dialogue.lines[n];
+      bubbles.push({ speaker: reply.speaker, line: reply.line });
       setDialogueLine(n);
     } else {
       setDialogueLine(deck.dialogue.lines.length);
@@ -248,6 +255,13 @@ export default function LessonPage() {
     setDialogueBubbles(bubbles);
     setVoiceResult(null);
   }
+
+  const dialogueChoicesVisible =
+    dialogueTurns < MAX_STUDENT_TURNS && dialogueLine < (deck?.dialogue.lines.length ?? 0) - 1;
+  const dialogueFinished =
+    dialogueTurns >= MAX_STUDENT_TURNS || dialogueLine >= (deck?.dialogue.lines.length ?? 0) - 1;
+  const lastPartnerLine =
+    [...dialogueBubbles].reverse().find((turn) => turn.speaker !== 'student')?.line ?? '';
 
   function proceedToFinish() {
     finishLessonFlow();
@@ -321,7 +335,7 @@ export default function LessonPage() {
         try {
           const res = await voiceAnswer({
             audio_base64: base64,
-            expected_line: deck?.dialogue.lines[dialogueLine]?.line,
+            expected_line: lastPartnerLine || undefined,
           });
           setVoiceResult({
             transcript: res.transcript,
@@ -536,24 +550,24 @@ export default function LessonPage() {
               </div>
             ))}
           </div>
-          {deck.dialogue.choices && dialogueLine < deck.dialogue.lines.length - 1 && (
+          {(deck.dialogue.choices?.length ?? 0) > 0 && dialogueChoicesVisible && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {deck.dialogue.choices.map((ch, idx) => (
+              {(deck.dialogue.choices ?? []).map((ch, idx) => (
                 <button key={idx} onClick={() => pickChoice(ch)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:shadow-md">
                   {ch.line}
                 </button>
               ))}
             </div>
           )}
-          {dialogueLine >= deck.dialogue.lines.length - 1 && (
+          {dialogueFinished && (
             <button onClick={proceedToFinish} className="mt-4 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-              {t('presentation.next')}
+              {t('dialogue.finish')}
             </button>
           )}
           <div className="mt-6 rounded-2xl border border-slate-200 p-4">
             {!demo && (
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => speakLine(deck.dialogue.lines[dialogueLine]?.line ?? '')} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-sm">
+                <button onClick={() => speakLine(lastPartnerLine)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-sm">
                   {t('dialogue.speak')}
                 </button>
                 {!recording ? (
