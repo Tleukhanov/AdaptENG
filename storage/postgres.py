@@ -83,8 +83,10 @@ def _now() -> str:
 
 
 class PostgresRepository(Repository):
-    def __init__(self, dsn: str):
+    def __init__(self, dsn: str, pool_min: int = 1, pool_max: int = 5):
         self._dsn = dsn
+        self._pool_min = max(1, int(pool_min))
+        self._pool_max = max(self._pool_min, int(pool_max))
         self._pool = None
         self._asyncpg = None
 
@@ -93,7 +95,7 @@ class PostgresRepository(Repository):
     async def connect(self) -> None:
         self._asyncpg = __import__("asyncpg")
         self._pool = await self._asyncpg.create_pool(
-            dsn=self._dsn, min_size=_POOL_MIN, max_size=_POOL_MAX
+            dsn=self._dsn, min_size=self._pool_min, max_size=self._pool_max
         )
         async with self._pool.acquire() as conn:
             for statement in _POSTGRES_STATEMENTS:

@@ -199,6 +199,8 @@ async def main() -> None:
     repo = create_repository(
         database_url=settings.database_url,
         database_path=settings.database_path,
+    pool_min=settings.db_pool_min,
+    pool_max=settings.db_pool_max,
     )
     await repo.connect()
 

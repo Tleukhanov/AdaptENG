@@ -61,13 +61,34 @@ deploy_api() {
     LLM_QUEUE_MAX=64 \
     API_RATE_LIMIT_PER_MIN=240"
   if [ -z "$(heroku config:get --app "$API_APP" DATABASE_URL 2>/dev/null)" ]; then
-    say "добавляем PostgreSQL"
-    run "heroku addons:create heroku-postgresql:essential-0 --app $API_APP"
+    say "PostgreSQL не привязан — подключаем существующий аддон, если он есть"
+    # Сначала пробуем подключить уже купленный аддон (данные сохраняются),
+    # и только если его нет — создаём новый.
+    attached=""
+    for plan in heroku-postgresql heroku-postgresql:essential-0; do
+      if heroku addons:attach "$plan" --app "$API_APP" 2>/dev/null; then
+        attached="$plan"
+        break
+      fi
+    done
+    if [ -z "$attached" ]; then
+      say "аддона нет — создаём heroku-postgresql:essential-0"
+      run "heroku addons:create heroku-postgresql:essential-0 --app $API_APP"
+    else
+      say "привязан аддон $attached (данные на месте)"
+    fi
+  else
+    say "DATABASE_URL уже задан — существующую БД не трогаем"
   fi
   say "деплой api"
   run "heroku builds:create --app $API_APP --strategy heroku"
   run "heroku ps:scale api=1 web=0 --app $API_APP"
+  say "подключаем ту же БД к боту (общий прогресс)"
   run "heroku addons:attach heroku-postgresql --app adapteng-bot 2>/dev/null || true"
+  say "схема применится сама при старте (CREATE TABLE IF NOT EXISTS)"
+  say "включаем ежедневные бэкапы БД"
+  run "heroku addons:modify heroku-postgresql --app $API_APP \
+    plan=essential-0 backup_hour=3 backup_retention_days=7 2>/dev/null || true"
 }
 
 deploy_web() {

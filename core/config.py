@@ -45,7 +45,13 @@ class Settings(BaseSettings):
 
     database_path: str = "data/english_bot.db"
     # PostgreSQL (Heroku): заполнено -> хранилище на asyncpg вместо SQLite.
+    # Схема (CREATE TABLE IF NOT EXISTS) применяется при каждом старте, данные
+    # живут в аддоне и НЕ стираются при деплое/рестарте диньо.
     database_url: str = ""
+    # Пул коннектов БД. На heroku-postgresql:essential-0 лимит 20 соединений на
+    # приложение, поэтому держимся ниже лимита, если api и бот делят один аддон.
+    db_pool_min: int = 1
+    db_pool_max: int = 10
 
     max_context_messages: int = 6
     max_voice_duration_sec: int = 60
