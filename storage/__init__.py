@@ -13,7 +13,11 @@ from .repo import Repository
 
 
 def create_repository(
-    *, database_url: str = "", database_path: str = "data/english_bot.db"
+    *,
+    database_url: str = "",
+    database_path: str = "data/english_bot.db",
+    pool_min: int = 1,
+    pool_max: int = 10,
 ) -> Repository:
     """Выбирает и возвращает репозиторий по настройкам окружения."""
     if database_url.strip():
@@ -21,7 +25,9 @@ def create_repository(
         # локальный запуск и тесты без Postgres не требуют установки библиотеки.
         from .postgres import PostgresRepository
 
-        return PostgresRepository(database_url.strip())
+        return PostgresRepository(
+            database_url.strip(), pool_min=pool_min, pool_max=pool_max
+        )
     from .sqlite import SQLiteRepository
 
     return SQLiteRepository(database_path)
