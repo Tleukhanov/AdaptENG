@@ -11,6 +11,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from core.analytics import track_event
 from core.diagnostic import (
     DiagnosticService,
     DiagnosticTask,
@@ -132,6 +133,12 @@ async def finish(
             else:
                 assessment = await service.assess(questions, answers)
             await consume_quota(repo, settings, user.id)
+            await track_event(
+                repo,
+                user.id,
+                "diagnostic_completed",
+                {"level": assessment.level, "confidence": assessment.confidence},
+            )
             return DiagnosticFinishResponse(
                 level=assessment.level,
                 confidence=assessment.confidence,
@@ -146,6 +153,7 @@ async def finish(
             logger.warning("Диагностика: LLM-оценка не удалась", exc_info=True)
 
     level = estimate_level_heuristic(answers)
+    await track_event(repo, user.id, "diagnostic_completed", {"level": level, "heuristic": True})
     return DiagnosticFinishResponse(
         level=level,
         confidence=0.3,

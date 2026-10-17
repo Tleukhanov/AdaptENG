@@ -401,6 +401,35 @@ class Repository(ABC):
     @abstractmethod
     async def count_events(self, event_type: str, since_date: str) -> int: ...
 
+    # ---------- аналитика: события, когорты, диагностика ----------
+
+    @abstractmethod
+    async def get_events(
+        self, user_id: int, event_type: str, since_date: str = ""
+    ) -> list[dict]: ...
+
+    @abstractmethod
+    async def count_event_users(
+        self, event_type: str, since_date: str, until_date: str = ""
+    ) -> int:
+        """Сколько разных пользователей породили событие за период."""
+
+    @abstractmethod
+    async def count_active_users(self, since_date: str, until_date: str = "") -> int:
+        """Сколько разных пользователей были активны за период."""
+
+    @abstractmethod
+    async def count_users(self) -> int: ...
+
+    @abstractmethod
+    async def count_users_created_between(self, start_date: str, end_date: str) -> int: ...
+
+    @abstractmethod
+    async def list_users_recent(self, limit: int = 20) -> list[UserRow]: ...
+
+    @abstractmethod
+    async def get_diagnostic_sessions(self, user_id: int) -> list[DiagnosticSession]: ...
+
     # ---------- админ-статистика ----------
 
     @abstractmethod
@@ -438,6 +467,10 @@ class Repository(ABC):
 
     @abstractmethod
     async def get_history(self, user_id: int, limit: int) -> list[dict[str, str]]: ...
+
+    @abstractmethod
+    async def get_user_turns(self, user_id: int, limit: int = 500) -> list[dict]:
+        """Реплики ученика с оценкой и временем — сырьё для метрик прогресса."""
 
     @abstractmethod
     async def get_lesson_messages(self, lesson_id: int) -> list[dict]: ...

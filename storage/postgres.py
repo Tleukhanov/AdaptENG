@@ -611,6 +611,123 @@ class PostgresRepository(Repository):
                 since_date,
             )
 
+    # ---------- аналитика ----------
+
+    async def get_events(self, user_id: int, event_type: str, since_date: str = "") -> list[dict]:
+        async with self._acquire() as conn:
+            if since_date:
+                rows = await conn.fetch(
+                    _adopt(
+                        "SELECT id, user_id, event_type, payload, created_at FROM events "
+                        "WHERE user_id = ? AND event_type = ? AND created_at >= ? ORDER BY id"
+                    ),
+                    user_id,
+                    event_type,
+                    since_date,
+                )
+            else:
+                rows = await conn.fetch(
+                    _adopt(
+                        "SELECT id, user_id, event_type, payload, created_at FROM events "
+                        "WHERE user_id = ? AND event_type = ? ORDER BY id"
+                    ),
+                    user_id,
+                    event_type,
+                )
+        return [dict(row) for row in rows]
+
+    async def count_event_users(self, event_type: str, since_date: str, until_date: str = "") -> int:
+        async with self._acquire() as conn:
+            if until_date:
+                return await conn.fetchval(
+                    _adopt(
+                        "SELECT COUNT(DISTINCT user_id) AS cnt FROM events "
+                        "WHERE event_type = ? AND created_at >= ? AND created_at < ?"
+                    ),
+                    event_type,
+                    since_date,
+                    until_date,
+                )
+            return await conn.fetchval(
+                _adopt(
+                    "SELECT COUNT(DISTINCT user_id) AS cnt FROM events "
+                    "WHERE event_type = ? AND created_at >= ?"
+                ),
+                event_type,
+                since_date,
+            )
+
+    async def count_active_users(self, since_date: str, until_date: str = "") -> int:
+        async with self._acquire() as conn:
+            if until_date:
+                from_events = await conn.fetchval(
+                    _adopt("SELECT COUNT(DISTINCT user_id) AS cnt FROM events WHERE created_at >= ? AND created_at < ?"),
+                    since_date,
+                    until_date,
+                )
+                from_messages = await conn.fetchval(
+                    _adopt(
+                        "SELECT COUNT(DISTINCT user_id) AS cnt FROM messages "
+                        "WHERE role = 'user' AND created_at >= ? AND created_at < ?"
+                    ),
+                    since_date,
+                    until_date,
+                )
+            else:
+                from_events = await conn.fetchval(
+                    _adopt("SELECT COUNT(DISTINCT user_id) AS cnt FROM events WHERE created_at >= ?"),
+                    since_date,
+                )
+                from_messages = await conn.fetchval(
+                    _adopt("SELECT COUNT(DISTINCT user_id) AS cnt FROM messages WHERE role = 'user' AND created_at >= ?"),
+                    since_date,
+                )
+        return max(from_events or 0, from_messages or 0)
+
+    async def count_users(self) -> int:
+        async with self._acquire() as conn:
+            return await conn.fetchval("SELECT COUNT(*) AS cnt FROM users") or 0
+
+    async def count_users_created_between(self, start_date: str, end_date: str) -> int:
+        async with self._acquire() as conn:
+            return await conn.fetchval(
+                _adopt("SELECT COUNT(*) AS cnt FROM users WHERE created_at >= ? AND created_at < ?"),
+                start_date,
+                end_date,
+            ) or 0
+
+    async def list_users_recent(self, limit: int = 20) -> list[UserRow]:
+        async with self._acquire() as conn:
+            rows = await conn.fetch(
+                _adopt(
+                    "SELECT id, tg_id, username, first_name, level, unlimited FROM users ORDER BY id DESC LIMIT ?"
+                ),
+                int(limit),
+            )
+        return [self._user_from_row(row) for row in rows]
+
+    async def get_diagnostic_sessions(self, user_id: int) -> list[DiagnosticSession]:
+        async with self._acquire() as conn:
+            rows = await conn.fetch(
+                _adopt(
+                    "SELECT id, user_id, questions_json, answers_json, status, created_at, updated_at "
+                    "FROM diagnostic_sessions WHERE user_id = ? ORDER BY id"
+                ),
+                user_id,
+            )
+        return [
+            DiagnosticSession(
+                id=row["id"],
+                user_id=row["user_id"],
+                questions_json=row["questions_json"],
+                answers_json=row["answers_json"],
+                status=row["status"],
+                created_at=str(row["created_at"]),
+                updated_at=str(row["updated_at"]),
+            )
+            for row in rows
+        ]
+
     # ---------- админ-статистика ----------
 
     async def count_spins_today(self, date: str) -> int:
@@ -731,6 +848,26 @@ class PostgresRepository(Repository):
                 limit,
             )
         return [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
+
+    async def get_user_turns(self, user_id: int, limit: int = 500) -> list[dict]:
+        async with self._acquire() as conn:
+            rows = await conn.fetch(
+                _adopt(
+                    "SELECT id, content, is_correct, created_at FROM messages "
+                    "WHERE user_id = ? AND role = 'user' ORDER BY id ASC LIMIT ?"
+                ),
+                user_id,
+                int(limit),
+            )
+        return [
+            {
+                "id": row["id"],
+                "content": row["content"],
+                "is_correct": row["is_correct"],
+                "created_at": str(row["created_at"]),
+            }
+            for row in rows
+        ]
 
     async def get_lesson_messages(self, lesson_id: int) -> list[dict]:
         async with self._acquire() as conn:
