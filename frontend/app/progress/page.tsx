@@ -113,7 +113,7 @@ export default function ProgressPage() {
     <main className="mx-auto max-w-5xl px-4 py-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-slate-900">{t('title')}</h1>
-        <Link href="/" className="text-sm font-semibold text-indigo-600 hover:text-indigo-500">
+        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500">
           {t('back')}
         </Link>
       </div>
@@ -122,7 +122,7 @@ export default function ProgressPage() {
 
       {(status === 'ready' || status === 'unauth') && data && (
         <>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <Stat label={t('lessons')} value={data.lessons} />
             <Stat label={t('accuracy')} value={`${data.accuracy}%`} />
             <Stat label={t('streak')} value={data.streak} />

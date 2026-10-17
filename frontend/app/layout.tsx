@@ -29,11 +29,17 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 </span>
                 <span className="adapteng-text-gradient">AdaptENG</span>
               </Link>
-              <nav className="flex items-center gap-5 text-sm font-medium text-slate-600">
-                <Link href="/" className="transition hover:text-slate-900">
+              <nav className="flex items-center gap-3 text-sm font-medium text-slate-600 sm:gap-5">
+                <Link
+                  href="/"
+                  className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 transition hover:text-slate-900"
+                >
                   {t('nav.home')}
                 </Link>
-                <Link href="/dashboard" className="transition hover:text-slate-900">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 transition hover:text-slate-900"
+                >
                   {t('nav.profile')}
                 </Link>
                 <LocaleToggle />

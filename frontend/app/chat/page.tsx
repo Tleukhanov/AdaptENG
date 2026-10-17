@@ -472,8 +472,8 @@ export default function ChatPage() {
                     onClick={() => selectMentor(item)}
                     className={
                       active
-                        ? 'inline-flex items-center gap-1.5 rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-xs font-medium text-white'
-                        : 'inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50'
+? 'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-slate-900 bg-slate-900 px-3.5 text-xs font-medium text-white'
+                    : 'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50'
                     }
                   >
                     <span>{item.emoji}</span>
