@@ -91,7 +91,7 @@ export default function AchievementsPage() {
     <main className="mx-auto max-w-5xl px-4 py-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-slate-900">{t('title')}</h1>
-        <Link href="/" className="text-sm font-semibold text-indigo-600 hover:text-indigo-500">
+        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500">
           {t('back')}
         </Link>
       </div>
@@ -118,8 +118,8 @@ export default function AchievementsPage() {
           {earned.length > 0 && (
             <section className="mt-8">
               <h2 className="text-lg font-bold text-slate-900">{t('earned')}</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {earned.map((a, i) => (
+<div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+            {earned.map((a, i) => (
                   <div key={a.id} className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
                     <p className="text-3xl">{a.emoji || DEFAULT_EMOJI[i % DEFAULT_EMOJI.length]}</p>
                     <p className="mt-2 font-semibold text-slate-900">{a.name}</p>
@@ -133,7 +133,7 @@ export default function AchievementsPage() {
           {locked.length > 0 && (
             <section className="mt-8">
               <h2 className="text-lg font-bold text-slate-900">{t('locked')}</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
                 {locked.map((a, i) => (
                   <div key={a.id} className="rounded-3xl border border-slate-200 bg-white p-5 opacity-70 shadow-sm">
                     <p className="text-3xl grayscale">{a.emoji || DEFAULT_EMOJI[i % DEFAULT_EMOJI.length]}</p>

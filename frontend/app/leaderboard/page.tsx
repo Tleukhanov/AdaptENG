@@ -73,7 +73,7 @@ export default function LeaderboardPage() {
     <main className="mx-auto max-w-4xl px-4 py-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-slate-900">{t('title')}</h1>
-        <Link href="/" className="text-sm font-semibold text-indigo-600 hover:text-indigo-500">
+        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500">
           {t('back')}
         </Link>
       </div>

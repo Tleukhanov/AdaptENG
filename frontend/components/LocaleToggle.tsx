@@ -16,7 +16,7 @@ export default function LocaleToggle() {
       type="button"
       onClick={handleToggle}
       aria-label="Switch language"
-      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold uppercase text-slate-600 transition hover:bg-slate-100"
+      className="inline-flex min-h-[36px] min-w-[44px] items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase text-slate-600 transition hover:bg-slate-100"
     >
       {nextLocale.toUpperCase()}
     </button>

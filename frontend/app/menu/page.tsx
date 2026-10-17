@@ -89,7 +89,7 @@ export default function MenuPage() {
           </h1>
           <p className="mt-2 text-sm text-slate-600">{t('subtitle')}</p>
         </div>
-        <Link href="/" className="text-sm font-semibold text-indigo-600 hover:text-indigo-500">
+        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500">
           {t('home')}
         </Link>
       </div>
