@@ -210,6 +210,7 @@ async def lesson_new(
         raise HTTPException(status_code=500, detail="Не удалось сохранить урок")
 
     await track_event(repo, user.id, "miniapp_deck_new", {"preset": deck.preset})
+    await track_event(repo, user.id, "lesson_started", {"preset": deck.preset})
     logger.info("Mini App урок: user=%s topic=%s session=%s", user.id, deck.topic, session.id)
     return {
         "deck": deck.to_dict(),
@@ -336,6 +337,12 @@ async def lesson_finish(
         user.id,
         "miniapp_deck_finish",
         {"score": score, "preset": preset, "correct": sum(1 for item in results if item["correct"])},
+    )
+    await track_event(
+        repo,
+        user.id,
+        "lesson_completed",
+        {"score": score, "correct": sum(1 for item in results if item["correct"]), "total": len(results)},
     )
     logger.info(
         "Mini App финал: user=%s session=%s score=%s xp=%s",

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from core.analytics import track_event
 from core.characters import character_localized, get_character, list_characters
 from core.config import Settings
 from core.lessons import LEVEL_DESCRIPTIONS
@@ -157,6 +158,17 @@ async def update_profile(
 
     profile.updated_at = datetime.now(timezone.utc).isoformat()
     await repo.save_profile(profile)
+
+    # онбординг = заполненная память (цель/уровень/интересы)
+    try:
+        await track_event(
+            repo,
+            user.id,
+            "onboarding_completed",
+            {"level": user.level or "", "goal": bool(profile.goal), "interests": bool(profile.interests)},
+        )
+    except Exception:
+        pass
 
     return ProfileResponse(
         goal=profile.goal,

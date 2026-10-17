@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from core.analytics import track_event
 from core.config import Settings
 from core.tg_auth import verify_login_widget
 from storage.repo import Repository
@@ -43,6 +44,17 @@ async def auth_tg(
     user = await repo.get_or_create_user(tg_id, username=username, first_name=first_name)
     profile = await repo.get_profile(user.id)
     public = await build_user_public(repo, user, profile, settings)
+
+    # события для воронки: первая авторизация = регистрация
+    await track_event(repo, user.id, "user_login")
+    try:
+        already_registered = await repo.count_event_users(
+            "user_registered", "1970-01-01", ""
+        ) > 1
+    except Exception:
+        already_registered = True
+    if not already_registered:
+        await track_event(repo, user.id, "user_registered")
 
     token = create_access_token(settings, tg_id)
     return AuthResponse(token=token, user=UserPublic(**public))
