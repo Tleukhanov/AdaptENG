@@ -1,1 +1,1 @@
-web: node node_modules/next/dist/bin/next start -p $PORT
+web: node .next/standalone/server.js
