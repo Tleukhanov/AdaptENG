@@ -92,17 +92,20 @@ deploy_api() {
 }
 
 deploy_web() {
-  create_app "$WEB_APP"
-  say "конфигурация web"
+  if heroku apps:info --app "$WEB_APP" >/dev/null 2>&1; then
+    say "приложение $WEB_APP уже существует"
+  else
+    say "создаём $WEB_APP с Node-билдпаком (веб живёт в frontend/)"
+    run "heroku create $WEB_APP --buildpack heroku/nodejs"
+  fi
+  say "деплой web: пушим поддерево frontend, его Procfile становится корневым"
+  run "git subtree split --prefix=frontend -b deploy/$WEB_APP"
+  run "git push $WEB_APP deploy/$WEB_APP:master --force"
   run "heroku config:set --app $WEB_APP \
     NEXT_PUBLIC_API_URL=https://$API_APP.herokuapp.com \
     NEXT_TELEMETRY_DISABLED=1"
-  say "деплой web"
-  # Heroku берёт корень из frontend/, поэтому деплоим поддерево
-  run "git subtree split --prefix=frontend -b \"deploy/$WEB_APP\""
-  run "heroku builds:create --app $WEB_APP --strategy heroku --url \"$(git config remote.origin.url | sed 's/\\.git$//')\" || true"
-  run "heroku builds:create --app $WEB_APP --strategy heroku"
   run "heroku ps:scale web=1 --app $WEB_APP"
+  say "проверка: heroku logs --tail --app $WEB_APP"
 }
 
 attach_domain() {
