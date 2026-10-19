@@ -1,9 +1,8 @@
-web: python -m bot.main
-# Веб-продукт AdaptENG (Фаза A): для adapteng-api приложения на Heroku
-# запускается отдельно: heroku ps:scale web=0 api=1 --app adapteng-api
-api: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+# Корневой монорепо деплоится как приложение API+бот (adapteng-api).
+# ВАЖНО: Heroku-роутер отдаёт HTTP только процессу типа `web`, поэтому
+# uvicorn (REST API) должен быть именно в `web`, иначе H14 «No web processes».
+# Веб-продукт (Next.js) деплоится из поддерева frontend/ со своим Procfile.
+web: uvicorn api.main:app --host 0.0.0.0 --port $PORT
 
-# --- Фаза D: web-продукт (Next.js standalone, Next 15) ---
-# Папка frontend деплоится как отдельное приложение (adapteng-web).
-# В корне монорепо Procfile нужен только для bot/api, поэтому web-процесс
-# описан в frontend/Procfile.
+# Telegram-бот живёт отдельным фоновым процессом (polling, не HTTP).
+bot: python -m bot.main
