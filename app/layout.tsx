@@ -16,9 +16,19 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const locale = await getLocale();
   const messages = getMessages(locale);
   const t = await getTranslations({ locale });
+  // Адрес API подставляется в рантайме: смена config var на Heroku не
+  // требует пересборки бандла.
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
 
   return (
     <html lang={locale}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__API_URL__=${JSON.stringify(apiUrl)}`,
+          }}
+        />
+      </head>
       <body className="antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur">

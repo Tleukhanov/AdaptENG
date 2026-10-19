@@ -1,6 +1,20 @@
 export const TOKEN_KEY = 'adapteng_token';
 
-export const API = process.env.NEXT_PUBLIC_API_URL ?? '';
+declare global {
+  interface Window {
+    __API_URL__?: string;
+  }
+}
+
+/**
+ * Адрес API. NEXT_PUBLIC_* вшивается в бандл на этапе сборки, поэтому на
+ * Heroku (где адрес API меняется без пересборки) приоритет у значения,
+ * которое сервер подставляет в window.__API_URL__ при рендере layout.
+ */
+export const API =
+  (typeof window !== 'undefined' && window.__API_URL__) ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  '';
 
 export type ApiOptions = {
   method?: string;
