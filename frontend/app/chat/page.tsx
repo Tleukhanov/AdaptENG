@@ -6,7 +6,7 @@ import type { FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { sampleCharacters } from '@/lib/characters';
 import type { Character, Locale } from '@/lib/characters';
-import { API, ApiError, apiBlob, apiFetch, errorMessage, getToken } from '@/lib/api';
+import { ApiError, apiBlob, apiFetch, errorMessage, getToken } from '@/lib/api';
 
 type ChatCharacter = {
   id: string;
@@ -166,7 +166,7 @@ export default function ChatPage() {
   useEffect(() => {
     const greeting: Message = { id: nextId(), role: 'assistant', text: t('greeting') };
 
-    if (!API) {
+    if (!getToken()) {
       const list = sampleCharacters(locale).map(toChatCharacter);
       setCharacters(list);
       setCharacter(list[0] ?? null);
@@ -252,7 +252,7 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, { id: userMessageId, role: 'user', text }]);
     setSending(true);
 
-    if (!API) {
+    if (!getToken()) {
       const reply = DEMO_REPLIES[demoRef.current % DEMO_REPLIES.length];
       demoRef.current += 1;
       await new Promise((resolve) => window.setTimeout(resolve, 550));
@@ -320,7 +320,7 @@ export default function ChatPage() {
     }
     setCharacter(next);
     setBanner(null);
-    if (!API) {
+    if (!getToken()) {
       return;
     }
     try {
@@ -393,7 +393,7 @@ export default function ChatPage() {
       </header>
 
       <div className="flex-1 space-y-4 overflow-y-auto py-6">
-        {!API ? (
+        {!getToken() ? (
           <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             {t('demoNote')}
           </p>

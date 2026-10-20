@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
-  API,
   getProgress,
   getToken,
   type GetProgressResponse,
@@ -47,19 +46,19 @@ export default function MenuPage() {
   const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
-    setHasToken(!!getToken() && !!API);
+    setHasToken(!!getToken());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!hasToken || !API) {
+    if (!hasToken) {
       return;
     }
     let active = true;
     (async () => {
       try {
         const [me, prog] = await Promise.all([
-          fetch(`${API}/api/me`, {
+          fetch('/api/me', {
             headers: { Authorization: `Bearer ${getToken()}` },
           }).then((r) => r.json() as Promise<MeResponse>),
           getProgress(),
@@ -149,13 +148,13 @@ export default function MenuPage() {
         </div>
       </section>
 
-      {!hasToken || !API ? (
+      {!hasToken ? (
         <p className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           {t('demoHint')}
         </p>
       ) : null}
 
-      {hasToken && API ? (
+      {hasToken ? (
         <Link
           href="/onboarding?force=1"
           className="mt-4 inline-block text-sm font-semibold text-slate-500 hover:text-indigo-600"

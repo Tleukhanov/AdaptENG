@@ -66,7 +66,7 @@ export default function LessonPage() {
   const [error, setError] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<'quota' | 'retry' | null>(null);
   const [sessionId, setSessionId] = useState<number | undefined>();
-  const [demo] = useState(() => !API);
+  const [demo, setDemo] = useState(true);
   const [starting, setStarting] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -92,6 +92,12 @@ export default function LessonPage() {
     }
     return !!getToken();
   };
+
+  // Демо-режим = нет токена. Определяем после монтирования, чтобы SSR и
+  // клиент рендерили одинаково (без расхождения гидрации).
+  useEffect(() => {
+    setDemo(!getToken());
+  }, []);
 
   async function start() {
     if (starting) {

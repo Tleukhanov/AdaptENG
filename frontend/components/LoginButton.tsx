@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 const TG_USERNAME = process.env.NEXT_PUBLIC_TG_BOT_USERNAME ?? '';
 const TOKEN_KEY = 'adapteng_token';
 
@@ -35,7 +34,7 @@ export default function LoginButton({ locale }: { locale: string }) {
     }
     telegramWindow.onTelegramAuth = async (user: TelegramUser) => {
       try {
-        const response = await fetch(`${API}/api/auth/tg`, {
+        const response = await fetch('/api/auth/tg', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(user),
@@ -82,7 +81,8 @@ export default function LoginButton({ locale }: { locale: string }) {
   }, [tRoot]);
 
   const handleTelegram = useCallback(() => {
-    if (!API) {
+    if (!TG_USERNAME) {
+      // Виджет Telegram не настроен (нужен NEXT_PUBLIC_TG_BOT_USERNAME).
       showDemoToast();
       return;
     }

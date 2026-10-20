@@ -8,6 +8,12 @@ export const TOKEN_KEY = 'adapteng_token';
  */
 export const API = '';
 
+/**
+ * Доступен ли бэкенд. Запросы всегда идут на тот же домен (/api/* проксирует
+ * Next.js), поэтому «демо-режим» определяется наличием токена, а не адресом.
+ */
+export const API_ENABLED = true;
+
 export type ApiOptions = {
   method?: string;
   body?: unknown;
@@ -75,10 +81,6 @@ async function request(
   options: ApiOptions,
   kind: 'json' | 'blob',
 ): Promise<unknown> {
-  if (!API) {
-    throw new ApiError('API is not configured', 0);
-  }
-
   const headers: Record<string, string> = {};
   let body: string | undefined;
   if (options.body !== undefined) {
@@ -91,7 +93,7 @@ async function request(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API}${path}`, {
+  const response = await fetch(path, {
     method: options.method ?? 'GET',
     headers,
     body,

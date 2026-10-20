@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Character } from '@/lib/characters';
-import { API, apiFetch } from '@/lib/api';
+import { apiFetch, getToken } from '@/lib/api';
 
 export default function CharacterCard({
   character,
@@ -38,7 +38,7 @@ export default function CharacterCard({
     if (busy) {
       return;
     }
-    if (!API) {
+    if (!getToken()) {
       setToast(tRoot('demo.toast'));
       return;
     }
