@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
-  API,
   errorMessage,
   finishDiagnostic,
   getProfile,
@@ -104,7 +103,7 @@ export default function OnboardingPage() {
   }, [stage]);
 
   useEffect(() => {
-    if (!getToken() || !API) {
+    if (!getToken()) {
       router.replace('/menu');
       return;
     }

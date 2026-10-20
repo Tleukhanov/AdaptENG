@@ -7,7 +7,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { sampleCharacters } from '@/lib/characters';
 import type { Locale } from '@/lib/i18n';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? '';
 const TOKEN_KEY = 'adapteng_token';
 
 type MeResponse = {
@@ -59,22 +58,19 @@ export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<MeResponse | null>(null);
+  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
     const token = window.localStorage.getItem(TOKEN_KEY);
+    setHasToken(!!token);
     if (!token) {
       setStatus('unauth');
-      return;
-    }
-    if (!API) {
-      setData(demoProfile);
-      setStatus('ready');
       return;
     }
     let active = true;
     (async () => {
       try {
-        const response = await fetch(`${API}/api/me`, {
+        const response = await fetch('/api/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) {
@@ -145,7 +141,7 @@ export default function DashboardPage() {
 
       {status === 'ready' && data ? (
         <div className="mt-8 space-y-8">
-          {!API ? (
+          {!hasToken ? (
             <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               {t('demoNote')}
             </p>

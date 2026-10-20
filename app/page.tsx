@@ -5,14 +5,10 @@ import type { Character, Locale } from '@/lib/characters';
 import CharacterCard from '@/components/CharacterCard';
 import LoginButton from '@/components/LoginButton';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? '';
-
 async function loadCharacters(locale: Locale): Promise<Character[]> {
-  if (!API) {
-    return sampleCharacters(locale);
-  }
+  // Персонажи идут через тот же домен (/api/* проксирует Next.js).
   try {
-    const response = await fetch(`${API}/api/characters?lang=${locale}`, {
+    const response = await fetch(`/api/characters?lang=${locale}`, {
       cache: 'no-store',
     });
     if (!response.ok) {

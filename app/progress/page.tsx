@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { API, getToken, getProgress, getDueWords, reviewWord, type ReviewWord } from '@/lib/api';
+import { getToken, getProgress, getDueWords, reviewWord, type ReviewWord } from '@/lib/api';
 import type { Locale } from '@/lib/i18n';
 
 type Status = 'loading' | 'ready' | 'error' | 'unauth';
@@ -97,7 +97,7 @@ export default function ProgressPage() {
   }, [locale]);
 
   async function handleReview(id: string | number, quality: number) {
-    if (hasToken() && API) {
+    if (hasToken()) {
       try {
         await reviewWord(id, quality);
       } catch {
