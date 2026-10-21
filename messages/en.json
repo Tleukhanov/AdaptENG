@@ -210,5 +210,6 @@
   "review.dontKnow": "I don't remember",
   "review.know": "I remember",
   "review.repeated": "Reviewed today",
+  "voice.unavailable": "Speech recognition is temporarily busy — try again in a minute",
   "voiceCaptured": "Recognized — send it or edit first"
 }
