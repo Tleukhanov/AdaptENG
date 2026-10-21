@@ -18,6 +18,13 @@
       "required": true,
       "description": "Домены фронта через запятую, например https://adapteng.app,https://www.adapteng.app"
     },
+    "SESSION_COOKIE_SECURE": {
+      "value": "1",
+      "description": "1 = cookie сессии с флагом Secure (в проде всегда 1)."
+    },
+    "ADMIN_EMAILS": {
+      "description": "Email администраторов через запятую — доступ к /api/admin/analytics."
+    },
     "LLM_PROVIDER": {
       "value": "openrouter"
     },
