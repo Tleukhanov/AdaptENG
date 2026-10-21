@@ -20,6 +20,9 @@ import type { Locale } from '@/lib/i18n';
 
 type Step = DeckStep;
 
+/** Что происходит во время генерации урока (показывается по кругу). */
+const GENERATION_TIPS = ['generating.pickTopic', 'generating.words', 'generating.quiz', 'generating.ready'];
+
 type Status = 'loading' | 'cover' | 'slides' | 'cards' | 'quiz' | 'dialogue' | 'finish';
 
 type Flashcards = Record<string, boolean>;
@@ -67,6 +70,8 @@ export default function LessonPage() {
   const [voiceResult, setVoiceResult] = useState<{ transcript?: string; rating?: number; tip?: string } | null>(null);
   const [finish, setFinish] = useState<FinishResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [tipIndex, setTipIndex] = useState(0);
   const [errorKind, setErrorKind] = useState<'quota' | 'retry' | null>(null);
   const [sessionId, setSessionId] = useState<number | undefined>();
   const [demo, setDemo] = useState(false);
@@ -88,6 +93,22 @@ export default function LessonPage() {
   }, [deck, status]);
 
   // Сессия определяется запросом /api/me (токен в HttpOnly-cookie).
+  // Экран генерации: показываем, сколько идёт, и подсказываем, что происходит.
+  useEffect(() => {
+    if (status !== 'loading') {
+      setElapsed(0);
+      setTipIndex(0);
+      return;
+    }
+    const started = Date.now();
+    const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    const tips = window.setInterval(() => setTipIndex((i) => (i + 1) % GENERATION_TIPS.length), 3500);
+    return () => {
+      window.clearInterval(timer);
+      window.clearInterval(tips);
+    };
+  }, [status]);
+
   useEffect(() => {
     if (sessionLoading) {
       return;
@@ -372,22 +393,64 @@ export default function LessonPage() {
               </Link>
             </div>
           ) : (
-            <button onClick={start} className="mt-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm">
-              {t('error.retry')}
+            <button
+              onClick={start}
+              disabled={starting}
+              className="mt-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {starting ? t('generating.working') : t('error.retry')}
             </button>
           )}
         </div>
       )}
 
       {status === 'loading' && (
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10">
+          <div
+            aria-hidden
+            className="mx-auto mb-5 flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-2xl text-white"
+          >
+            ✨
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">{t('generating.title')}</h1>
+          <p className="mt-2 text-slate-600" role="status" aria-live="polite">
+            {t(GENERATION_TIPS[tipIndex % GENERATION_TIPS.length])}
+          </p>
+
+          <div className="mx-auto mt-6 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full w-1/3 animate-[loading_1.2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" />
+          </div>
+
+          <p className="mt-4 text-sm text-slate-500">
+            {t('generating.elapsed', { seconds: elapsed })}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            {elapsed > 20 ? t('generating.slow') : t('generating.hint')}
+          </p>
+
+          <button
+            onClick={start}
+            disabled={starting}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {starting ? t('generating.working') : t('presentation.start')}
+          </button>
+        </div>
+      )}
+
+      {status === 'cover' && !deck && (
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-2xl text-white">
-            {deck?.cover.emoji ?? '🌟'}
+            🌟
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">{deck?.cover.title ?? t('start')}</h1>
-          <p className="mt-2 text-slate-600">{deck?.cover.subtitle}</p>
-          <button onClick={start} className="mt-6 inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-sm">
-            {t('presentation.start')}
+          <h1 className="text-2xl font-bold text-slate-900">{t('start')}</h1>
+          <p className="mt-2 text-slate-600">{t('generating.hint')}</p>
+          <button
+            onClick={start}
+            disabled={starting}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {starting ? t('generating.working') : t('presentation.start')}
           </button>
         </div>
       )}
