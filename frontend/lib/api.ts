@@ -4,6 +4,14 @@
  * запросам на тот же домен (same-origin прокси /api/*).
  */
 export const UNAUTHORIZED_EVENT = 'adapteng:unauthorized';
+/** Событие «сессия изменилась» — его слушает SessionProvider. */
+export const SESSION_EVENT = 'adapteng:session';
+
+function notifySessionChanged(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(SESSION_EVENT));
+  }
+}
 
 export type ApiOptions = {
   method?: string;
@@ -85,6 +93,7 @@ export async function login(email: string, password: string): Promise<AuthResult
   });
   sessionUser = data.user;
   sessionLoaded = true;
+  notifySessionChanged();
   return { user: data.user };
 }
 
@@ -99,6 +108,7 @@ export async function register(
   });
   sessionUser = data.user;
   sessionLoaded = true;
+  notifySessionChanged();
   return { user: data.user };
 }
 
@@ -109,6 +119,7 @@ export async function logout(): Promise<void> {
     // даже если запрос не прошёл — сбрасываем локальное состояние
   }
   resetSession();
+  notifySessionChanged();
 }
 
 export type Level = string;
