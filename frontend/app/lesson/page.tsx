@@ -12,6 +12,7 @@ import {
   transcribeAudio,
 } from '@/lib/api';
 import { useRecorder } from '@/lib/recorder';
+import { createSpeechRecognizer, isSpeechSupported } from '@/lib/speech';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/session';
 import { apiDeckToLocal, sampleDeck } from '@/lib/deck';
@@ -347,11 +348,30 @@ export default function LessonPage() {
         tip: res.tip,
       });
     } catch (e) {
-      setMicError(
-        e instanceof ApiError && e.status === 503
-          ? t('voice.unavailable')
-          : errorMessage(e, t('error.generic')),
-      );
+      if (e instanceof ApiError && (e.status === 503 || e.status === 502)) {
+        // Серверное распознавание недоступно — пробуем браузерное.
+        if (isSpeechSupported()) {
+          const recognition = createSpeechRecognizer('en-US', {
+            onFinal: (text) => {
+              setVoiceResult({ transcript: text });
+              setMicError(null);
+            },
+            onError: (message) => setMicError(message),
+          });
+          if (recognition) {
+            try {
+              recognition.start();
+              setMicError(null);
+              return;
+            } catch {
+              // переходим к сообщению об ошибке ниже
+            }
+          }
+        }
+        setMicError(t('voice.unavailable'));
+        return;
+      }
+      setMicError(errorMessage(e, t('error.generic')));
     }
   }
 

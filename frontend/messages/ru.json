@@ -42,6 +42,7 @@
   "chat.typing": "печатает…",
   "chat.voice.unavailable": "Сервис распознавания речи временно занят — попробуй через минуту",
   "chat.voiceCaptured": "Распознано — отправь текст или поправь его",
+  "chat.voiceListening": "Слушаю… говори",
   "chat.voiceOff": "Озвучка временно недоступна — ответы приходят текстом.",
   "dashboard.achievements": "Достижения",
   "dashboard.achievementsDesc": "Уровень, награды и рекорды",
