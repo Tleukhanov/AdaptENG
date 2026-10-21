@@ -269,6 +269,53 @@ export function voiceAnswer(payload: VoiceAnswerPayload): Promise<VoiceAnswerRes
   return apiFetch<VoiceAnswerResponse>('/api/lesson/voice', { method: 'POST', body: payload });
 }
 
+export type TranscribeResponse = {
+  transcript?: string;
+  rating?: number;
+  tip?: string;
+  expected_line?: string;
+  duration_sec?: number;
+};
+
+/**
+ * Распознавание речи вне урока: файл уходит multipart-файлом (без base64),
+ * поэтому не раздувается на треть и не упирается в лимит JSON.
+ */
+export async function transcribeAudio(
+  blob: Blob,
+  options: { expectedLine?: string; word?: string; mode?: 'free' | 'word' | 'lesson' } = {},
+): Promise<TranscribeResponse> {
+  const form = new FormData();
+  const name = blob.type.includes('mp4') ? 'voice.m4a' : blob.type.includes('ogg') ? 'voice.ogg' : 'voice.webm';
+  form.append('file', blob, name);
+  if (options.expectedLine) {
+    form.append('expected_line', options.expectedLine);
+  }
+  if (options.word) {
+    form.append('word', options.word);
+  }
+  form.append('mode', options.mode ?? 'free');
+
+  const response = await fetch('/api/voice', {
+    method: 'POST',
+    body: form,
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    let message = 'request failed';
+    try {
+      const data = (await response.json()) as { detail?: string };
+      if (data && typeof data.detail === 'string' && data.detail) {
+        message = data.detail;
+      }
+    } catch {
+      // без JSON-тела
+    }
+    throw new ApiError(message, response.status);
+  }
+  return (await response.json()) as TranscribeResponse;
+}
+
 export type GetProgressResponse = ProgressData & {
   next_topic?: string | null;
   due_words?: number | null;
