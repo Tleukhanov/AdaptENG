@@ -200,5 +200,6 @@
   "progress.xp": "XP",
   "review.dontKnow": "I don't remember",
   "review.know": "I remember",
-  "review.repeated": "Reviewed today"
+  "review.repeated": "Reviewed today",
+  "voiceCaptured": "Recognized — send it or edit first"
 }

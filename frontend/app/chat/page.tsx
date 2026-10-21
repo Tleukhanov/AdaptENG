@@ -8,7 +8,8 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/session';
 import { sampleCharacters } from '@/lib/characters';
 import type { Character, Locale } from '@/lib/characters';
-import { ApiError, apiBlob, apiFetch, errorMessage } from '@/lib/api';
+import { ApiError, apiBlob, apiFetch, errorMessage, transcribeAudio } from '@/lib/api';
+import { useRecorder } from '@/lib/recorder';
 
 type ChatCharacter = {
   id: string;
@@ -143,6 +144,7 @@ export default function ChatPage() {
   const [voiceOff, setVoiceOff] = useState(false);
   const router = useRouter();
   const { user, loading: sessionLoading } = useSession();
+  const recorder = useRecorder();
 
   const idRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -226,6 +228,35 @@ export default function ChatPage() {
     } catch {
       // TTS — best-effort: показываем заметку один раз.
       setVoiceOff(true);
+    }
+  }
+
+  async function handleVoice() {
+    if (recorder.recording) {
+      const blob = await recorder.stop();
+      if (!blob) {
+        setBanner(t('error'));
+        return;
+      }
+      setBanner(null);
+      try {
+        const res = await transcribeAudio(blob, { mode: 'free' });
+        const transcript = (res.transcript ?? '').trim();
+        if (!transcript) {
+          setBanner(t('error'));
+          return;
+        }
+        setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        setToast(t('voiceCaptured'));
+      } catch (error) {
+        setBanner(errorMessage(error, t('error')));
+      }
+      return;
+    }
+    setBanner(null);
+    const started = await recorder.start();
+    if (!started) {
+      setBanner(t('error'));
     }
   }
 
@@ -462,10 +493,16 @@ export default function ChatPage() {
           />
           <button
             type="button"
-            onClick={() => setToast(t('micSoon'))}
+            onClick={handleVoice}
+            disabled={recorder.busy}
             aria-label={t('mic')}
             title={t('mic')}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50"
+            aria-pressed={recorder.recording}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition disabled:opacity-60 ${
+              recorder.recording
+                ? 'border-red-200 bg-red-50 text-red-600'
+                : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+            }`}
           >
             <MicIcon />
           </button>

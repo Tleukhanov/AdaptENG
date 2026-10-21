@@ -200,5 +200,6 @@
   "progress.xp": "XP",
   "review.dontKnow": "Не помню",
   "review.know": "Помню",
-  "review.repeated": "Повторено сегодня"
+  "review.repeated": "Повторено сегодня",
+  "voiceCaptured": "Распознано — отправь текст или поправь его"
 }

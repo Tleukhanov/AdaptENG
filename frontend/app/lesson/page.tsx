@@ -9,8 +9,9 @@ import {
   errorMessage,
   finishLesson,
   startLesson,
-  voiceAnswer,
+  transcribeAudio,
 } from '@/lib/api';
+import { useRecorder } from '@/lib/recorder';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/session';
 import { apiDeckToLocal, sampleDeck } from '@/lib/deck';
@@ -47,6 +48,7 @@ export default function LessonPage() {
   const t = useTranslations('lesson');
   const router = useRouter();
   const { user, loading: sessionLoading } = useSession();
+  const recorder = useRecorder();
 
   const [status, setStatus] = useState<Status>('loading');
   const [deck, setDeck] = useState<Deck | null>(null);
@@ -61,7 +63,6 @@ export default function LessonPage() {
   const [dialogueBubbles, setDialogueBubbles] = useState<DialogueTurn[]>([]);
   const [dialogueLine, setDialogueLine] = useState(0);
   const [dialogueTurns, setDialogueTurns] = useState(0);
-  const [recording, setRecording] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
   const [voiceResult, setVoiceResult] = useState<{ transcript?: string; rating?: number; tip?: string } | null>(null);
   const [finish, setFinish] = useState<FinishResult | null>(null);
@@ -71,8 +72,6 @@ export default function LessonPage() {
   const [demo, setDemo] = useState(false);
   const [starting, setStarting] = useState(false);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (status === 'dialogue' && deck) {
@@ -143,7 +142,7 @@ export default function LessonPage() {
     setDialogueLine(0);
     setDialogueTurns(0);
     setVoiceResult(null);
-    setRecording(false);
+    recorder.cancel();
     setMicError(null);
     setFinish(null);
   }
@@ -304,51 +303,31 @@ export default function LessonPage() {
   async function startRecording() {
     setMicError(null);
     setVoiceResult(null);
-    try {
-      if (!navigator.mediaDevices || !window.MediaRecorder) {
-        setMicError(t('dialogue.micUnavailable'));
-        return;
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      chunksRef.current = [];
-      recorder.ondataavailable = (ev) => {
-        if (ev.data.size > 0) {
-          chunksRef.current.push(ev.data);
-        }
-      };
-      recorder.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        const buf = await blob.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-        try {
-          const res = await voiceAnswer({
-            audio_base64: base64,
-            expected_line: lastPartnerLine || undefined,
-          });
-          setVoiceResult({
-            transcript: res.transcript,
-            rating: res.rating,
-            tip: res.tip,
-          });
-        } catch (e) {
-          setMicError(t('error.generic'));
-        }
-        stream.getTracks().forEach((tr) => tr.stop());
-      };
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setRecording(true);
-    } catch {
+    const started = await recorder.start();
+    if (!started) {
       setMicError(t('dialogue.micUnavailable'));
     }
   }
 
-  function stopRecording() {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+  async function stopRecording() {
+    const blob = await recorder.stop();
+    if (!blob) {
+      setMicError(t('dialogue.micUnavailable'));
+      return;
     }
-    setRecording(false);
+    try {
+      const res = await transcribeAudio(blob, {
+        expectedLine: lastPartnerLine || undefined,
+        mode: 'lesson',
+      });
+      setVoiceResult({
+        transcript: res.transcript,
+        rating: res.rating,
+        tip: res.tip,
+      });
+    } catch (e) {
+      setMicError(errorMessage(e, t('error.generic')));
+    }
   }
 
   async function speakLine(text: string) {
@@ -558,13 +537,21 @@ export default function LessonPage() {
                 <button onClick={() => speakLine(lastPartnerLine)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-sm">
                   {t('dialogue.speak')}
                 </button>
-                {!recording ? (
-                  <button onClick={startRecording} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-sm">
+                {!recorder.recording ? (
+                  <button
+                    onClick={startRecording}
+                    disabled={recorder.busy}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-sm disabled:opacity-60"
+                  >
                     {t('dialogue.record')}
                   </button>
                 ) : (
-                  <button onClick={stopRecording} className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 shadow-sm">
-                    {t('dialogue.stop')}
+                  <button
+                    onClick={stopRecording}
+                    disabled={recorder.busy}
+                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 shadow-sm disabled:opacity-60"
+                  >
+                    {recorder.busy ? t('lesson.step.loading') : t('dialogue.stop')}
                   </button>
                 )}
               </div>
