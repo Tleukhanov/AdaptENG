@@ -4,15 +4,15 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
-  API,
   ApiError,
   apiBlob,
   errorMessage,
   finishLesson,
-  getToken,
   startLesson,
   voiceAnswer,
 } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { useSession } from '@/lib/session';
 import { apiDeckToLocal, sampleDeck } from '@/lib/deck';
 import type { ApiDeck, Deck, DeckStep, DialogueChoice, QuizItem, VocabCard } from '@/lib/deck';
 import type { Locale } from '@/lib/i18n';
@@ -45,6 +45,8 @@ type FinishResult = {
 export default function LessonPage() {
   const locale = useLocale() as Locale;
   const t = useTranslations('lesson');
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
 
   const [status, setStatus] = useState<Status>('loading');
   const [deck, setDeck] = useState<Deck | null>(null);
@@ -66,7 +68,7 @@ export default function LessonPage() {
   const [error, setError] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<'quota' | 'retry' | null>(null);
   const [sessionId, setSessionId] = useState<number | undefined>();
-  const [demo, setDemo] = useState(true);
+  const [demo, setDemo] = useState(false);
   const [starting, setStarting] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -86,18 +88,17 @@ export default function LessonPage() {
     }
   }, [deck, status]);
 
-  const hasToken = () => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-    return !!getToken();
-  };
-
-  // Демо-режим = нет токена. Определяем после монтирования, чтобы SSR и
-  // клиент рендерили одинаково (без расхождения гидрации).
+  // Сессия определяется запросом /api/me (токен в HttpOnly-cookie).
   useEffect(() => {
-    setDemo(!getToken());
-  }, []);
+    if (sessionLoading) {
+      return;
+    }
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+    setDemo(false);
+  }, [sessionLoading, user]);
 
   async function start() {
     if (starting) {
@@ -107,12 +108,8 @@ export default function LessonPage() {
     setError(null);
     setStatus('loading');
     try {
-      if (demo || !hasToken()) {
-        const d = sampleDeck(locale);
-        setDeck(d);
-        setSessionId(undefined);
-        resetSteps();
-        setStatus('cover');
+      if (!user) {
+        router.replace('/login');
         return;
       }
       const topicFromUrl = new URLSearchParams(window.location.search).get('topic') ?? undefined;
@@ -276,14 +273,8 @@ export default function LessonPage() {
     const correctCount = quizAnswers.filter((a) => a.correct).length;
     const score = total === 0 ? 0 : Math.round((correctCount / total) * 100);
 
-    if (demo || !hasToken()) {
-      setFinish({
-        score,
-        xp: Math.max(5, correctCount * 10),
-        next_topic: deck.title,
-        repeat_words: deck.vocab.map((v) => v.word),
-      });
-      setStatus('finish');
+    if (!user) {
+      router.replace('/login');
       return;
     }
 

@@ -1,18 +1,9 @@
-export const TOKEN_KEY = 'adapteng_token';
-
 /**
- * Адрес API — всегда тот же домен, что и сайт: /api/* проксирует Next.js
- * (frontend/app/api/[...path]/route.ts) на бэкенд, адрес которого задан
- * в окружении сервера (API_URL). Так клиент не знает про бэкенд, CORS не
- * нужен, а смена бэкенда не требует пересборки.
+ * Сессия живёт в HttpOnly-cookie (`adapteng_session`), поэтому токен не лежит
+ * в localStorage и недоступен скриптам. Браузер сам прикладывает cookie к
+ * запросам на тот же домен (same-origin прокси /api/*).
  */
-export const API = '';
-
-/**
- * Доступен ли бэкенд. Запросы всегда идут на тот же домен (/api/* проксирует
- * Next.js), поэтому «демо-режим» определяется наличием токена, а не адресом.
- */
-export const API_ENABLED = true;
+export const UNAUTHORIZED_EVENT = 'adapteng:unauthorized';
 
 export type ApiOptions = {
   method?: string;
@@ -29,25 +20,95 @@ export class ApiError extends Error {
   }
 }
 
-export function getToken(): string | null {
-  if (typeof window === 'undefined') {
-    return null;
+export type SessionUser = {
+  id: number;
+  tg_id?: number | null;
+  email?: string;
+  username?: string;
+  first_name?: string;
+  level?: string | null;
+  character?: string;
+  interests?: string[];
+  quota_left?: number | null;
+  quota_total?: number | null;
+  is_unlimited?: boolean;
+  total_turns?: number;
+  correct?: number;
+  errors?: number;
+};
+
+let sessionUser: SessionUser | null = null;
+let sessionLoaded = false;
+
+function notifyUnauthorized(): void {
+  sessionUser = null;
+  sessionLoaded = true;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
   }
-  return window.localStorage.getItem(TOKEN_KEY);
 }
 
-export function setToken(token: string): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  window.localStorage.setItem(TOKEN_KEY, token);
+export function cachedSession(): SessionUser | null {
+  return sessionUser;
 }
 
-export function clearToken(): void {
-  if (typeof window === 'undefined') {
-    return;
+export function resetSession(): void {
+  sessionUser = null;
+  sessionLoaded = false;
+}
+
+/** Текущий пользователь (null, если сессии нет). Кэшируется до logout/401. */
+export async function getSession(force = false): Promise<SessionUser | null> {
+  if (sessionLoaded && !force) {
+    return sessionUser;
   }
-  window.localStorage.removeItem(TOKEN_KEY);
+  try {
+    const data = await apiFetch<{ user: SessionUser }>('/api/me');
+    sessionUser = data.user;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      sessionUser = null;
+    } else {
+      sessionUser = null;
+    }
+  }
+  sessionLoaded = true;
+  return sessionUser;
+}
+
+export type AuthResult = { user: SessionUser };
+
+export async function login(email: string, password: string): Promise<AuthResult> {
+  const data = await apiFetch<{ token: string; user: SessionUser }>('/api/auth/login', {
+    method: 'POST',
+    body: { email, password },
+  });
+  sessionUser = data.user;
+  sessionLoaded = true;
+  return { user: data.user };
+}
+
+export async function register(
+  email: string,
+  password: string,
+  name?: string,
+): Promise<AuthResult> {
+  const data = await apiFetch<{ token: string; user: SessionUser }>('/api/auth/register', {
+    method: 'POST',
+    body: { email, password, name: name ?? '' },
+  });
+  sessionUser = data.user;
+  sessionLoaded = true;
+  return { user: data.user };
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await apiFetch<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
+  } catch {
+    // даже если запрос не прошёл — сбрасываем локальное состояние
+  }
+  resetSession();
 }
 
 export type Level = string;
@@ -88,15 +149,11 @@ async function request(
     body = JSON.stringify(options.body);
   }
 
-  const token = getToken();
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
   const response = await fetch(path, {
     method: options.method ?? 'GET',
     headers,
     body,
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -110,6 +167,9 @@ async function request(
       }
     } catch {
       // response had no JSON body
+    }
+    if (response.status === 401) {
+      notifyUnauthorized();
     }
     throw new ApiError(message, response.status);
   }

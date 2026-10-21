@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { useSession } from '@/lib/session';
 import { sampleCharacters } from '@/lib/characters';
 import type { Character, Locale } from '@/lib/characters';
-import { ApiError, apiBlob, apiFetch, errorMessage, getToken } from '@/lib/api';
+import { ApiError, apiBlob, apiFetch, errorMessage } from '@/lib/api';
 
 type ChatCharacter = {
   id: string;
@@ -56,12 +58,6 @@ type Status = 'loading' | 'ready' | 'error' | 'needLogin';
 
 const FALLBACK_PALETTE = ['#6366f1', '#8b5cf6'];
 
-const DEMO_REPLIES = [
-  'Nice try! Tell me a bit more about that in a full sentence.',
-  '"Interesting!" — now say it again using the past tense.',
-  'Good job. Watch the article before the noun next time.',
-  'Almost perfect! Try joining those two ideas with "because".',
-];
 
 function toChatCharacter(item: Character): ChatCharacter {
   return {
@@ -145,9 +141,10 @@ export default function ChatPage() {
   const [banner, setBanner] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [voiceOff, setVoiceOff] = useState(false);
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
 
   const idRef = useRef(0);
-  const demoRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   function nextId() {
@@ -166,18 +163,11 @@ export default function ChatPage() {
   useEffect(() => {
     const greeting: Message = { id: nextId(), role: 'assistant', text: t('greeting') };
 
-    if (!getToken()) {
-      const list = sampleCharacters(locale).map(toChatCharacter);
-      setCharacters(list);
-      setCharacter(list[0] ?? null);
-      setMessages([greeting]);
-      setStatus('ready');
+    if (sessionLoading) {
       return;
     }
-
-    const token = getToken();
-    if (!token) {
-      setStatus('needLogin');
+    if (!user) {
+      router.replace('/login');
       return;
     }
 
@@ -252,11 +242,8 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, { id: userMessageId, role: 'user', text }]);
     setSending(true);
 
-    if (!getToken()) {
-      const reply = DEMO_REPLIES[demoRef.current % DEMO_REPLIES.length];
-      demoRef.current += 1;
-      await new Promise((resolve) => window.setTimeout(resolve, 550));
-      setMessages((prev) => [...prev, { id: nextId(), role: 'assistant', text: reply }]);
+    if (!user) {
+      router.replace('/login');
       setSending(false);
       return;
     }
@@ -320,7 +307,7 @@ export default function ChatPage() {
     }
     setCharacter(next);
     setBanner(null);
-    if (!getToken()) {
+    if (!user) {
       return;
     }
     try {
@@ -334,20 +321,6 @@ export default function ChatPage() {
     }
   }
 
-  if (status === 'needLogin') {
-    return (
-      <main className="mx-auto max-w-md px-4 py-24 text-center">
-        <p className="text-3xl">🔒</p>
-        <h1 className="mt-4 text-xl font-semibold text-slate-900">{t('needLogin')}</h1>
-        <Link
-          href="/"
-          className="mt-6 inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white"
-        >
-          {t('back')}
-        </Link>
-      </main>
-    );
-  }
 
   if (status === 'error') {
     return (
@@ -393,11 +366,6 @@ export default function ChatPage() {
       </header>
 
       <div className="flex-1 space-y-4 overflow-y-auto py-6">
-        {!getToken() ? (
-          <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            {t('demoNote')}
-          </p>
-        ) : null}
 
         {messages.map((message) =>
           message.role === 'user' ? (

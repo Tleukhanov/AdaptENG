@@ -7,13 +7,13 @@ import {
   errorMessage,
   finishDiagnostic,
   getProfile,
-  getToken,
   startDiagnostic,
   updateProfile,
   type DiagnosticResult,
   type DiagnosticTask,
 } from '@/lib/api';
 import type { Locale } from '@/lib/i18n';
+import { useSession } from '@/lib/session';
 
 type Stage =
   | 'q1'
@@ -96,6 +96,7 @@ export default function OnboardingPage() {
   const [answer, setAnswer] = useState('');
   const [result, setResult] = useState<DiagnosticResult | null>(null);
   const [testBusy, setTestBusy] = useState(false);
+  const { user, loading: sessionLoading } = useSession();
 
   const stepNumber = useMemo(() => {
     const index = STAGES.indexOf(stage as Stage);
@@ -103,8 +104,11 @@ export default function OnboardingPage() {
   }, [stage]);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace('/menu');
+    if (sessionLoading) {
+      return;
+    }
+    if (!user) {
+      router.replace('/login');
       return;
     }
     let active = true;
