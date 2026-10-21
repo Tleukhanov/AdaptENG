@@ -14,7 +14,7 @@
 set -euo pipefail
 
 API_APP="${API_APP:-adapteng-api}"
-WEB_APP="${WEB_APP:-adapteng-web}"
+WEB_APP="${WEB_APP:-adapteng}"
 DOMAIN="${DOMAIN:-adapteng.app}"
 BRANCH="${BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
 DRY_RUN="${DRY_RUN:-0}"
@@ -60,32 +60,36 @@ deploy_api() {
     LLM_MAX_CONCURRENCY=8 \
     LLM_QUEUE_MAX=64 \
     API_RATE_LIMIT_PER_MIN=240"
+
+  # --- База данных. Правило: НИКОГДА не создавать новую БД, если у приложения
+  # --- уже есть DATABASE_URL. Схема применяется при старте (CREATE TABLE IF
+  # --- NOT EXISTS + storage/migrations.py), данные живут в аддоне Heroku
+  # --- Postgres и переживают деплой.
   if [ -z "$(heroku config:get --app "$API_APP" DATABASE_URL 2>/dev/null)" ]; then
-    say "PostgreSQL не привязан — подключаем существующий аддон, если он есть"
-    # Сначала пробуем подключить уже купленный аддон (данные сохраняются),
-    # и только если его нет — создаём новый.
-    attached=""
-    for plan in heroku-postgresql heroku-postgresql:essential-0; do
-      if heroku addons:attach "$plan" --app "$API_APP" 2>/dev/null; then
-        attached="$plan"
-        break
-      fi
-    done
-    if [ -z "$attached" ]; then
-      say "аддона нет — создаём heroku-postgresql:essential-0"
-      run "heroku addons:create heroku-postgresql:essential-0 --app $API_APP"
+    say "ВНИМАНИЕ: у $API_APP нет DATABASE_URL"
+    existing_addon="$(heroku addons --app "$API_APP" 2>/dev/null | grep -oE 'heroku-postgresql:[a-z0-9-]+' | head -n1)"
+    if [ -n "$existing_addon" ]; then
+      say "привязываем существующий аддон $existing_addon (данные сохраняются)"
+      run "heroku addons:attach $existing_addon --app $API_APP"
     else
-      say "привязан аддон $attached (данные на месте)"
+      say "аддона нет — новую БД автоматически НЕ создаём (чтобы не потерять данные)"
+      say "создай вручную: heroku addons:create heroku-postgresql:essential-0 --app $API_APP"
+      die "нет базы данных — деплой остановлен"
     fi
   else
     say "DATABASE_URL уже задан — существующую БД не трогаем"
+    heroku config:get --app "$API_APP" DATABASE_URL 2>/dev/null \
+      | sed -E 's#//([^:]+):[^@]*@#//\1:***@#' \
+      | sed 's/^/  БД: /'
   fi
+
+  say "бэкап БД перед деплоем (tools/db_dump.py)"
+  run "mkdir -p backups && python3 tools/db_dump.py --out backups/pre-deploy-\$(date +%Y%m%d-%H%M%S).json || true"
+
   say "деплой api"
   run "heroku builds:create --app $API_APP --strategy heroku"
   run "heroku ps:scale web=1 bot=0 --app $API_APP"
-  say "подключаем ту же БД к боту (общий прогресс)"
-  run "heroku addons:attach heroku-postgresql --app adapteng-bot 2>/dev/null || true"
-  say "схема применится сама при старте (CREATE TABLE IF NOT EXISTS)"
+  say "схема применится сама при старте (CREATE TABLE IF NOT EXISTS + миграции)"
   say "включаем ежедневные бэкапы БД"
   run "heroku addons:modify heroku-postgresql --app $API_APP \
     plan=essential-0 backup_hour=3 backup_retention_days=7 2>/dev/null || true"

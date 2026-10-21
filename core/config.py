@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     # Сколько секунд запрос может ждать свободный слот, потом 429.
     llm_queue_timeout_sec: float = 25.0
     # Таймаут одного LLM-вызова: зависший запрос не должен держать слот вечно.
-    llm_timeout_sec: float = 90.0
+    llm_timeout_sec: float = 25.0
     # Распознавание речи (faster-whisper) — тяжёлое по CPU, свой маленький пул.
     stt_max_concurrency: int = 2
     # Троттлинг LLM-действий на пользователя (как LLMThrottle в боте).

@@ -852,3 +852,42 @@ def test_leaderboard_ok(tmp_path) -> None:
     rows = response.json()
     assert isinstance(rows, list)
     assert all("user_id" in r and "xp" in r for r in rows)
+
+
+def test_lesson_new_reuses_recent_session_without_llm(tmp_path, monkeypatch) -> None:
+    """Повторный клик «начать урок» не зовёт LLM ещё раз — возвращается та же сессия."""
+    DECK_CALLS.clear()
+    _patch_deck(monkeypatch)
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        first = client.post("/api/lesson/new", json={"topic": "Coffee"}, headers=_headers(token))
+        assert first.status_code == 200
+        calls_after_first = len(DECK_CALLS)
+
+        second = client.post("/api/lesson/new", json={"topic": "Travel"}, headers=_headers(token))
+
+    assert second.status_code == 200
+    assert second.json()["session_id"] == first.json()["session_id"]
+    assert second.json()["topic"] == first.json()["topic"]
+    assert len(DECK_CALLS) == calls_after_first, "LLM не должен зваться повторно"
+
+
+def test_lesson_new_after_finish_generates_new_deck(tmp_path, monkeypatch) -> None:
+    """После завершения урока следующий клик генерирует новую деку."""
+    DECK_CALLS.clear()
+    _patch_deck(monkeypatch)
+    client = _lessons_app(tmp_path)
+    with client:
+        token = _lessons_auth(client)
+        first = client.post("/api/lesson/new", json={"topic": "Coffee"}, headers=_headers(token))
+        client.post(
+            "/api/lesson/finish",
+            json={"session_id": first.json()["session_id"], "score": 1, "flashcards": {}},
+            headers=_headers(token),
+        )
+        second = client.post("/api/lesson/new", json={"topic": "Travel"}, headers=_headers(token))
+
+    assert second.status_code == 200
+    assert second.json()["session_id"] != first.json()["session_id"]
+    assert second.json()["topic"] == "Travel"

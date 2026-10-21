@@ -17,6 +17,9 @@ build/
 .coverage
 htmlcov/
 
+# Бэкапы БД (содержат персональные данные — не в репозиторий)
+backups/
+
 # Runtime data
 data/
 *.db

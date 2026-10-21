@@ -69,6 +69,11 @@ MAX_AUDIO_BYTES = 8 * 1024 * 1024
 LLM_MISSING_ERROR = "LLM не настроен"
 QUEUE_FULL_ERROR = "Сейчас много уроков — очередь переполнена, попробуй через минуту"
 DECK_GENERATION_ERROR = "Не удалось сгенерировать урок"
+
+#: Сколько секунд свежая сессия урока считается «той же самой».
+#: Защита от нажатий «начать урок» много раз: второй клик возвращает уже
+#: созданную деку, а не зовёт LLM ещё раз (и не жжёт квоту).
+RECENT_LESSON_TTL_SEC = 120
 SESSION_NOT_FOUND_ERROR = "Активный урок не найден"
 CORRUPT_DECK_ERROR = "Урок повреждён"
 
@@ -109,6 +114,39 @@ async def _lesson_context(repo, user) -> dict[str, Any]:
         "recent_topics": recent_topics,
         "character_prompt": character_prompt(profile.character if profile else ""),
         "weak_areas_prompt": weak_prompt or None,
+    }
+
+
+async def _recent_lesson(repo, user_id: int) -> dict[str, Any] | None:
+    """Свежая активная сессия урока (создана недавно) — чтобы не звать LLM повторно.
+
+    Возвращает готовый ответ как из lesson_new, либо None, если такой сессии нет.
+    """
+    try:
+        session = await repo.get_active_mini_lesson(user_id)
+    except Exception:
+        logger.warning("Не удалось прочитать активную сессию урока user=%s", user_id, exc_info=True)
+        return None
+    if session is None or not session.content_json:
+        return None
+    try:
+        created = datetime.fromisoformat(session.created_at.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    age = (datetime.now(timezone.utc) - created).total_seconds()
+    if age > RECENT_LESSON_TTL_SEC or age < -60:
+        return None
+    try:
+        deck = deck_from_json(session.content_json)
+    except Exception:
+        logger.warning("Не удалось разобрать деку сессии %s", session.id, exc_info=True)
+        return None
+    return {
+        "deck": deck.to_dict(),
+        "session_id": session.id,
+        "preset": deck.preset,
+        "topic": deck.topic,
+        "plan_hint": None,
     }
 
 
@@ -169,6 +207,17 @@ async def lesson_new(
         await check_quota(repo, settings, user.id)
     except QuotaExceeded:
         raise HTTPException(status_code=429, detail="Дневной лимит исчерпан")
+
+    # Повторный клик «начать урок» не должен звать LLM ещё раз: если свежая
+    # сессия уже есть — возвращаем её.
+    recent = await _recent_lesson(repo, user.id)
+    if recent is not None:
+        logger.info(
+            "Возвращаем свежую сессию урока без генерации: user=%s session=%s",
+            user.id,
+            recent.get("session_id"),
+        )
+        return recent
 
     llm = request.app.state.llm
     guard = getattr(request.app.state, "llm_guard", None)
