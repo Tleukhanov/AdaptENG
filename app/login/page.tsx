@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ApiError, errorMessage, login, register } from '@/lib/api';
+import { useSession } from '@/lib/session';
 
 export default function LoginPage() {
   const t = useTranslations();
   const router = useRouter();
+  const { refresh } = useSession();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,6 +28,9 @@ export default function LoginPage() {
       } else {
         await register(email.trim(), password, name.trim());
       }
+      // Обновляем сессию в контексте ДО перехода: иначе целевая страница
+      // увидит "пользователя нет" и вернёт на страницу входа.
+      await refresh();
       router.push('/menu');
       router.refresh();
     } catch (err) {

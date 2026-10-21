@@ -8,7 +8,13 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { UNAUTHORIZED_EVENT, getSession, logout as apiLogout, type SessionUser } from './api';
+import {
+  SESSION_EVENT,
+  UNAUTHORIZED_EVENT,
+  getSession,
+  logout as apiLogout,
+  type SessionUser,
+} from './api';
 
 type SessionState = {
   user: SessionUser | null;
@@ -33,6 +39,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
+    setLoading(true);
     const loaded = await getSession(true);
     setUser(loaded);
     setLoading(false);
@@ -45,9 +52,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onUnauthorized = () => setUser(null);
+    const onSessionChanged = () => {
+      void refresh();
+    };
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
-    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
-  }, []);
+    window.addEventListener(SESSION_EVENT, onSessionChanged);
+    return () => {
+      window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+      window.removeEventListener(SESSION_EVENT, onSessionChanged);
+    };
+  }, [refresh]);
 
   const logout = useCallback(async () => {
     await apiLogout();
