@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     stt_language: str = "en"
     # Не больше N распознаваний в минуту на пользователя (0 = без лимита).
     stt_max_per_min: int = 10
+    # Запасные модели STT через запятую: если основная перегружена ("503 от Groq"),
+    # пробуем следующую. По умолчанию — типичный запасной whisper для провайдера.
+    stt_fallback_models: str = ""
+    # Сколько попыток на одну модель (с backoff) перед переходом к запасной.
+    stt_max_attempts: int = 3
 
     tts_provider: str = "edge-tts"
     tts_voice: str = "en-US-JennyNeural"
@@ -189,6 +194,18 @@ class Settings(BaseSettings):
         if model:
             return model
         return "small" if self.stt_provider.lower() == "faster-whisper" else "whisper-1"
+
+    @property
+    def resolved_stt_fallback_models(self) -> list[str]:
+        """Запасные модели STT: из настроек либо по умолчанию для провайдера."""
+        explicit = [m.strip() for m in self.stt_fallback_models.split(",") if m.strip()]
+        if explicit:
+            return explicit
+        if "groq" in self.stt_base_url.lower():
+            return ["whisper-large-v3"]
+        if self.stt_provider.lower() == "openai":
+            return []
+        return []
 
     @property
     def resolved_stt_api_key(self) -> str:

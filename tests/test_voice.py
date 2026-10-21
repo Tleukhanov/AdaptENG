@@ -317,3 +317,96 @@ async def test_lesson_voice_keeps_response_contract(tmp_path, monkeypatch):
     assert data["transcript"] == "I brew coffee"
     assert data["rating"] == 100
     assert data["expected_line"] == "brew coffee"
+
+
+# ---------- устойчивость облачного STT к временным сбоям ----------
+
+
+class _FakeStatusError(Exception):
+    """Имитация ошибки OpenAI-клиента со статус-кодом."""
+
+    def __init__(self, status_code: int) -> None:
+        super().__init__(f"status {status_code}")
+        self.status_code = status_code
+
+
+def _provider_with_models(tmp_path, **kwargs):
+    from providers.stt_openai import OpenAIWhisperProvider
+
+    return OpenAIWhisperProvider(api_key="k", model="whisper-large-v3-turbo", **kwargs)
+
+
+async def test_cloud_stt_retries_on_503(tmp_path, monkeypatch) -> None:
+    """Временная ошибка провайдера (503) → повтор, а не отказ."""
+    from providers.stt_openai import OpenAIWhisperProvider
+
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"RIFF")
+    calls = {"n": 0}
+
+    async def fake_once(self, audio_path, model):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise _FakeStatusError(503)
+        return "hello world"
+
+    monkeypatch.setattr(OpenAIWhisperProvider, "_transcribe_once", fake_once)
+    provider = _provider_with_models(tmp_path, retry_backoff_sec=0.0)
+    assert await provider.transcribe(str(audio)) == "hello world"
+    assert calls["n"] == 3
+
+
+async def test_cloud_stt_falls_back_to_another_model(tmp_path, monkeypatch) -> None:
+    """Если основная модель не отвечает — пробуем запасную."""
+    from providers.stt_openai import OpenAIWhisperProvider
+
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"RIFF")
+    used: list[str] = []
+
+    async def fake_once(self, audio_path, model):
+        used.append(model)
+        if model == "whisper-large-v3-turbo":
+            raise _FakeStatusError(503)
+        return "fallback text"
+
+    monkeypatch.setattr(OpenAIWhisperProvider, "_transcribe_once", fake_once)
+    provider = _provider_with_models(
+        tmp_path, fallback_models=("whisper-large-v3",), retry_backoff_sec=0.0, max_attempts=2
+    )
+    assert await provider.transcribe(str(audio)) == "fallback text"
+    assert "whisper-large-v3" in used
+
+
+async def test_cloud_stt_does_not_retry_on_401(tmp_path, monkeypatch) -> None:
+    """Ошибка ключа (401) не повторяется — сразу пробуем запасную модель."""
+    from providers.stt_openai import OpenAIWhisperProvider
+    from providers.stt_openai import STTUnavailableError
+
+    audio = tmp_path / "a.wav"
+    audio.write_bytes(b"RIFF")
+    calls = {"n": 0}
+
+    async def fake_once(self, audio_path, model):
+        calls["n"] += 1
+        raise _FakeStatusError(401)
+
+    monkeypatch.setattr(OpenAIWhisperProvider, "_transcribe_once", fake_once)
+    provider = _provider_with_models(tmp_path, retry_backoff_sec=0.0, max_attempts=3)
+    with pytest.raises(STTUnavailableError):
+        await provider.transcribe(str(audio))
+    assert calls["n"] == 1, "401 не должен повторяться"
+
+
+def test_stt_fallback_models_default_for_groq() -> None:
+    from core.config import Settings
+
+    settings = Settings(stt_provider="openai", stt_base_url="https://api.groq.com/openai/v1")
+    assert settings.resolved_stt_fallback_models == ["whisper-large-v3"]
+
+    custom = Settings(
+        stt_provider="openai",
+        stt_base_url="https://api.groq.com/openai/v1",
+        stt_fallback_models="a, b",
+    )
+    assert custom.resolved_stt_fallback_models == ["a", "b"]

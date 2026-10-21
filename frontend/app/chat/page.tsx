@@ -249,7 +249,11 @@ export default function ChatPage() {
         setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
         setToast(t('voiceCaptured'));
       } catch (error) {
-        setBanner(errorMessage(error, t('error')));
+        setBanner(
+          error instanceof ApiError && error.status === 503
+            ? t('voice.unavailable')
+            : errorMessage(error, t('error')),
+        );
       }
       return;
     }

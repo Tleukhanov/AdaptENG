@@ -347,7 +347,11 @@ export default function LessonPage() {
         tip: res.tip,
       });
     } catch (e) {
-      setMicError(errorMessage(e, t('error.generic')));
+      setMicError(
+        e instanceof ApiError && e.status === 503
+          ? t('voice.unavailable')
+          : errorMessage(e, t('error.generic')),
+      );
     }
   }
 

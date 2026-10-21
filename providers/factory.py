@@ -45,6 +45,8 @@ def create_stt(settings: Settings) -> STTProvider:
             base_url=settings.stt_base_url,
             timeout=settings.stt_timeout_sec,
             language=settings.stt_language,
+            fallback_models=tuple(settings.resolved_stt_fallback_models),
+            max_attempts=settings.stt_max_attempts,
         )
     raise ValueError(f"Неизвестный STT_PROVIDER={provider!r}. Доступные: faster-whisper, openai")
 

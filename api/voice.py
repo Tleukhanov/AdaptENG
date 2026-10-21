@@ -23,6 +23,7 @@ from pathlib import Path
 from fastapi import HTTPException, Request
 
 from .loadguard import QueueFull
+from providers.stt_openai import STTUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ AUDIO_TOO_LONG_ERROR = "Аудио слишком длинное (максиму
 AUDIO_FORMAT_ERROR = "Неподдерживаемый формат аудио ({fmt})"
 AUDIO_INVALID_ERROR = "Не удалось прочитать аудио — файл повреждён или не поддерживается"
 STT_MISSING_ERROR = "STT не настроен"
+STT_UNAVAILABLE_ERROR = "Сервис распознавания речи временно занят — попробуй через минуту"
 STT_FAILED_ERROR = "Не удалось распознать речь"
 NO_SPEECH_ERROR = "Не распознана речь"
 STT_THROTTLE_ERROR = "Слишком часто распознаёшь речь — подожди минуту"
