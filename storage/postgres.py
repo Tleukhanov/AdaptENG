@@ -50,6 +50,9 @@ logger = logging.getLogger(__name__)
 _POOL_MIN = 1
 _POOL_MAX = 5
 
+#: Advisory-lock на применение схемы и миграций (блокирует гонку между дино).
+PG_DDL_LOCK_ID = 728_364_123
+
 # Схема DDL содержит только по одному оператору на ";": плейсхолдеры не используются.
 _POSTGRES_STATEMENTS = [s.strip() for s in POSTGRES_DDL.split(";") if s.strip()]
 
@@ -100,9 +103,16 @@ class PostgresRepository(Repository):
             dsn=self._dsn, min_size=self._pool_min, max_size=self._pool_max
         )
         async with self._pool.acquire() as conn:
-            for statement in _POSTGRES_STATEMENTS:
-                await conn.execute(statement)
-        await apply_migrations(_PostgresMigrationDB(self._pool))
+            # Advisory-lock: схему и миграции применяем строго по одному процессу.
+            # Без лока два дино (web + bot) стартуют одновременно и падают с
+            # "duplicate key value violates unique constraint pg_type_typname_nsp_index".
+            await conn.execute("SELECT pg_advisory_lock($1)", PG_DDL_LOCK_ID)
+            try:
+                for statement in _POSTGRES_STATEMENTS:
+                    await conn.execute(statement)
+                await apply_migrations(_PostgresMigrationDB(self._pool, conn))
+            finally:
+                await conn.execute("SELECT pg_advisory_unlock($1)", PG_DDL_LOCK_ID)
 
     async def close(self) -> None:
         if self._pool is not None:
@@ -1776,28 +1786,38 @@ class PostgresRepository(Repository):
         return streak
 
 class _PostgresMigrationDB:
-    """Адаптер asyncpg для движка миграций."""
+    """Адаптер asyncpg для движка миграций.
+
+    Работает на одном соединении (тот же, что держит advisory-lock) — иначе
+    блокировка не покрывала бы всю серию миграций.
+    """
 
     backend = "postgres"
 
-    def __init__(self, pool) -> None:
+    def __init__(self, pool, conn=None) -> None:
         self._pool = pool
+        self._conn = conn
+
+    async def _connection(self):
+        if self._conn is not None:
+            return self._conn
+        return await self._pool.acquire()
 
     async def execute(self, statements) -> None:
-        async with self._pool.acquire() as conn:
-            for sql in statements:
-                await conn.execute(sql)
+        conn = await self._connection()
+        for sql in statements:
+            await conn.execute(sql)
 
     async def fetch_applied_versions(self) -> list[int]:
-        async with self._pool.acquire() as conn:
-            rows = await conn.fetch("SELECT version FROM schema_migrations")
+        conn = await self._connection()
+        rows = await conn.fetch("SELECT version FROM schema_migrations")
         return [int(row["version"]) for row in rows]
 
     async def columns(self, table: str) -> list[tuple[str, bool]]:
-        async with self._pool.acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT column_name, is_nullable FROM information_schema.columns "
-                "WHERE table_schema = current_schema() AND table_name = $1",
-                table,
-            )
+        conn = await self._connection()
+        rows = await conn.fetch(
+            "SELECT column_name, is_nullable FROM information_schema.columns "
+            "WHERE table_schema = current_schema() AND table_name = $1",
+            table,
+        )
         return [(row["column_name"], row["is_nullable"] == "NO") for row in rows]

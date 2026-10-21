@@ -69,7 +69,15 @@ def test_create_stt_openai_without_key_raises():
         create_stt(settings)
 
 
-def test_create_stt_openai_falls_back_to_llm_key():
-    settings = Settings(stt_provider="openai", stt_api_key="", llm_api_key="llm-key")
+def test_create_stt_openai_uses_explicit_stt_key():
+    """Ключ STT задаётся явно: LLM_API_KEY не подставляется (иначе утекает другому API)."""
+    settings = Settings(stt_provider="openai", stt_api_key="stt-key", llm_api_key="llm-key")
     provider = create_stt(settings)
     assert provider is not None
+
+
+def test_create_stt_openai_without_stt_key_raises():
+    """Без STT_API_KEY облачный STT не поднимается — внятная ошибка вместо 401."""
+    settings = Settings(stt_provider="openai", stt_api_key="", llm_api_key="llm-key")
+    with pytest.raises(ValueError, match="STT_API_KEY"):
+        create_stt(settings)

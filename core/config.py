@@ -192,8 +192,12 @@ class Settings(BaseSettings):
 
     @property
     def resolved_stt_api_key(self) -> str:
-        """Ключ облачного STT: STT_API_KEY, иначе LLM_API_KEY (одного ключа хватает)."""
-        return self.stt_api_key.strip() or self.llm_api_key.strip()
+        """Ключ облачного STT.
+
+        Намеренно НЕ подставляем LLM_API_KEY: ключ OpenRouter/Groq нельзя
+        отправлять другому провайдеру — будет 401 вместо внятной ошибки.
+        """
+        return self.stt_api_key.strip()
 
     @property
     def resolved_llm_model(self) -> str:

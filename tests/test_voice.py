@@ -137,10 +137,11 @@ def test_create_stt_cloud_uses_settings():
     assert provider.timeout == 30.0
 
 
-def test_create_stt_falls_back_to_llm_key():
+def test_create_stt_requires_explicit_key():
+    """LLM_API_KEY намеренно не используется как ключ STT (см. core.config)."""
     settings = Settings(stt_provider="openai", stt_api_key="", llm_api_key="llm-key")
-    provider = create_stt(settings)
-    assert provider is not None
+    with pytest.raises(ValueError, match="STT_API_KEY"):
+        create_stt(settings)
 
 
 def test_create_stt_without_any_key_raises():

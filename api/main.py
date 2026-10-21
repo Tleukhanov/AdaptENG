@@ -57,8 +57,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.tts = None
         try:
             app.state.stt = create_stt(settings)
+            if settings.stt_provider.lower() == "faster-whisper":
+                # На маленьких дино (Heroku Eco, 512 МБ) модель whisper не влезает:
+                # первый запрос убьёт процесс по памяти (R14/R15). Предупреждаем.
+                logger.warning(
+                    "STT_PROVIDER=faster-whisper: модель %s грузится в память — "
+                    "на дино меньше ~2 ГБ процесс убьётся по памяти. "
+                    "Для прода используй STT_PROVIDER=openai (Groq/OpenAI).",
+                    settings.resolved_stt_model,
+                )
         except Exception as exc:
-            logger.warning("STT не настроен, /api/lesson/voice недоступен: %s", exc)
+            logger.warning("STT не настроен, /api/voice недоступен: %s", exc)
             app.state.stt = None
 
         # Защита от перегрузки: очередь LLM, пул STT, троттлинги.
