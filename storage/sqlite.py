@@ -120,7 +120,8 @@ class SQLiteRepository(Repository):
         await conn.execute(
             "INSERT INTO users (tg_id, username, first_name, created_at) VALUES (?, ?, ?, ?) "
             "ON CONFLICT(tg_id) DO UPDATE SET "
-            "username = excluded.username, first_name = excluded.first_name",
+            "username = COALESCE(excluded.username, username), "
+            "first_name = COALESCE(excluded.first_name, first_name)",
             (tg_id, username, first_name, _now()),
         )
         await conn.commit()

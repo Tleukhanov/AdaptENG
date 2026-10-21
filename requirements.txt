@@ -6,7 +6,7 @@ pydantic-settings==2.15.0
 openai==3.0.0
 aiosqlite==0.22.1
 faster-whisper==1.2.1
-edge-tts==7.2.8
+edge-tts==7.3.1
 imageio-ffmpeg==0.6.0
 # PostgreSQL-бэкенд хранилища (Heroku). Импортируется лениво — для локального
 # SQLite-запуска и тестов без него не нужен.

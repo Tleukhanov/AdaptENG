@@ -146,6 +146,7 @@ async def chat(
 async def chat_tts(
     request: Request,
     body: TTSRequest,
+    tg_id: int = Depends(get_current_tg_id),
     tts=Depends(get_tts),
 ) -> Response:
     if tts is None:

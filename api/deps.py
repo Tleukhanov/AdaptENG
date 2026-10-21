@@ -62,10 +62,19 @@ def get_action_throttle(request: Request):
 
 
 def client_key(request: Request) -> str:
-    """Ключ клиента для лимита запросов: IP клиента (за заголовками прокси)."""
+    """Ключ клиента для лимита запросов: IP клиента (за заголовками прокси).
+
+    Берём ПОСЛЕДНЕЕ значение X-Forwarded-For: Heroku дописывает реальный адрес
+    в конец, а первым может стоять подделанный клиентом заголовок.
+    """
     forwarded = request.headers.get("x-forwarded-for") or ""
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        if parts:
+            return parts[-1]
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip.strip()
     return request.client.host if request.client else "unknown"
 
 
@@ -111,7 +120,7 @@ async def build_user_public(
     if quota_total is not None:
         unlimited = bool(user.is_unlimited)
         sub = await repo.get_subscription(user.id)
-        subscription_active = bool(sub and sub.is_active())
+        subscription_active = bool(sub and sub.is_active)
         if not unlimited and not subscription_active:
             quota_left = max(quota_total - used, 0)
 

@@ -125,7 +125,8 @@ class PostgresRepository(Repository):
                     "INSERT INTO users (tg_id, username, first_name, created_at) "
                     "VALUES (?, ?, ?, ?) "
                     "ON CONFLICT(tg_id) DO UPDATE SET "
-                    "username = excluded.username, first_name = excluded.first_name"
+                    "username = COALESCE(excluded.username, users.username), "
+                    "first_name = COALESCE(excluded.first_name, users.first_name)"
                 ),
                 tg_id,
                 username,
@@ -196,7 +197,8 @@ class PostgresRepository(Repository):
             await conn.execute(
                 _adopt(
                     "INSERT INTO llm_usage (user_id, day, count) VALUES (?, ?, ?) "
-                    "ON CONFLICT(user_id, day) DO UPDATE SET count = count + excluded.count"
+                    "ON CONFLICT(user_id, day) DO UPDATE SET "
+                    "count = llm_usage.count + excluded.count"
                 ),
                 user_id,
                 day,
@@ -229,7 +231,7 @@ class PostgresRepository(Repository):
                 _adopt(
                     "INSERT INTO user_balances (user_id, extra_actions) VALUES (?, ?) "
                     "ON CONFLICT(user_id) DO UPDATE SET "
-                    "extra_actions = extra_actions + excluded.extra_actions"
+                    "extra_actions = user_balances.extra_actions + excluded.extra_actions"
                 ),
                 user_id,
                 max(0, amount),
@@ -1501,8 +1503,8 @@ class PostgresRepository(Repository):
                     "(user_id, area, incorrect_count, correct_count, last_seen, created_at) "
                     "VALUES (?, ?, ?, ?, ?, ?) "
                     "ON CONFLICT(user_id, area) DO UPDATE SET "
-                    "incorrect_count = incorrect_count + excluded.incorrect_count, "
-                    "correct_count = correct_count + excluded.correct_count, "
+                    "incorrect_count = user_weak_areas.incorrect_count + excluded.incorrect_count, "
+                    "correct_count = user_weak_areas.correct_count + excluded.correct_count, "
                     "last_seen = CASE WHEN excluded.last_seen != '' "
                     "  THEN excluded.last_seen ELSE user_weak_areas.last_seen END"
                 ),

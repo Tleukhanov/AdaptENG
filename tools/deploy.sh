@@ -82,7 +82,7 @@ deploy_api() {
   fi
   say "деплой api"
   run "heroku builds:create --app $API_APP --strategy heroku"
-  run "heroku ps:scale api=1 web=0 --app $API_APP"
+  run "heroku ps:scale web=1 bot=0 --app $API_APP"
   say "подключаем ту же БД к боту (общий прогресс)"
   run "heroku addons:attach heroku-postgresql --app adapteng-bot 2>/dev/null || true"
   say "схема применится сама при старте (CREATE TABLE IF NOT EXISTS)"
@@ -102,7 +102,8 @@ deploy_web() {
   run "git subtree split --prefix=frontend -b deploy/$WEB_APP"
   run "git push $WEB_APP deploy/$WEB_APP:master --force"
   run "heroku config:set --app $WEB_APP \
-    NEXT_PUBLIC_API_URL=https://$API_APP.herokuapp.com \
+    API_URL=https://$API_APP.herokuapp.com \
+    NEXT_PUBLIC_TG_BOT_USERNAME=${NEXT_PUBLIC_TG_BOT_USERNAME:-data_english_hub_bot} \
     NEXT_TELEMETRY_DISABLED=1"
   run "heroku ps:scale web=1 --app $WEB_APP"
   say "проверка: heroku logs --tail --app $WEB_APP"

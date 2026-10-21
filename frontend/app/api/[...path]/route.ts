@@ -33,6 +33,30 @@ const PASSTHROUGH_RESPONSE_HEADERS = [
   'content-disposition',
 ];
 
+/** Максимальный размер тела, который пробрасываем на бэкенд (аудио в base64/multipart). */
+const MAX_BODY_BYTES = 12 * 1024 * 1024;
+
+/** Таймаут запроса к бэкенду. Heroku-роутер отдаёт 30 c, поэтому берём с запасом. */
+const UPSTREAM_TIMEOUT_MS = 28_000;
+
+/**
+ * Реальный IP клиента.
+ *
+ * Heroku дописывает настоящий адрес в конец X-Forwarded-For, поэтому берём
+ * ПОСЛЕДНЕЕ значение, а не первое: иначе клиент подменой заголовка обходит
+ * rate limit по IP на бэкенде.
+ */
+function clientIp(request: Request): string {
+  const xff = request.headers.get('x-forwarded-for');
+  if (xff) {
+    const parts = xff.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 0) {
+      return parts[parts.length - 1];
+    }
+  }
+  return request.headers.get('x-real-ip') ?? 'unknown';
+}
+
 type Context = { params: Promise<{ path: string[] }> };
 
 async function handler(request: Request, context: Context): Promise<Response> {
@@ -56,23 +80,38 @@ async function handler(request: Request, context: Context): Promise<Response> {
   });
   headers.set('x-forwarded-host', incoming.host);
   headers.set('x-forwarded-proto', incoming.protocol.replace(':', ''));
+  headers.set('x-forwarded-for', clientIp(request));
 
   const method = request.method.toUpperCase();
   const hasBody = method !== 'GET' && method !== 'HEAD';
 
+  const declaredLength = Number(request.headers.get('content-length') ?? '0');
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    return new Response(
+      JSON.stringify({ detail: 'Тело запроса слишком большое' }),
+      { status: 413, headers: { 'content-type': 'application/json' } },
+    );
+  }
+
   let upstream: Response;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
   try {
     upstream = await fetch(target, {
       method,
       headers,
       body: hasBody ? await request.arrayBuffer() : undefined,
       redirect: 'manual',
+      signal: controller.signal,
     });
   } catch (error) {
+    const aborted = controller.signal.aborted;
     return new Response(
-      JSON.stringify({ detail: 'Бэкенд недоступен' }),
-      { status: 502, headers: { 'content-type': 'application/json' } },
+      JSON.stringify({ detail: aborted ? 'Бэкенд не ответил вовремя' : 'Бэкенд недоступен' }),
+      { status: aborted ? 504 : 502, headers: { 'content-type': 'application/json' } },
     );
+  } finally {
+    clearTimeout(timer);
   }
 
   const outHeaders = new Headers();
@@ -81,6 +120,11 @@ async function handler(request: Request, context: Context): Promise<Response> {
     if (value) {
       outHeaders.set(name, value);
     }
+  }
+  // Куки сессии (HttpOnly) обязаны доехать до браузера.
+  const setCookies = upstream.headers.getSetCookie?.() ?? [];
+  for (const cookie of setCookies) {
+    outHeaders.append('set-cookie', cookie);
   }
 
   return new Response(upstream.body, {
