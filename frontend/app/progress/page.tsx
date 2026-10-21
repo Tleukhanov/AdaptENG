@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { useSession } from '@/lib/session';
 import { getProgress, getDueWords, reviewWord, type ReviewWord } from '@/lib/api';
 import type { Locale } from '@/lib/i18n';
 
@@ -90,7 +92,7 @@ export default function ProgressPage() {
   }, [sessionLoading, user]);
 
   async function handleReview(id: string | number, quality: number) {
-    if (hasToken()) {
+    if (user) {
       try {
         await reviewWord(id, quality);
       } catch {

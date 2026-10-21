@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build && node scripts/postbuild.mjs",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "^15.1.0",
