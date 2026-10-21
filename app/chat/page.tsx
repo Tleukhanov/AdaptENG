@@ -10,6 +10,7 @@ import { sampleCharacters } from '@/lib/characters';
 import type { Character, Locale } from '@/lib/characters';
 import { ApiError, apiBlob, apiFetch, errorMessage, transcribeAudio } from '@/lib/api';
 import { useRecorder } from '@/lib/recorder';
+import { createSpeechRecognizer, isSpeechSupported } from '@/lib/speech';
 
 type ChatCharacter = {
   id: string;
@@ -231,6 +232,33 @@ export default function ChatPage() {
     }
   }
 
+  // Запасной путь: если серверное распознавание недоступно (нет ключа
+  // облачного STT или провайдер перегружен) — распознаём прямо в браузере.
+  function listenInBrowser() {
+    if (!isSpeechSupported()) {
+      setBanner(t('voice.unavailable'));
+      return;
+    }
+    setBanner(null);
+    const recognition = createSpeechRecognizer('en-US', {
+      onFinal: (text) => {
+        setInput((prev) => (prev ? `${prev} ${text}` : text));
+        setToast(t('voiceCaptured'));
+      },
+      onError: (message) => setBanner(message),
+    });
+    if (!recognition) {
+      setBanner(t('voice.unavailable'));
+      return;
+    }
+    try {
+      recognition.start();
+      setToast(t('voiceListening'));
+    } catch {
+      setBanner(t('voice.unavailable'));
+    }
+  }
+
   async function handleVoice() {
     if (recorder.recording) {
       const blob = await recorder.stop();
@@ -249,11 +277,11 @@ export default function ChatPage() {
         setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
         setToast(t('voiceCaptured'));
       } catch (error) {
-        setBanner(
-          error instanceof ApiError && error.status === 503
-            ? t('voice.unavailable')
-            : errorMessage(error, t('error')),
-        );
+        if (error instanceof ApiError && (error.status === 503 || error.status === 502)) {
+          listenInBrowser();
+          return;
+        }
+        setBanner(errorMessage(error, t('error')));
       }
       return;
     }

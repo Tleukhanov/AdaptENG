@@ -42,6 +42,7 @@
   "chat.typing": "typing…",
   "chat.voice.unavailable": "Speech recognition is temporarily busy — try again in a minute",
   "chat.voiceCaptured": "Recognized — send it or edit first",
+  "chat.voiceListening": "Listening… speak",
   "chat.voiceOff": "Voice is temporarily unavailable — replies are text-only.",
   "dashboard.achievements": "Achievements",
   "dashboard.achievementsDesc": "Level, awards and records",
