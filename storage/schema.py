@@ -16,12 +16,14 @@ from __future__ import annotations
 DDL_TEMPLATE = """
 CREATE TABLE IF NOT EXISTS users (
     id {AutoPK},
-    tg_id INTEGER NOT NULL UNIQUE,
+    tg_id INTEGER UNIQUE,
     username TEXT,
     first_name TEXT,
     level TEXT,
     unlimited INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    email TEXT,
+    password_hash TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages (

@@ -35,9 +35,22 @@ class Settings(BaseSettings):
     llm_model: str = ""
     llm_temperature: float = 0.3
 
+    # ---- STT (распознавание речи) ----
     stt_provider: str = "faster-whisper"
-    stt_model: str = "small"
+    # Модель: для faster-whisper (small/base/medium), для облака — whisper-1
+    # (OpenAI) или whisper-large-v3-turbo (Groq). Пусто = авто-выбор по провайдеру.
+    stt_model: str = ""
+    # Ключ облачного STT. Пусто -> берётся LLM_API_KEY.
     stt_api_key: str = ""
+    # OpenAI-совместимая база облачного STT:
+    # OpenAI — https://api.openai.com/v1, Groq — https://api.groq.com/openai/v1.
+    stt_base_url: str = "https://api.openai.com/v1"
+    # Таймаут одного запроса распознавания (секунды).
+    stt_timeout_sec: float = 60.0
+    # Язык распознавания (en — английский).
+    stt_language: str = "en"
+    # Не больше N распознаваний в минуту на пользователя (0 = без лимита).
+    stt_max_per_min: int = 10
 
     tts_provider: str = "edge-tts"
     tts_voice: str = "en-US-JennyNeural"
@@ -55,6 +68,8 @@ class Settings(BaseSettings):
 
     max_context_messages: int = 6
     max_voice_duration_sec: int = 60
+    # Жёсткий лимит размера аудиофайла для распознавания (байт).
+    max_audio_bytes: int = 8 * 1024 * 1024
 
     # Квота LLM на тестеров: дневной лимит LLM-действий на пользователя
     # (0 = без лимита). Промокод снимает лимит пользователю навсегда.
@@ -116,6 +131,13 @@ class Settings(BaseSettings):
     # ошибкой (нельзя молча выпускать токены с дефолтным секретом).
     jwt_secret: str = ""
     jwt_ttl_days: int = 30
+    # Cookie сессии: имя и флаг Secure (в проде — 1, локально по http — 0).
+    session_cookie_name: str = "adapteng_session"
+    session_cookie_secure: int = 1
+    # Минимальная длина пароля при регистрации.
+    min_password_length: int = 8
+    # Список email администраторов (через запятую) — доступ к /api/admin/*.
+    admin_emails: str = ""
     # Разрешённые origins для CORS api (через запятую), напр. https://adapteng.com,http://localhost:3000
     api_cors_origins: str = ""
     # 1 = демо-режим api: /api/auth/tg принимает любое TG-выражение без проверки
@@ -159,6 +181,19 @@ class Settings(BaseSettings):
     def resolved_llm_base_url(self) -> str:
         preset = LLM_PRESETS.get(self.llm_provider, {})
         return self.llm_base_url or preset.get("base_url", "")
+
+    @property
+    def resolved_stt_model(self) -> str:
+        """Модель STT: явная STT_MODEL, иначе whisper-1 (облако) / small (локально)."""
+        model = self.stt_model.strip()
+        if model:
+            return model
+        return "small" if self.stt_provider.lower() == "faster-whisper" else "whisper-1"
+
+    @property
+    def resolved_stt_api_key(self) -> str:
+        """Ключ облачного STT: STT_API_KEY, иначе LLM_API_KEY (одного ключа хватает)."""
+        return self.stt_api_key.strip() or self.llm_api_key.strip()
 
     @property
     def resolved_llm_model(self) -> str:

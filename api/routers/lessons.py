@@ -11,15 +11,9 @@
 
 from __future__ import annotations
 
-import base64
-import binascii
 import json
 import logging
-import os
-import re
-import tempfile
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -39,7 +33,7 @@ from core.srs import SRSService
 from core.weak_areas import WeakAreaService
 from storage.repo import LessonNote, LessonPlanRow
 
-from ..deps import get_current_tg_id, get_repository, get_settings_dep, get_stt
+from ..deps import current_user, get_current_user_id, get_repository, get_settings_dep, get_stt
 from ..loadguard import QueueFull
 from ..quota import QuotaExceeded, check_quota, consume_quota
 from ..schemas import (
@@ -47,6 +41,16 @@ from ..schemas import (
     DeckFinishRequest,
     DeckNewRequest,
     VoiceAnswerRequest,
+)
+from ..voice import (
+    AUDIO_MISSING_ERROR,
+    STT_MISSING_ERROR,
+    decode_audio_b64,
+    ensure_stt_allowed,
+    normalize_tokens,
+    phrase_rating,
+    process_audio,
+    rating_tip,
 )
 
 try:  # pragma: no cover - импорт зависит от наличия imageio-ffmpeg
@@ -59,6 +63,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["lessons"])
 
 DEFAULT_PRESET = "mixed"
+#: Фолбэк-лимит размера аудио, если в настройках он не задан.
 MAX_AUDIO_BYTES = 8 * 1024 * 1024
 
 LLM_MISSING_ERROR = "LLM не настроен"
@@ -66,14 +71,6 @@ QUEUE_FULL_ERROR = "Сейчас много уроков — очередь пе
 DECK_GENERATION_ERROR = "Не удалось сгенерировать урок"
 SESSION_NOT_FOUND_ERROR = "Активный урок не найден"
 CORRUPT_DECK_ERROR = "Урок повреждён"
-STT_MISSING_ERROR = "STT не настроен"
-NO_SPEECH_ERROR = "Не распознана речь"
-AUDIO_MISSING_ERROR = "Аудио не получено"
-STT_FAILED_ERROR = "Не удалось распознать речь"
-
-_TIP_EXCELLENT = "Отлично произнесено!"
-_TIP_GOOD = "Хорошо, но можно точнее повторить интонацию и звуки."
-_TIP_WEAK = "Повтори фразу ещё раз — медленнее и ближе к микрофону."
 
 
 # ---------- утилиты разбора ----------
@@ -149,7 +146,7 @@ async def _active_session(repo, user_id: int):
 async def lesson_new(
     request: Request,
     body: DeckNewRequest,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     settings=Depends(get_settings_dep),
     repo=Depends(get_repository),
 ) -> dict[str, Any]:
@@ -157,7 +154,7 @@ async def lesson_new(
     if getattr(request.app.state, "llm", None) is None:
         raise HTTPException(status_code=503, detail=LLM_MISSING_ERROR)
 
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -227,11 +224,11 @@ async def lesson_new(
 @router.post("/lesson/answer")
 async def lesson_answer(
     body: DeckAnswerRequest,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo=Depends(get_repository),
 ) -> dict[str, Any]:
     """Мгновенная проверка ответа квиза. В БД не пишем — итог приходит в finish."""
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -281,12 +278,12 @@ def _repeat_words(flashcards) -> list[str]:
 async def lesson_finish(
     request: Request,
     body: DeckFinishRequest,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     settings=Depends(get_settings_dep),
     repo=Depends(get_repository),
 ) -> dict[str, Any]:
     """Финал урока: score_json, SRS, заметка/XP, план. Никогда не отдаёт 500 из-за сбоя."""
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -474,111 +471,60 @@ async def _maybe_generate_plan(request: Request, settings, repo, user) -> str:
 # ---------- POST /api/lesson/voice ----------
 
 
-def _decode_audio(raw: str) -> bytes | None:
-    """base64 из тела → байты аудио; лимит 8 МБ."""
-    if not isinstance(raw, str) or not raw.strip():
-        return None
-    try:
-        data = base64.b64decode(raw, validate=True)
-    except (binascii.Error, ValueError):
-        return None
-    if not data or len(data) > MAX_AUDIO_BYTES:
-        return None
-    return data
+def _decode_audio(raw: str, max_bytes: int = MAX_AUDIO_BYTES) -> bytes | None:
+    """base64 из тела → байты аудио (лимит размера — в настройках)."""
+    return decode_audio_b64(raw, max_bytes)
 
 
-def _normalize_tokens(text: str) -> list[str]:
-    return re.findall(r"[a-z']+", (text or "").lower())
-
-
-def _phrase_rating(transcript: str, expected: str) -> int | None:
-    """Доля слов фразы, которые юзер произнёс (без LLM и списания квоты)."""
-    if not expected or not expected.strip():
-        return None
-    expected_tokens = _normalize_tokens(expected)
-    spoken_tokens = _normalize_tokens(transcript)
-    if not expected_tokens:
-        return None
-    if not spoken_tokens:
-        return 0
-    spoken_set = set(spoken_tokens)
-    matched = sum(1 for token in expected_tokens if token in spoken_set)
-    return round(100 * matched / len(expected_tokens))
-
-
-def _rating_tip(rating: int | None) -> str:
-    if rating is None:
-        return ""
-    if rating >= 70:
-        return _TIP_EXCELLENT
-    if rating >= 40:
-        return _TIP_GOOD
-    return _TIP_WEAK
-
-
-async def _convert_to_wav(src: str, dst: str) -> None:
-    """to_wav через модульную ссылку (тесты подменяют api.routers.lessons.to_wav)."""
-    if to_wav is not None:
-        await to_wav(src, dst)
-        return
-    from providers.audio import to_wav as _to_wav  # pragma: no cover - резерв
-
-    await _to_wav(src, dst)
+# Оценка/подсказки живут в api/voice.py — здесь оставлены алиасы для совместимости.
+_normalize_tokens = normalize_tokens
+_phrase_rating = phrase_rating
+_rating_tip = rating_tip
 
 
 @router.post("/lesson/voice")
 async def lesson_voice(
     request: Request,
     body: VoiceAnswerRequest,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
+    settings=Depends(get_settings_dep),
     repo=Depends(get_repository),
     stt=Depends(get_stt),
 ) -> dict[str, Any]:
-    """Голосовая реплика: аудио (base64) → STT → оценка близости к фразе."""
-    audio = _decode_audio(body.audio_base64)
+    """Голосовая реплика урока: аудио (base64) → STT → оценка близости к фразе.
+
+    Требует активную уроковую сессию: без неё 404 (реплика пишется в
+    ``audio_answers`` сессии). Распознавание без урока — ``POST /api/voice``.
+    """
+    audio = _decode_audio(body.audio_base64, settings.max_audio_bytes)
     if audio is None:
         raise HTTPException(status_code=400, detail=AUDIO_MISSING_ERROR)
 
     if stt is None:
         raise HTTPException(status_code=503, detail=STT_MISSING_ERROR)
 
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
     session = await _active_session(repo, user.id)
 
-    fd, raw_path = tempfile.mkstemp(suffix=".webm")
-    os.close(fd)
-    wav_path = raw_path + ".wav"
+    ensure_stt_allowed(request, user.id)
+
     stt_guard = getattr(request.app.state, "stt_guard", None)
     try:
-        Path(raw_path).write_bytes(audio)
-        await _convert_to_wav(raw_path, wav_path)
-        if stt_guard is not None:
-            try:
-                async with stt_guard.slot():
-                    transcript = (await stt.transcribe(wav_path)).strip()
-            except QueueFull:
-                logger.warning("Очередь STT переполнена: user=%s", user.id)
-                raise HTTPException(status_code=429, detail=QUEUE_FULL_ERROR)
-        else:
-            transcript = (await stt.transcribe(wav_path)).strip()
-    except HTTPException:
-        raise
-    except Exception:
-        logger.exception("Ошибка STT голосовой реплики: user=%s", user.id)
-        raise HTTPException(status_code=502, detail=STT_FAILED_ERROR)
-    finally:
-        for path in (raw_path, wav_path):
-            try:
-                if os.path.exists(path):
-                    os.remove(path)
-            except OSError:
-                logger.warning("Не удалось удалить временное аудио: %s", path)
-
-    if not transcript:
-        raise HTTPException(status_code=400, detail=NO_SPEECH_ERROR)
+        transcript, _duration = await process_audio(
+            audio,
+            suffix=".webm",
+            stt=stt,
+            guard=stt_guard,
+            max_bytes=settings.max_audio_bytes,
+            max_duration_sec=settings.max_voice_duration_sec,
+            converter=to_wav,  # тесты подменяют api.routers.lessons.to_wav
+        )
+    except QueueFull:
+        logger.warning("Очередь STT переполнена: user=%s", user.id)
+        raise HTTPException(status_code=429, detail=QUEUE_FULL_ERROR)
 
     expected = _text(body.expected_line)
     rating = _phrase_rating(transcript, expected)

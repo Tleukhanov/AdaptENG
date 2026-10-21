@@ -19,7 +19,7 @@ from core.diagnostic import (
 )
 from storage.repo import Repository
 
-from ..deps import get_current_tg_id, get_llm, get_repository, get_settings_dep
+from ..deps import current_user, get_current_user_id, get_llm, get_repository, get_settings_dep
 from ..loadguard import QueueFull
 from ..quota import QuotaExceeded, check_quota, consume_quota
 from ..schemas import (
@@ -36,8 +36,8 @@ logger = logging.getLogger(__name__)
 QUEUE_FULL_ERROR = "Сейчас много запросов — очередь переполнена, попробуй через минуту"
 
 
-async def _user_or_401(repo: Repository, tg_id: int):
-    user = await repo.get_or_create_user(tg_id)
+async def _user_or_401(repo: Repository, user_id: int):
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
     return user
@@ -52,13 +52,13 @@ def _service(llm) -> DiagnosticService:
 @router.post("/diagnostic/start", response_model=DiagnosticStartResponse)
 async def start(
     request: Request,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo: Repository = Depends(get_repository),
     settings=Depends(get_settings_dep),
     llm=Depends(get_llm),
 ) -> DiagnosticStartResponse:
     """Генерирует 6 заданий разной сложности для определения уровня."""
-    user = await _user_or_401(repo, tg_id)
+    user = await _user_or_401(repo, user_id)
     service = _service(llm)
     throttle = getattr(request.app.state, "action_throttle", None)
     if throttle is not None and not throttle.allow(f"diag:{user.id}"):
@@ -94,13 +94,13 @@ async def start(
 async def finish(
     request: Request,
     body: DiagnosticFinishRequest,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo: Repository = Depends(get_repository),
     settings=Depends(get_settings_dep),
     llm=Depends(get_llm),
 ) -> DiagnosticFinishResponse:
     """Оценивает уровень CEFR по ответам студента."""
-    user = await _user_or_401(repo, tg_id)
+    user = await _user_or_401(repo, user_id)
     service = _service(llm)
 
     answers = [a.strip() for a in body.answers]

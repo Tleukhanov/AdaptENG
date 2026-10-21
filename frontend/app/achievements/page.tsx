@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { getAchievements, getToken, type AchievementItem, type LevelInfo } from '@/lib/api';
+import { getAchievements, type AchievementItem, type LevelInfo } from '@/lib/api';
 import type { Locale } from '@/lib/i18n';
+import { useSession } from '@/lib/session';
+import { useRouter } from 'next/navigation';
 
 type Status = 'loading' | 'ready' | 'error' | 'unauth';
 
@@ -45,20 +47,17 @@ const DEFAULT_EMOJI = ['👶', '📚', '🏆', '✅', '💬', '🔥', '🌟', '�
 export default function AchievementsPage() {
   const locale = useLocale() as Locale;
   const t = useTranslations('achievements');
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<Data | null>(null);
 
-  const hasToken = () => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-    return !!getToken();
-  };
-
   useEffect(() => {
-    if (!hasToken()) {
-      setData(getStaticAchievements(locale));
-      setStatus('unauth');
+    if (sessionLoading) {
+      return;
+    }
+    if (!user) {
+      router.replace('/login');
       return;
     }
     let active = true;
@@ -81,7 +80,7 @@ export default function AchievementsPage() {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
+  }, [sessionLoading, user]);
 
   const earned: AchievementItem[] = [];
   const locked: AchievementItem[] = [];
@@ -98,7 +97,7 @@ export default function AchievementsPage() {
 
       {status === 'loading' && <p className="mt-10 text-slate-600">...</p>}
 
-      {(status === 'ready' || status === 'unauth') && data && (
+      {status === 'ready' && data && (
         <>
           <div className="mt-8 flex items-center gap-5 rounded-3xl border border-slate-200 bg-gradient-to-r from-indigo-50 to-violet-50 p-6 shadow-sm">
             <span className="text-4xl">{data.level.emoji}</span>
@@ -145,7 +144,6 @@ export default function AchievementsPage() {
             </section>
           )}
 
-          {status === 'unauth' && <p className="mt-4 text-sm text-slate-600">{t('demoHint')}</p>}
         </>
       )}
 

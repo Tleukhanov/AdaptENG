@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import type { Character } from '@/lib/characters';
-import { apiFetch, getToken } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
+import { useSession } from '@/lib/session';
 
 export default function CharacterCard({
   character,
@@ -18,6 +19,7 @@ export default function CharacterCard({
   const tRoot = useTranslations();
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { user, loading: sessionLoading } = useSession();
 
   const name = character.name;
   const tagline = character.tagline;
@@ -38,8 +40,11 @@ export default function CharacterCard({
     if (busy) {
       return;
     }
-    if (!getToken()) {
-      setToast(tRoot('demo.toast'));
+    if (sessionLoading) {
+      return;
+    }
+    if (!user) {
+      window.location.href = '/login';
       return;
     }
     setBusy(true);

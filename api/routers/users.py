@@ -14,7 +14,8 @@ from storage.repo import Repository, UserProfile
 
 from ..deps import (
     build_user_public,
-    get_current_tg_id,
+    current_user,
+    get_current_user_id,
     get_repository,
     get_settings_dep,
     resolve_locale,
@@ -42,11 +43,11 @@ def _join_list(values: list[str]) -> str:
 @router.get("/me", response_model=MeResponse)
 async def me(
     request: Request,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings_dep),
     repo: Repository = Depends(get_repository),
 ) -> MeResponse:
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         from fastapi import HTTPException
 
@@ -67,14 +68,14 @@ async def me(
 async def set_character(
     body: SetCharacterRequest,
     request: Request,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo: Repository = Depends(get_repository),
 ) -> CharacterSetResponse:
     valid_ids = {character.id for character in list_characters()}
     if body.character_id not in valid_ids:
         raise HTTPException(status_code=400, detail="Такого персонажа нет")
 
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -92,11 +93,11 @@ async def set_character(
 
 @router.get("/me/profile", response_model=ProfileResponse)
 async def get_profile(
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo: Repository = Depends(get_repository),
 ) -> ProfileResponse:
     """Память студента: цель, интересы, формат, заметки, уровень."""
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -126,11 +127,11 @@ async def get_profile(
 @router.put("/me/profile", response_model=ProfileResponse)
 async def update_profile(
     body: ProfileUpdateRequest,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo: Repository = Depends(get_repository),
 ) -> ProfileResponse:
     """Сохраняет ответы онбординга: уровень, цель, интересы, формат, заметки."""
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 

@@ -9,11 +9,22 @@ from dataclasses import dataclass, field
 @dataclass
 class UserRow:
     id: int
-    tg_id: int
+    tg_id: int | None = None
     username: str | None = None
     first_name: str | None = None
     level: str | None = None  # CEFR: A1 | A2 | B1 | B2 | C1 | None
     is_unlimited: bool = False  # промокодом снят дневной лимит LLM
+    email: str | None = None  # web-вход (без Telegram)
+
+
+@dataclass
+class AuthAccount:
+    """Учётные данные web-входа (email + пароль)."""
+
+    user_id: int
+    email: str
+    password_hash: str
+    created_at: str = ""
 
 
 @dataclass
@@ -268,6 +279,32 @@ class Repository(ABC):
 
     @abstractmethod
     async def get_user(self, user_id: int) -> UserRow | None: ...
+
+    # ---------- web-вход (email + пароль) ----------
+
+    @abstractmethod
+    async def get_user_by_email(self, email: str) -> UserRow | None: ...
+
+    @abstractmethod
+    async def get_user_by_tg_id(self, tg_id: int) -> UserRow | None: ...
+
+    @abstractmethod
+    async def create_email_user(
+        self,
+        email: str,
+        password_hash: str,
+        username: str | None = None,
+        first_name: str | None = None,
+    ) -> UserRow: ...
+
+    @abstractmethod
+    async def get_auth_account(self, user_id: int) -> AuthAccount | None: ...
+
+    @abstractmethod
+    async def set_password_hash(self, user_id: int, password_hash: str) -> None: ...
+
+    @abstractmethod
+    async def link_telegram(self, user_id: int, tg_id: int) -> None: ...
 
     @abstractmethod
     async def set_level(self, user_id: int, level: str) -> None: ...

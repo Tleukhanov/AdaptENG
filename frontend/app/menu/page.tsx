@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
+  apiFetch,
   getProgress,
-  getToken,
   type GetProgressResponse,
   type ProfileData,
 } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { useSession } from '@/lib/session';
 import type { Locale } from '@/lib/i18n';
 
 type Topic = { id: string; ru: string; en: string; emoji: string };
@@ -43,24 +45,22 @@ export default function MenuPage() {
   const [quota, setQuota] = useState<number | null>(null);
   const [level, setLevel] = useState<string | null>(null);
   const [progress, setProgress] = useState<GetProgressResponse | null>(null);
-  const [hasToken, setHasToken] = useState(false);
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
 
   useEffect(() => {
-    setHasToken(!!getToken());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!hasToken) {
+    if (sessionLoading) {
+      return;
+    }
+    if (!user) {
+      router.replace('/login');
       return;
     }
     let active = true;
     (async () => {
       try {
         const [me, prog] = await Promise.all([
-          fetch('/api/me', {
-            headers: { Authorization: `Bearer ${getToken()}` },
-          }).then((r) => r.json() as Promise<MeResponse>),
+          apiFetch<MeResponse>('/api/me'),
           getProgress(),
         ]);
         if (!active) return;
@@ -69,14 +69,14 @@ export default function MenuPage() {
         setLevel(me?.user?.level ?? null);
         setProgress(prog);
       } catch {
-        // демо-режим: просто показываем меню без цифр
+        // ошибки загрузки не блокируют меню
       }
     })();
     return () => {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasToken]);
+  }, [sessionLoading, user]);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
@@ -148,13 +148,7 @@ export default function MenuPage() {
         </div>
       </section>
 
-      {!hasToken ? (
-        <p className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {t('demoHint')}
-        </p>
-      ) : null}
-
-      {hasToken ? (
+      {user ? (
         <Link
           href="/onboarding?force=1"
           className="mt-4 inline-block text-sm font-semibold text-slate-500 hover:text-indigo-600"

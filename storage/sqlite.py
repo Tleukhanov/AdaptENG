@@ -18,9 +18,11 @@ from pathlib import Path
 
 import aiosqlite
 
+from .migrations import MigrationDB, apply_migrations
 from .schema import SQLITE_DDL
 
 from .repo import (
+    AuthAccount,
     DiagnosticSession,
     KaspiOrder,
     LeaderboardRow,
@@ -61,6 +63,7 @@ class SQLiteRepository(Repository):
         await self._conn.executescript(_SCHEMA)
         await self._migrate()
         await self._conn.commit()
+        await apply_migrations(_SQLiteMigrationDB(self._conn))
 
     async def _migrate(self) -> None:
         """Идемпотентные миграции для БД, созданных до появления новых колонок."""
@@ -142,7 +145,7 @@ class SQLiteRepository(Repository):
     async def get_user(self, user_id: int) -> UserRow | None:
         conn = self._require_conn()
         cursor = await conn.execute(
-            "SELECT id, tg_id, username, first_name, level, unlimited FROM users WHERE id = ?",
+            "SELECT id, tg_id, username, first_name, level, unlimited, email FROM users WHERE id = ?",
             (user_id,),
         )
         row = await cursor.fetchone()
@@ -155,7 +158,101 @@ class SQLiteRepository(Repository):
             first_name=row["first_name"],
             level=row["level"],
             is_unlimited=bool(row["unlimited"]),
+            email=row["email"],
         )
+
+    # ---------- email-аккаунты (web-вход без Telegram) ----------
+
+    async def get_user_by_email(self, email: str) -> UserRow | None:
+        conn = self._require_conn()
+        cursor = await conn.execute(
+            "SELECT id, tg_id, username, first_name, level, unlimited, email "
+            "FROM users WHERE email = ?",
+            (email,),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return UserRow(
+            id=row["id"],
+            tg_id=row["tg_id"],
+            username=row["username"],
+            first_name=row["first_name"],
+            level=row["level"],
+            is_unlimited=bool(row["unlimited"]),
+            email=row["email"],
+        )
+
+    async def get_user_by_tg_id(self, tg_id: int) -> UserRow | None:
+        conn = self._require_conn()
+        cursor = await conn.execute(
+            "SELECT id, tg_id, username, first_name, level, unlimited, email FROM users WHERE tg_id = ?",
+            (tg_id,),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return UserRow(
+            id=row["id"],
+            tg_id=row["tg_id"],
+            username=row["username"],
+            first_name=row["first_name"],
+            level=row["level"],
+            is_unlimited=bool(row["unlimited"]),
+            email=row["email"],
+        )
+
+    async def create_email_user(
+        self,
+        email: str,
+        password_hash: str,
+        username: str | None = None,
+        first_name: str | None = None,
+    ) -> UserRow:
+        conn = self._require_conn()
+        await conn.execute(
+            "INSERT INTO users (tg_id, username, first_name, email, password_hash, created_at) "
+            "VALUES (NULL, ?, ?, ?, ?, ?)",
+            (username, first_name, email, password_hash, _now()),
+        )
+        await conn.commit()
+        row = await self.get_user_by_email(email)
+        if row is None:  # pragma: no cover - только если БД вернула мусор
+            raise RuntimeError("Не удалось создать пользователя по email")
+        return row
+
+    async def get_auth_account(self, user_id: int) -> AuthAccount | None:
+        conn = self._require_conn()
+        cursor = await conn.execute(
+            "SELECT id, email, password_hash, created_at FROM users "
+            "WHERE id = ? AND email IS NOT NULL",
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return AuthAccount(
+            user_id=row["id"],
+            email=row["email"],
+            password_hash=row["password_hash"] or "",
+            created_at=row["created_at"],
+        )
+
+    async def set_password_hash(self, user_id: int, password_hash: str) -> None:
+        conn = self._require_conn()
+        await conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id)
+        )
+        await conn.commit()
+
+    async def link_telegram(self, user_id: int, tg_id: int) -> None:
+        """Привязать Telegram-аккаунт к email-пользователю (перенос прогресса)."""
+        conn = self._require_conn()
+        await conn.execute(
+            "UPDATE users SET tg_id = ? WHERE id = ? AND (tg_id IS NULL OR tg_id = ?)",
+            (tg_id, user_id, tg_id),
+        )
+        await conn.commit()
 
     async def set_level(self, user_id: int, level: str) -> None:
         conn = self._require_conn()
@@ -1620,3 +1717,27 @@ class SQLiteRepository(Repository):
                 break
 
         return streak
+
+
+class _SQLiteMigrationDB:
+    """Адаптер aiosqlite для движка миграций."""
+
+    backend = "sqlite"
+
+    def __init__(self, conn: aiosqlite.Connection) -> None:
+        self._conn = conn
+
+    async def execute(self, statements) -> None:
+        for sql in statements:
+            await self._conn.execute(sql)
+        await self._conn.commit()
+
+    async def fetch_applied_versions(self) -> list[int]:
+        cursor = await self._conn.execute("SELECT version FROM schema_migrations")
+        rows = await cursor.fetchall()
+        return [int(row["version"]) for row in rows]
+
+    async def columns(self, table: str) -> list[tuple[str, bool]]:
+        cursor = await self._conn.execute(f"PRAGMA table_info({table})")
+        rows = await cursor.fetchall()
+        return [(row["name"], bool(row["notnull"])) for row in rows]

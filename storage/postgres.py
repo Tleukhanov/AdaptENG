@@ -23,6 +23,7 @@ import re
 from datetime import datetime, timezone, timedelta
 
 from .repo import (
+    AuthAccount,
     DiagnosticSession,
     KaspiOrder,
     LeaderboardRow,
@@ -41,6 +42,7 @@ from .repo import (
     WeakArea,
     WheelCoupon,
 )
+from .migrations import apply_migrations
 from .schema import POSTGRES_DDL
 
 logger = logging.getLogger(__name__)
@@ -100,6 +102,7 @@ class PostgresRepository(Repository):
         async with self._pool.acquire() as conn:
             for statement in _POSTGRES_STATEMENTS:
                 await conn.execute(statement)
+        await apply_migrations(_PostgresMigrationDB(self._pool))
 
     async def close(self) -> None:
         if self._pool is not None:
@@ -151,18 +154,92 @@ class PostgresRepository(Repository):
             first_name=row["first_name"],
             level=row["level"],
             is_unlimited=bool(row["unlimited"]),
+            email=row["email"] if "email" in row.keys() else None,
         )
 
     async def get_user(self, user_id: int) -> UserRow | None:
         async with self._acquire() as conn:
             row = await conn.fetchrow(
                 _adopt(
-                    "SELECT id, tg_id, username, first_name, level, unlimited "
+                    "SELECT id, tg_id, username, first_name, level, unlimited, email "
                     "FROM users WHERE id = ?"
                 ),
                 user_id,
             )
         return self._user_from_row(row) if row else None
+
+    # ---------- web-вход (email + пароль) ----------
+
+    async def get_user_by_email(self, email: str) -> UserRow | None:
+        async with self._acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT id, tg_id, username, first_name, level, unlimited, email "
+                "FROM users WHERE email = $1",
+                email,
+            )
+        return self._user_from_row(row) if row else None
+
+    async def get_user_by_tg_id(self, tg_id: int) -> UserRow | None:
+        async with self._acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT id, tg_id, username, first_name, level, unlimited, email "
+                "FROM users WHERE tg_id = $1",
+                tg_id,
+            )
+        return self._user_from_row(row) if row else None
+
+    async def create_email_user(
+        self,
+        email: str,
+        password_hash: str,
+        username: str | None = None,
+        first_name: str | None = None,
+    ) -> UserRow:
+        async with self._acquire() as conn:
+            await conn.execute(
+                "INSERT INTO users (tg_id, username, first_name, email, password_hash, created_at) "
+                "VALUES (NULL, $1, $2, $3, $4, $5)",
+                username,
+                first_name,
+                email,
+                password_hash,
+                _now(),
+            )
+        user = await self.get_user_by_email(email)
+        if user is None:  # pragma: no cover - только если БД вернула мусор
+            raise RuntimeError("Не удалось создать пользователя по email")
+        return user
+
+    async def get_auth_account(self, user_id: int) -> AuthAccount | None:
+        async with self._acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT id, email, password_hash, created_at FROM users "
+                "WHERE id = $1 AND email IS NOT NULL",
+                user_id,
+            )
+        if row is None:
+            return None
+        return AuthAccount(
+            user_id=row["id"],
+            email=row["email"],
+            password_hash=row["password_hash"] or "",
+            created_at=row["created_at"],
+        )
+
+    async def set_password_hash(self, user_id: int, password_hash: str) -> None:
+        async with self._acquire() as conn:
+            await conn.execute(
+                "UPDATE users SET password_hash = $1 WHERE id = $2", password_hash, user_id
+            )
+
+    async def link_telegram(self, user_id: int, tg_id: int) -> None:
+        """Привязать Telegram-аккаунт к email-пользователю (перенос прогресса)."""
+        async with self._acquire() as conn:
+            await conn.execute(
+                "UPDATE users SET tg_id = $1 WHERE id = $2 AND (tg_id IS NULL OR tg_id = $1)",
+                tg_id,
+                user_id,
+            )
 
     async def set_level(self, user_id: int, level: str) -> None:
         async with self._acquire() as conn:
@@ -1697,3 +1774,30 @@ class PostgresRepository(Repository):
             else:
                 break
         return streak
+
+class _PostgresMigrationDB:
+    """Адаптер asyncpg для движка миграций."""
+
+    backend = "postgres"
+
+    def __init__(self, pool) -> None:
+        self._pool = pool
+
+    async def execute(self, statements) -> None:
+        async with self._pool.acquire() as conn:
+            for sql in statements:
+                await conn.execute(sql)
+
+    async def fetch_applied_versions(self) -> list[int]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch("SELECT version FROM schema_migrations")
+        return [int(row["version"]) for row in rows]
+
+    async def columns(self, table: str) -> list[tuple[str, bool]]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT column_name, is_nullable FROM information_schema.columns "
+                "WHERE table_schema = current_schema() AND table_name = $1",
+                table,
+            )
+        return [(row["column_name"], row["is_nullable"] == "NO") for row in rows]

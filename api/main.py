@@ -19,7 +19,7 @@ from storage import create_repository
 
 from .loadguard import ActionThrottle, AsyncQueueGuard, ClientWindowLimiter
 from .ratelimit import RateLimitMiddleware
-from .routers import analytics, auth, characters, chat, diagnostic, health, lessons, progress, users
+from .routers import analytics, auth, characters, chat, diagnostic, health, lessons, progress, users, voice
 from .security import require_secret
 
 logger = logging.getLogger(__name__)
@@ -77,6 +77,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             limit=settings.api_llm_actions_per_min,
             min_interval=settings.api_llm_min_interval_sec,
         )
+        # Троттлинг распознаваний речи на пользователя (отдельно от LLM-квоты).
+        app.state.stt_throttle = ActionThrottle(
+            window_sec=60.0,
+            limit=settings.stt_max_per_min,
+            min_interval=0.0,
+        )
         app.state.client_limiter = ClientWindowLimiter(
             window_sec=settings.api_rate_limit_window_sec,
             limit=settings.api_rate_limit_per_min,
@@ -125,6 +131,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(characters.router)
     app.include_router(chat.router)
     app.include_router(lessons.router)
+    app.include_router(voice.router)
     app.include_router(progress.router)
     app.include_router(analytics.router)
     app.include_router(diagnostic.router)

@@ -16,7 +16,7 @@ from core.lesson_plan import LessonPlan, next_plan_index
 from core.progress import ProgressService
 from core.srs import SRSService
 
-from ..deps import get_current_tg_id, get_repository
+from ..deps import current_user, get_current_user_id, get_repository
 from ..schemas import (
     AchievementItem,
     AchievementsResponse,
@@ -48,11 +48,11 @@ async def _next_topic(repo, user) -> str:
 
 @router.get("/progress", response_model=ProgressResponse)
 async def progress(
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo=Depends(get_repository),
 ) -> ProgressResponse:
     """Прогресс авторизованного пользователя + next_topic + due_words."""
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -69,11 +69,11 @@ async def progress(
 
 @router.get("/review/due", response_model=list[ReviewDueWord])
 async def review_due(
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo=Depends(get_repository),
 ) -> list[ReviewDueWord]:
     """Слова SRS, готовые к повторению (до 10)."""
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -87,11 +87,11 @@ async def review_due(
 @router.post("/review/answer")
 async def review_answer(
     body: ReviewAnswerRequest,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo=Depends(get_repository),
 ) -> dict[str, Any]:
     """Обновляет интервал повторения слова по SM-2. 404, если слова нет."""
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -106,11 +106,11 @@ async def review_answer(
 
 @router.get("/achievements", response_model=AchievementsResponse)
 async def achievements(
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo=Depends(get_repository),
 ) -> AchievementsResponse:
     """Все достижения пользователя (earned=True/False) + уровень по XP."""
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -142,11 +142,11 @@ async def achievements(
 @router.get("/leaderboard", response_model=list[LeaderboardEntry])
 async def leaderboard(
     limit: int = Query(default=20, ge=1, le=50),
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo=Depends(get_repository),
 ) -> list[LeaderboardEntry]:
     """Топ пользователей по XP."""
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 

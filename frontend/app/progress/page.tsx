@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { getToken, getProgress, getDueWords, reviewWord, type ReviewWord } from '@/lib/api';
+import { getProgress, getDueWords, reviewWord, type ReviewWord } from '@/lib/api';
 import type { Locale } from '@/lib/i18n';
 
 type Status = 'loading' | 'ready' | 'error' | 'unauth';
@@ -45,26 +45,19 @@ function getStaticProgress(locale: Locale): ProgressData {
 export default function ProgressPage() {
   const locale = useLocale() as Locale;
   const t = useTranslations('progress');
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<ProgressData | null>(null);
   const [due, setDue] = useState<ReviewWord[]>([]);
   const [reviewed, setReviewed] = useState<Set<string | number>>(new Set());
 
-  const hasToken = () => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-    return !!getToken();
-  };
-
   useEffect(() => {
-    if (!hasToken()) {
-      setData(getStaticProgress(locale));
-      setStatus('unauth');
-      setDue([
-        { id: '1', word: 'destination', translation: locale === 'en' ? 'destination' : 'пункт назначения', example: locale === 'en' ? 'Our destination is Paris.' : 'Наш пункт назначения — Париж.' },
-        { id: '2', word: 'boarding pass', translation: locale === 'en' ? 'boarding pass' : 'посадочный талон', example: locale === 'en' ? 'Show your boarding pass.' : 'Покажите посадочный талон.' },
-      ]);
+    if (sessionLoading) {
+      return;
+    }
+    if (!user) {
+      router.replace('/login');
       return;
     }
     let active = true;
@@ -94,7 +87,7 @@ export default function ProgressPage() {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
+  }, [sessionLoading, user]);
 
   async function handleReview(id: string | number, quality: number) {
     if (hasToken()) {
@@ -120,7 +113,7 @@ export default function ProgressPage() {
 
       {status === 'loading' && <p className="mt-10 text-slate-600">...</p>}
 
-      {(status === 'ready' || status === 'unauth') && data && (
+      {status === 'ready' && data && (
         <>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <Stat label={t('lessons')} value={data.lessons} />
@@ -168,9 +161,6 @@ export default function ProgressPage() {
             )}
           </div>
 
-          {status === 'unauth' && (
-            <p className="mt-4 text-sm text-slate-600">{t('demoHint')}</p>
-          )}
         </>
       )}
 

@@ -1,13 +1,20 @@
-"""POST /api/auth/tg — вход через Telegram Login Widget.
+"""Аутентификация web-продукта: email+пароль (основной вход) и Telegram (legacy).
 
-Виджет присылает подписанный объект пользователя; сервер проверяет HMAC
-(core.tg_auth) и выпускает JWT. Несуществующий пользователь создаётся —
-так прогресс из бота (тот же tg_id) подхватывается автоматически.
+* ``POST /api/auth/register`` — регистрация по email с паролем.
+* ``POST /api/auth/login`` — вход по email и паролю.
+* ``POST /api/auth/logout`` — выход (сбрасывает cookie сессии).
+* ``POST /api/auth/tg`` — legacy-вход через Telegram Login Widget: оставлен, чтобы
+  не потерять прогресс старых пользователей. Новые аккаунты создаются по email.
+
+Сессия живёт в HttpOnly-cookie ``adapteng_session``; JWT внутри — по внутреннему
+``users.id``, поэтому идентичность больше не привязана к Telegram.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from core.analytics import track_event
 from core.config import Settings
@@ -15,18 +22,131 @@ from core.tg_auth import verify_login_widget
 from storage.repo import Repository
 
 from ..deps import build_user_public, get_repository, get_settings_dep
-from ..schemas import AuthResponse, TelegramUserAuth, UserPublic
-from ..security import create_access_token, require_secret
+from ..schemas import AuthResponse, LoginRequest, RegisterRequest, TelegramUserAuth, UserPublic
+from ..security import (
+    clear_session_cookie,
+    create_access_token,
+    hash_password,
+    password_problem,
+    require_secret,
+    set_session_cookie,
+    verify_password,
+)
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+#: Сколько неудачных попыток входа с одного email за окно.
+LOGIN_ATTEMPTS_LIMIT = 10
+LOGIN_ATTEMPT_WINDOW_SEC = 300.0
+
+_login_failures: dict[str, list[float]] = {}
+
+
+def _now() -> float:
+    import time
+
+    return time.time()
+
+
+def _login_allowed(email: str) -> bool:
+    """Простой антибрутфорс: не больше N неудачных попыток на email за окно."""
+    now = _now()
+    attempts = [t for t in _login_failures.get(email, []) if now - t < LOGIN_ATTEMPT_WINDOW_SEC]
+    _login_failures[email] = attempts
+    return len(attempts) < LOGIN_ATTEMPTS_LIMIT
+
+
+def _register_failure(email: str) -> None:
+    _login_failures.setdefault(email, []).append(_now())
+
+
+def _clear_failures(email: str) -> None:
+    _login_failures.pop(email, None)
+
+
+@router.post("/register", response_model=AuthResponse)
+async def register(
+    body: RegisterRequest,
+    response: Response,
+    settings: Settings = Depends(get_settings_dep),
+    repo: Repository = Depends(get_repository),
+) -> AuthResponse:
+    """Регистрация по email. Создаёт пользователя без Telegram-привязки."""
+    require_secret(settings)
+
+    problem = password_problem(body.password)
+    if problem:
+        raise HTTPException(status_code=400, detail=problem)
+
+    existing = await repo.get_user_by_email(body.email)
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="Этот email уже зарегистрирован")
+
+    user = await repo.create_email_user(
+        email=body.email,
+        password_hash=hash_password(body.password),
+        username=body.name or None,
+        first_name=body.name or None,
+    )
+    profile = await repo.get_profile(user.id)
+    public = await build_user_public(repo, user, profile, settings)
+
+    await track_event(repo, user.id, "user_registered")
+    await track_event(repo, user.id, "user_login")
+
+    token = create_access_token(settings, user.id)
+    set_session_cookie(response, settings, token)
+    return AuthResponse(token=token, user=UserPublic(**public))
+
+
+@router.post("/login", response_model=AuthResponse)
+async def login(
+    body: LoginRequest,
+    response: Response,
+    settings: Settings = Depends(get_settings_dep),
+    repo: Repository = Depends(get_repository),
+) -> AuthResponse:
+    """Вход по email и паролю."""
+    require_secret(settings)
+
+    email = body.email.strip().lower()
+    if not _login_allowed(email):
+        raise HTTPException(status_code=429, detail="Слишком много попыток входа. Попробуй позже")
+
+    user = await repo.get_user_by_email(email)
+    account = await repo.get_auth_account(user.id) if user else None
+    if user is None or account is None or not verify_password(body.password, account.password_hash):
+        _register_failure(email)
+        raise HTTPException(status_code=401, detail="Неверный email или пароль")
+    _clear_failures(email)
+
+    profile = await repo.get_profile(user.id)
+    public = await build_user_public(repo, user, profile, settings)
+    await track_event(repo, user.id, "user_login")
+
+    token = create_access_token(settings, user.id)
+    set_session_cookie(response, settings, token)
+    return AuthResponse(token=token, user=UserPublic(**public))
+
+
+@router.post("/logout")
+async def logout(response: Response, settings: Settings = Depends(get_settings_dep)) -> dict[str, bool]:
+    """Выход: сбрасывает cookie сессии."""
+    clear_session_cookie(response, settings)
+    return {"ok": True}
 
 
 @router.post("/tg", response_model=AuthResponse)
 async def auth_tg(
     body: TelegramUserAuth,
+    request: Request,
+    response: Response,
     settings: Settings = Depends(get_settings_dep),
     repo: Repository = Depends(get_repository),
 ) -> AuthResponse:
+    """Legacy-вход через Telegram Login Widget (перенос прогресса старых юзеров)."""
     require_secret(settings)
 
     payload = body.model_dump(exclude_unset=True)
@@ -45,16 +165,8 @@ async def auth_tg(
     profile = await repo.get_profile(user.id)
     public = await build_user_public(repo, user, profile, settings)
 
-    # события для воронки: первая авторизация = регистрация
     await track_event(repo, user.id, "user_login")
-    try:
-        already_registered = await repo.count_event_users(
-            "user_registered", "1970-01-01", ""
-        ) > 1
-    except Exception:
-        already_registered = True
-    if not already_registered:
-        await track_event(repo, user.id, "user_registered")
 
-    token = create_access_token(settings, tg_id)
+    token = create_access_token(settings, user.id)
+    set_session_cookie(response, settings, token)
     return AuthResponse(token=token, user=UserPublic(**public))

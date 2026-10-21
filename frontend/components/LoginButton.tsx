@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 const TG_USERNAME = process.env.NEXT_PUBLIC_TG_BOT_USERNAME ?? '';
-const TOKEN_KEY = 'adapteng_token';
 
 type TelegramUser = {
   id: number;
@@ -20,11 +21,17 @@ type TelegramWindow = Window & {
   onTelegramAuth?: (user: TelegramUser) => Promise<void>;
 };
 
+/**
+ * Кнопка входа на лендинге: основной путь — email/пароль (страница /login),
+ * Telegram остаётся как запасной вариант для старых аккаунтов.
+ */
 export default function LoginButton({ locale }: { locale: string }) {
   const t = useTranslations('login');
   const tRoot = useTranslations();
+  const router = useRouter();
   const [toast, setToast] = useState<string | null>(null);
   const [showWidget, setShowWidget] = useState(false);
+  const [busy, setBusy] = useState(false);
   const widgetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,24 +40,27 @@ export default function LoginButton({ locale }: { locale: string }) {
       return;
     }
     telegramWindow.onTelegramAuth = async (user: TelegramUser) => {
+      setBusy(true);
       try {
         const response = await fetch('/api/auth/tg', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(user),
         });
-        const data = (await response.json()) as { token?: string; error?: string };
-        if (data.token) {
-          window.localStorage.setItem(TOKEN_KEY, data.token);
-          window.location.href = '/onboarding';
+        const data = (await response.json()) as { token?: string; detail?: string };
+        if (response.ok && data.token) {
+          router.push('/menu');
+          router.refresh();
         } else {
-          window.alert(data.error ?? 'Auth failed');
+          setToast(data.detail ?? tRoot('auth.error'));
         }
       } catch {
-        window.alert('Auth failed');
+        setToast(tRoot('auth.error'));
+      } finally {
+        setBusy(false);
       }
     };
-  }, []);
+  }, [router, tRoot]);
 
   useEffect(() => {
     if (!showWidget || !widgetRef.current || !TG_USERNAME) {
@@ -76,38 +86,38 @@ export default function LoginButton({ locale }: { locale: string }) {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  const showDemoToast = useCallback(() => {
-    setToast(tRoot('demo.toast'));
-  }, [tRoot]);
-
   const handleTelegram = useCallback(() => {
     if (!TG_USERNAME) {
-      // Виджет Telegram не настроен (нужен NEXT_PUBLIC_TG_BOT_USERNAME).
-      showDemoToast();
+      setToast(tRoot('auth.error'));
       return;
     }
     setShowWidget(true);
-  }, [showDemoToast]);
+  }, [tRoot]);
 
   return (
     <div className="flex flex-col gap-3" data-locale={locale}>
-      <button
-        type="button"
-        onClick={handleTelegram}
-        className="w-full rounded-xl bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:opacity-95"
+      <Link
+        href="/login"
+        className="w-full rounded-xl bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:opacity-95"
       >
-        {t('telegram')}
-      </button>
+        {tRoot('hero.cta')}
+      </Link>
+      {TG_USERNAME ? (
+        <button
+          type="button"
+          onClick={handleTelegram}
+          disabled={busy}
+          className="w-full rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+        >
+          {t('telegram')}
+        </button>
+      ) : null}
       <div ref={widgetRef} />
-      <button
-        type="button"
-        onClick={showDemoToast}
-        className="w-full rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-      >
-        {t('demo')}
-      </button>
       {toast ? (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl">
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl"
+        >
           {toast}
         </div>
       ) : null}

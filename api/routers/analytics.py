@@ -22,27 +22,35 @@ from core.learning_metrics import (
 )
 from storage.repo import Repository
 
-from ..deps import get_current_tg_id, get_repository, get_settings_dep
+from ..deps import current_user, get_current_user_id, get_repository, get_settings_dep
 
 router = APIRouter(prefix="/api", tags=["analytics"])
 
 
-async def _require_admin(tg_id: int, settings) -> None:
-    """Доступ только владельцу (ADMIN_TG_ID)."""
+async def _require_admin(user, settings) -> None:
+    """Доступ только администратору (email из ADMIN_EMAILS или Telegram-ADMIN_TG_ID)."""
     admin_id = int(getattr(settings, "admin_tg_id", 0) or 0)
-    if admin_id <= 0:
+    admin_emails = {
+        item.strip().lower()
+        for item in (getattr(settings, "admin_emails", "") or "").split(",")
+        if item.strip()
+    }
+    if admin_id <= 0 and not admin_emails:
         raise HTTPException(status_code=404, detail="Админ-метрики выключены")
-    if tg_id != admin_id:
-        raise HTTPException(status_code=403, detail="Нужен доступ администратора")
+    if user.tg_id and admin_id and user.tg_id == admin_id:
+        return
+    if user.email and user.email.lower() in admin_emails:
+        return
+    raise HTTPException(status_code=403, detail="Нужен доступ администратора")
 
 
 @router.get("/analytics/me")
 async def analytics_me(
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo: Repository = Depends(get_repository),
 ) -> dict[str, Any]:
     """Отчёт о прогрессе: результат обучения, а не «сколько раз зашёл»."""
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -53,13 +61,14 @@ async def analytics_me(
 @router.get("/admin/analytics")
 async def admin_analytics(
     request: Request,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     repo: Repository = Depends(get_repository),
     settings=Depends(get_settings_dep),
     days: int = Query(default=30, ge=1, le=180),
 ) -> dict[str, Any]:
     """Воронка и когорты: сколько людей дошло до первого урока и вернулось."""
-    await _require_admin(tg_id, settings)
+    admin = await current_user(repo, user_id)
+    await _require_admin(admin, settings)
 
     funnel = await funnel_summary(repo, days=days)
     cohorts = await learning_cohort_summary(repo, limit=25)

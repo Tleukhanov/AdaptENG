@@ -18,7 +18,7 @@ from core.profile import to_profile_snippet
 from core.weak_areas import WeakAreaService
 from storage.repo import Repository, UserProfile
 
-from ..deps import get_current_tg_id, get_practice, get_tts, get_repository, get_settings_dep, resolve_locale
+from ..deps import current_user, get_current_user_id, get_practice, get_repository, get_settings_dep, get_tts, resolve_locale
 from ..loadguard import QueueFull
 from ..quota import QuotaExceeded, check_quota, consume_quota
 from ..schemas import ChatRequest, ChatResponse, IssueOut, TTSRequest
@@ -50,12 +50,12 @@ def _issues_json(result) -> str:
 async def chat(
     request: Request,
     body: ChatRequest,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     settings: Settings = Depends(get_settings_dep),
     repo: Repository = Depends(get_repository),
     practice=Depends(get_practice),
 ) -> ChatResponse:
-    user = await repo.get_or_create_user(tg_id)
+    user = await current_user(repo, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
@@ -146,7 +146,7 @@ async def chat(
 async def chat_tts(
     request: Request,
     body: TTSRequest,
-    tg_id: int = Depends(get_current_tg_id),
+    user_id: int = Depends(get_current_user_id),
     tts=Depends(get_tts),
 ) -> Response:
     if tts is None:

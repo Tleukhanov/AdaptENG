@@ -14,4 +14,6 @@ asyncpg==0.32.0
 # Web-продукт AdaptENG (api/): отдельный FastAPI-сервис на том же ядре.
 fastapi==0.139.2
 uvicorn[standard]==0.51.0
+# Загрузка файлов (multipart/form-data) для /api/voice — распознавание речи.
+python-multipart==0.0.20
 PyJWT==2.10.1

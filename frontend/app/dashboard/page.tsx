@@ -6,8 +6,9 @@ import type { ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { sampleCharacters } from '@/lib/characters';
 import type { Locale } from '@/lib/i18n';
-
-const TOKEN_KEY = 'adapteng_token';
+import { apiFetch } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { useSession } from '@/lib/session';
 
 type MeResponse = {
   user: {
@@ -58,25 +59,21 @@ export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<MeResponse | null>(null);
-  const [hasToken, setHasToken] = useState(false);
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
 
   useEffect(() => {
-    const token = window.localStorage.getItem(TOKEN_KEY);
-    setHasToken(!!token);
-    if (!token) {
-      setStatus('unauth');
+    if (sessionLoading) {
+      return;
+    }
+    if (!user) {
+      router.replace('/login');
       return;
     }
     let active = true;
     (async () => {
       try {
-        const response = await fetch('/api/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) {
-          throw new Error('request failed');
-        }
-        const json = (await response.json()) as MeResponse;
+        const json = await apiFetch<MeResponse>('/api/me');
         if (active) {
           setData(json);
           setStatus('ready');
@@ -90,7 +87,7 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [sessionLoading, user]);
 
   const characterId = data?.user?.character;
   const fallbackCharacter = sampleCharacters(locale).find(
@@ -141,12 +138,6 @@ export default function DashboardPage() {
 
       {status === 'ready' && data ? (
         <div className="mt-8 space-y-8">
-          {!hasToken ? (
-            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              {t('demoNote')}
-            </p>
-          ) : null}
-
           <div>
             <h2 className="text-xl font-semibold text-slate-900">{t('welcome')}</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

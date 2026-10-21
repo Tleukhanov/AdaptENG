@@ -29,13 +29,23 @@ def create_stt(settings: Settings) -> STTProvider:
     if provider == "faster-whisper":
         from .stt_faster_whisper import FasterWhisperProvider
 
-        return FasterWhisperProvider(model_name=settings.stt_model)
+        return FasterWhisperProvider(model_name=settings.resolved_stt_model)
     if provider == "openai":
-        if not settings.stt_api_key:
-            raise ValueError("STT_PROVIDER=openai, но STT_API_KEY не задан в .env")
+        # Ключ облачного STT: STT_API_KEY, иначе LLM_API_KEY.
+        api_key = settings.resolved_stt_api_key
+        if not api_key:
+            raise ValueError(
+                "STT_PROVIDER=openai, но не заданы STT_API_KEY (или LLM_API_KEY) в .env"
+            )
         from .stt_openai import OpenAIWhisperProvider
 
-        return OpenAIWhisperProvider(api_key=settings.stt_api_key)
+        return OpenAIWhisperProvider(
+            api_key=api_key,
+            model=settings.resolved_stt_model,
+            base_url=settings.stt_base_url,
+            timeout=settings.stt_timeout_sec,
+            language=settings.stt_language,
+        )
     raise ValueError(f"Неизвестный STT_PROVIDER={provider!r}. Доступные: faster-whisper, openai")
 
 

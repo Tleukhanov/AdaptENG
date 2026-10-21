@@ -22,11 +22,40 @@ class AuthResponse(BaseModel):
     user: "UserPublic"
 
 
+class RegisterRequest(BaseModel):
+    """Регистрация web-аккаунта (email + пароль) — без Telegram."""
+
+    email: str = Field(min_length=5, max_length=254)
+    password: str = Field(min_length=8, max_length=200)
+    name: str = Field(default="", max_length=80)
+
+    @field_validator("email")
+    @classmethod
+    def _normalize_email(cls, value: str) -> str:
+        email = value.strip().lower()
+        if "@" not in email or email.startswith("@") or email.endswith("@"):
+            raise ValueError("Некорректный email")
+        if " " in email:
+            raise ValueError("Некорректный email")
+        return email
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=254)
+    password: str = Field(min_length=1, max_length=200)
+
+    @field_validator("email")
+    @classmethod
+    def _normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
 class UserPublic(BaseModel):
     id: int
-    tg_id: int
+    tg_id: int | None = None
     username: str = ""
     first_name: str = ""
+    email: str = ""
     level: str | None = None
     character: str = ""
     interests: list[str] = Field(default_factory=list)

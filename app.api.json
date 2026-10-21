@@ -30,8 +30,28 @@
       "description": "Синтез речи. edge-tts бесплатный; openai — надёжнее."
     },
     "STT_PROVIDER": {
-      "value": "faster-whisper",
-      "description": "Распознавание голоса (модель small качается при первом старте)."
+      "value": "openai",
+      "description": "Распознавание голоса. В проде — облако (openai/Groq): faster-whisper не влезает в 512 МБ Heroku."
+    },
+    "STT_BASE_URL": {
+      "value": "https://api.openai.com/v1",
+      "description": "OpenAI-совместимая база STT. Groq: https://api.groq.com/openai/v1"
+    },
+    "STT_API_KEY": {
+      "required": true,
+      "description": "Ключ облачного STT (OpenAI или Groq). Пусто — используется LLM_API_KEY."
+    },
+    "STT_MODEL": {
+      "value": "whisper-1",
+      "description": "Модель STT. OpenAI: whisper-1, Groq: whisper-large-v3-turbo."
+    },
+    "STT_TIMEOUT_SEC": {
+      "value": "60",
+      "description": "Таймаут одного запроса распознавания (секунды)."
+    },
+    "STT_MAX_PER_MIN": {
+      "value": "10",
+      "description": "Не больше N распознаваний в минуту на пользователя (0 — без лимита)."
     },
     "LLM_DAILY_LIMIT": {
       "value": "30",

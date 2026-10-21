@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { getLeaderboard, getToken, type LeaderboardEntry } from '@/lib/api';
+import { getLeaderboard, type LeaderboardEntry } from '@/lib/api';
 import type { Locale } from '@/lib/i18n';
+import { useSession } from '@/lib/session';
+import { useRouter } from 'next/navigation';
 
 type Status = 'loading' | 'ready' | 'error' | 'unauth';
 
@@ -34,20 +36,17 @@ function getStaticLeaderboard(locale: Locale): Row[] {
 export default function LeaderboardPage() {
   const locale = useLocale() as Locale;
   const t = useTranslations('leaderboard');
+  const router = useRouter();
+  const { user, loading: sessionLoading } = useSession();
   const [status, setStatus] = useState<Status>('loading');
   const [rows, setRows] = useState<Row[]>([]);
 
-  const hasToken = () => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-    return !!getToken();
-  };
-
   useEffect(() => {
-    if (!hasToken()) {
-      setRows(getStaticLeaderboard(locale));
-      setStatus('unauth');
+    if (sessionLoading) {
+      return;
+    }
+    if (!user) {
+      router.replace('/login');
       return;
     }
     let active = true;
@@ -67,7 +66,7 @@ export default function LeaderboardPage() {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
+  }, [sessionLoading, user]);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-12">
@@ -80,7 +79,7 @@ export default function LeaderboardPage() {
 
       {status === 'loading' && <p className="mt-10 text-slate-600">...</p>}
 
-      {(status === 'ready' || status === 'unauth') && (
+      {status === 'ready' && (
         <div className="mt-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[280px] text-sm">
@@ -115,8 +114,6 @@ export default function LeaderboardPage() {
           {rows.length === 0 && <p className="p-6 text-slate-600">{t('noPlace')}</p>}
         </div>
       )}
-
-      {status === 'unauth' && <p className="mt-4 text-sm text-slate-600">{t('demoHint')}</p>}
 
       {status === 'error' && (
         <div className="mt-10 rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700">

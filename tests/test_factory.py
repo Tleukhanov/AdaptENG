@@ -63,6 +63,13 @@ def test_create_llm_unknown_provider_raises():
 
 
 def test_create_stt_openai_without_key_raises():
-    settings = Settings(stt_provider="openai", stt_api_key="")
+    # llm_api_key="" — иначе ключ подхватится из .env как запасной.
+    settings = Settings(stt_provider="openai", stt_api_key="", llm_api_key="")
     with pytest.raises(ValueError, match="STT_API_KEY"):
         create_stt(settings)
+
+
+def test_create_stt_openai_falls_back_to_llm_key():
+    settings = Settings(stt_provider="openai", stt_api_key="", llm_api_key="llm-key")
+    provider = create_stt(settings)
+    assert provider is not None

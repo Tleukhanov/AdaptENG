@@ -502,6 +502,7 @@ def _lessons_app(tmp_path, *, llm_daily_limit: int = 1000) -> TestClient:
         llm_daily_limit=llm_daily_limit,
         stt_provider="openai",
         stt_api_key="",
+        llm_api_key="",  # чтобы STT не подхватил ключ из .env
     )
     return TestClient(create_app(settings))
 

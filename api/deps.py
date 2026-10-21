@@ -78,17 +78,37 @@ def client_key(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def get_current_tg_id(
+def get_current_user_id(
+    request: Request,
     settings: Settings = Depends(get_settings_dep),
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> int:
-    """Извлекает и проверяет JWT из ``Authorization: Bearer``."""
-    if credentials is None or not credentials.credentials:
+    """Извлекает и проверяет JWT: из ``Authorization: Bearer`` или из cookie сессии.
+
+    Возвращает внутренний ``users.id`` — идентичность больше не привязана к Telegram.
+    """
+    token = ""
+    if credentials is not None and credentials.credentials:
+        token = credentials.credentials
+    else:
+        token = request.cookies.get(settings.session_cookie_name, "")
+    if not token:
         raise HTTPException(status_code=401, detail="Требуется авторизация")
-    tg_id = decode_access_token(settings, credentials.credentials)
-    if tg_id is None:
+    user_id = decode_access_token(settings, token)
+    if user_id is None:
         raise HTTPException(status_code=401, detail="Невалидный или истёкший токен")
-    return tg_id
+    return user_id
+
+
+async def current_user(repo: Repository, user_id: int):
+    """Возвращает пользователя по внутреннему id либо 401."""
+    user = await repo.get_user(user_id)
+    if user is None:
+        # Совместимость со старыми токенами (в них sub = tg_id).
+        user = await repo.get_user_by_tg_id(user_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Пользователь не найден")
+    return user
 
 
 def resolve_locale(request: Request) -> str:
@@ -132,6 +152,7 @@ async def build_user_public(
         "tg_id": user.tg_id,
         "username": user.username or "",
         "first_name": user.first_name or "",
+        "email": user.email or "",
         "level": user.level,
         "character": char_id,
         "interests": interests,
