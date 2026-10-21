@@ -618,7 +618,7 @@ export default function LessonPage() {
                     disabled={recorder.busy}
                     className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 shadow-sm disabled:opacity-60"
                   >
-                    {recorder.busy ? t('lesson.step.loading') : t('dialogue.stop')}
+                    {recorder.busy ? t('step.loading') : t('dialogue.stop')}
                   </button>
                 )}
               </div>
