@@ -49,7 +49,10 @@ def test_health(tmp_path) -> None:
     with client:
         response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"ok": True}
+    payload = response.json()
+    assert payload["ok"] is True
+    # признак доступности серверного STT совпадает с состоянием приложения
+    assert payload["stt_available"] is (client.app.state.stt is not None)
 
 
 def test_characters_localized_ru_by_default(tmp_path) -> None:

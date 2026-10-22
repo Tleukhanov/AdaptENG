@@ -324,6 +324,8 @@ class DiagnosticFinishResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     ok: bool = True
+    # Есть ли серверное распознавание речи (иначе фронт сразу идёт в браузер).
+    stt_available: bool = False
 
 
 class ApiError(BaseModel):

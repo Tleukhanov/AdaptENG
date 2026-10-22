@@ -84,6 +84,22 @@ export async function getSession(force = false): Promise<SessionUser | null> {
   return sessionUser;
 }
 
+/** Доступно ли серверное распознавание речи (иначе — распознаём в браузере). */
+let sttAvailable: boolean | null = null;
+
+export async function serverSttAvailable(force = false): Promise<boolean> {
+  if (sttAvailable !== null && !force) {
+    return sttAvailable;
+  }
+  try {
+    const data = await apiFetch<{ ok: boolean; stt_available?: boolean }>('/api/health');
+    sttAvailable = data.stt_available === true;
+  } catch {
+    sttAvailable = false;
+  }
+  return sttAvailable;
+}
+
 export type AuthResult = { user: SessionUser };
 
 export async function login(email: string, password: string): Promise<AuthResult> {
