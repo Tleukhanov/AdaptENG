@@ -48,6 +48,19 @@ type FinishResult = {
   preset?: string;
 };
 
+/** Общая «стеклянная» панель для всех экранов урока. */
+const PANEL =
+  'rounded-3xl border border-white/10 bg-white/5 shadow-xl shadow-blue-950/30 backdrop-blur';
+
+const PRIMARY =
+  'inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-60';
+
+const SECONDARY =
+  'inline-flex items-center justify-center rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-blue-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
+
+const GHOST_SM =
+  'rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 transition hover:border-white/20 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-60';
+
 export default function LessonPage() {
   const locale = useLocale() as Locale;
   const t = useTranslations('lesson');
@@ -417,289 +430,364 @@ export default function LessonPage() {
   const currentQuiz: QuizItem | null = deck ? deck.quiz[quizIndex] ?? null : null;
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div className="flex-1">
-          <div className="h-2 rounded-full bg-slate-200">
-            <div className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-sky-500" style={{ width: `${progress}%` }} />
-          </div>
-          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(`step.${status}`)}</p>
-        </div>
-        <Link href="/dashboard" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
-          {t('exit')}
-        </Link>
-      </div>
+    <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 py-8 text-white">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_50%_-12%,rgba(37,99,235,0.28),transparent_72%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-32 right-[-15%] h-[380px] w-[380px] rounded-full bg-blue-500/10 blur-3xl"
+      />
 
-      {error && (
-        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          <p>{error}</p>
-          {errorKind === 'quota' ? (
-            <div className="mt-2 flex gap-2">
-              <Link href="/progress" className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm">
-                {t('error.toProgress')}
+      <div className="relative mx-auto w-full max-w-4xl">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-sky-400"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-blue-200/60">
+              {t(`step.${status}`)}
+            </p>
+          </div>
+          <Link
+            href="/dashboard"
+            className="rounded-lg px-2 py-2 text-sm font-semibold text-blue-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+          >
+            {t('exit')}
+          </Link>
+        </div>
+
+        {error && (
+          <div
+            role="alert"
+            className="mb-4 rounded-2xl border border-rose-400/30 bg-rose-400/15 p-4 text-sm text-rose-200"
+          >
+            <p>{error}</p>
+            {errorKind === 'quota' ? (
+              <div className="mt-2 flex gap-2">
+                <Link
+                  href="/progress"
+                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500"
+                >
+                  {t('error.toProgress')}
+                </Link>
+              </div>
+            ) : (
+              <button
+                onClick={start}
+                disabled={starting}
+                className="mt-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {starting ? t('generating.working') : t('error.retry')}
+              </button>
+            )}
+          </div>
+        )}
+
+        {status === 'loading' && (
+          <div className={`${PANEL} p-8 text-center sm:p-10`}>
+            <div
+              aria-hidden
+              className="mx-auto mb-5 flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white"
+            >
+              ✨
+            </div>
+            <h1 className="text-2xl font-bold text-white">{t('generating.title')}</h1>
+            <p className="mt-2 text-blue-100/70" role="status" aria-live="polite">
+              {t(GENERATION_TIPS[tipIndex % GENERATION_TIPS.length])}
+            </p>
+
+            <div className="mx-auto mt-6 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-white/10">
+              <div className="h-full w-1/3 animate-[loading_1.2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-blue-500 to-sky-400" />
+            </div>
+
+            <p className="mt-4 text-sm text-slate-400">
+              {t('generating.elapsed', { seconds: elapsed })}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {elapsed > 20 ? t('generating.slow') : t('generating.hint')}
+            </p>
+
+            <button onClick={start} disabled={starting} className={`mt-6 ${PRIMARY}`}>
+              {starting ? t('generating.working') : t('presentation.start')}
+            </button>
+          </div>
+        )}
+
+        {status === 'cover' && !deck && (
+          <div className={`${PANEL} p-10 text-center`}>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white">
+              🌟
+            </div>
+            <h1 className="text-2xl font-bold text-white">{t('start')}</h1>
+            <p className="mt-2 text-slate-300">{t('generating.hint')}</p>
+            <button onClick={start} disabled={starting} className={`mt-6 ${PRIMARY}`}>
+              {starting ? t('generating.working') : t('presentation.start')}
+            </button>
+          </div>
+        )}
+
+        {status === 'cover' && deck && (
+          <div className={`${PANEL} p-8`}>
+            <div className="mb-6 flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white">
+                {deck.cover.emoji}
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">{deck.cover.title}</h1>
+                <p className="text-slate-300">{deck.cover.subtitle}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button onClick={() => setStatus('slides')} className={PRIMARY}>
+                {t('presentation.start')}
+              </button>
+              <Link href="/dashboard" className={SECONDARY}>
+                {t('exit')}
               </Link>
             </div>
-          ) : (
-            <button
-              onClick={start}
-              disabled={starting}
-              className="mt-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {starting ? t('generating.working') : t('error.retry')}
-            </button>
-          )}
-        </div>
-      )}
-
-      {status === 'loading' && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10">
-          <div
-            aria-hidden
-            className="mx-auto mb-5 flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-500 text-2xl text-white"
-          >
-            ✨
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">{t('generating.title')}</h1>
-          <p className="mt-2 text-slate-600" role="status" aria-live="polite">
-            {t(GENERATION_TIPS[tipIndex % GENERATION_TIPS.length])}
-          </p>
+        )}
 
-          <div className="mx-auto mt-6 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-1/3 animate-[loading_1.2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-blue-500 to-sky-500" />
-          </div>
-
-          <p className="mt-4 text-sm text-slate-500">
-            {t('generating.elapsed', { seconds: elapsed })}
-          </p>
-          <p className="mt-1 text-xs text-slate-400">
-            {elapsed > 20 ? t('generating.slow') : t('generating.hint')}
-          </p>
-
-          <button
-            onClick={start}
-            disabled={starting}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {starting ? t('generating.working') : t('presentation.start')}
-          </button>
-        </div>
-      )}
-
-      {status === 'cover' && !deck && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-500 text-2xl text-white">
-            🌟
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">{t('start')}</h1>
-          <p className="mt-2 text-slate-600">{t('generating.hint')}</p>
-          <button
-            onClick={start}
-            disabled={starting}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {starting ? t('generating.working') : t('presentation.start')}
-          </button>
-        </div>
-      )}
-
-      {status === 'cover' && deck && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-500 text-2xl text-white">
-              {deck.cover.emoji}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">{deck.cover.title}</h1>
-              <p className="text-slate-600">{deck.cover.subtitle}</p>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => setStatus('slides')} className="rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-              {t('presentation.start')}
-            </button>
-            <Link href="/dashboard" className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
-              {t('exit')}
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {status === 'slides' && deck && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-500 text-2xl text-white">
-              {deck.slides[slideIndex]?.emoji ?? deck.cover.emoji}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">{deck.slides[slideIndex]?.headline ?? deck.cover.title}</h2>
-              <p className="text-slate-600">{deck.slides[slideIndex]?.body ?? deck.cover.subtitle}</p>
-            </div>
-          </div>
-          <button onClick={goNextSlide} className="rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-            {slideIndex < deck.slides.length - 1 ? t('presentation.next') : t('presentation.start')}
-          </button>
-        </div>
-      )}
-
-      {status === 'cards' && deck && currentCard && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-slate-900">{currentCard.word}</h2>
-            {currentCard.transcription && <p className="text-slate-500">{currentCard.transcription}</p>}
-          </div>
-          <button onClick={flipCard} className="w-full rounded-2xl border border-slate-200 p-8 text-center shadow-sm transition hover:shadow-md">
-            <p className="text-lg text-slate-700">{cardFlipped ? currentCard.translation : currentCard.example}</p>
-          </button>
-          <div className="mt-6 flex gap-3">
-            <button onClick={() => markCard(true)} className="flex-1 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-              {t('cards.know')}
-            </button>
-            <button onClick={() => markCard(false)} className="flex-1 rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-              {t('cards.repeat')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {status === 'cards' && deck && !currentCard && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900">{t('step.cards')}</h2>
-          <button onClick={skipCards} className="mt-6 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-            {t('presentation.next')}
-          </button>
-        </div>
-      )}
-
-      {status === 'quiz' && deck && currentQuiz && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h2 className="mb-4 text-xl font-bold text-slate-900">{currentQuiz.question}</h2>
-          <div className="space-y-2">
-            {currentQuiz.options.map((opt, idx) => {
-              const isCorrect = idx === currentQuiz.correctIndex;
-              const isSelected = selectedOption === idx;
-              let cls = 'w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-sm text-slate-700 shadow-sm';
-              if (quizAnswered) {
-                if (isCorrect) {
-                  cls = 'w-full rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-left text-sm font-semibold text-emerald-700';
-                } else if (isSelected) {
-                  cls = 'w-full rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-left text-sm font-semibold text-red-700';
-                }
-              }
-              return (
-                <button key={idx} onClick={() => selectQuizOption(idx)} disabled={quizAnswered} className={cls}>
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-          {quizAnswered && (
-            <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-              <p>{currentQuiz.explanation_ru ?? currentQuiz.explanation}</p>
-            </div>
-          )}
-          {quizAnswered && (
-            <button onClick={nextQuiz} className="mt-4 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-              {t('quiz.next')}
-            </button>
-          )}
-        </div>
-      )}
-
-      {status === 'quiz' && deck && !currentQuiz && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900">{t('step.quiz')}</h2>
-          <button onClick={skipQuiz} className="mt-6 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-            {t('presentation.next')}
-          </button>
-        </div>
-      )}
-
-      {status === 'dialogue' && deck && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h2 className="mb-2 text-xl font-bold text-slate-900">{deck.dialogue.title ?? t('step.dialogue')}</h2>
-          <p className="mb-4 text-sm text-slate-600">{deck.dialogue.scene_ru ?? deck.dialogue.scene}</p>
-          <div className="space-y-3">
-            {dialogueBubbles.map((turn, idx) => (
-              <div key={idx} className={`flex ${turn.speaker === 'student' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm shadow-sm ${turn.speaker === 'student' ? 'bg-gradient-to-r from-blue-500 to-sky-500 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>
-                  {turn.line}
-                </div>
+        {status === 'slides' && deck && (
+          <div className={`${PANEL} p-8`}>
+            <div className="mb-6 flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white">
+                {deck.slides[slideIndex]?.emoji ?? deck.cover.emoji}
               </div>
-            ))}
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  {deck.slides[slideIndex]?.headline ?? deck.cover.title}
+                </h2>
+                <p className="text-slate-300">
+                  {deck.slides[slideIndex]?.body ?? deck.cover.subtitle}
+                </p>
+              </div>
+            </div>
+            <button onClick={goNextSlide} className={PRIMARY}>
+              {slideIndex < deck.slides.length - 1 ? t('presentation.next') : t('presentation.start')}
+            </button>
           </div>
-          {(deck.dialogue.choices?.length ?? 0) > 0 && dialogueChoicesVisible && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {(deck.dialogue.choices ?? []).map((ch, idx) => (
-                <button key={idx} onClick={() => pickChoice(ch)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm hover:shadow-md">
-                  {ch.line}
-                </button>
+        )}
+
+        {status === 'cards' && deck && currentCard && (
+          <div className={`${PANEL} p-8`}>
+            <div className="mb-6 text-center">
+              <h2 className="text-2xl font-bold text-white">{currentCard.word}</h2>
+              {currentCard.transcription && (
+                <p className="text-slate-400">{currentCard.transcription}</p>
+              )}
+            </div>
+            <button
+              onClick={flipCard}
+              className="w-full rounded-2xl border border-white/10 bg-white/5 p-8 text-center transition hover:border-white/20 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+            >
+              <p className="text-lg text-slate-200">
+                {cardFlipped ? currentCard.translation : currentCard.example}
+              </p>
+            </button>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => markCard(true)}
+                className="flex-1 rounded-xl border border-emerald-400/25 bg-emerald-400/15 px-5 py-3 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+              >
+                {t('cards.know')}
+              </button>
+              <button
+                onClick={() => markCard(false)}
+                className="flex-1 rounded-xl border border-amber-400/25 bg-amber-400/15 px-5 py-3 text-sm font-semibold text-amber-200 transition hover:bg-amber-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+              >
+                {t('cards.repeat')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {status === 'cards' && deck && !currentCard && (
+          <div className={`${PANEL} p-8 text-center`}>
+            <h2 className="text-xl font-bold text-white">{t('step.cards')}</h2>
+            <button onClick={skipCards} className={`mt-6 ${PRIMARY}`}>
+              {t('presentation.next')}
+            </button>
+          </div>
+        )}
+
+        {status === 'quiz' && deck && currentQuiz && (
+          <div className={`${PANEL} p-8`}>
+            <h2 className="mb-4 text-xl font-bold text-white">{currentQuiz.question}</h2>
+            <div className="space-y-2">
+              {currentQuiz.options.map((opt, idx) => {
+                const isCorrect = idx === currentQuiz.correctIndex;
+                const isSelected = selectedOption === idx;
+                let cls =
+                  'w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/10 disabled:cursor-default disabled:hover:bg-white/5';
+                if (quizAnswered) {
+                  if (isCorrect) {
+                    cls =
+                      'w-full rounded-xl border border-emerald-400/30 bg-emerald-400/15 px-4 py-3 text-left text-sm font-semibold text-emerald-300';
+                  } else if (isSelected) {
+                    cls =
+                      'w-full rounded-xl border border-rose-400/30 bg-rose-400/15 px-4 py-3 text-left text-sm font-semibold text-rose-300';
+                  }
+                }
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => selectQuizOption(idx)}
+                    disabled={quizAnswered}
+                    className={cls}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+            {quizAnswered && (
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                <p>{currentQuiz.explanation_ru ?? currentQuiz.explanation}</p>
+              </div>
+            )}
+            {quizAnswered && (
+              <button onClick={nextQuiz} className={`mt-4 ${PRIMARY}`}>
+                {t('quiz.next')}
+              </button>
+            )}
+          </div>
+        )}
+
+        {status === 'quiz' && deck && !currentQuiz && (
+          <div className={`${PANEL} p-8 text-center`}>
+            <h2 className="text-xl font-bold text-white">{t('step.quiz')}</h2>
+            <button onClick={skipQuiz} className={`mt-6 ${PRIMARY}`}>
+              {t('presentation.next')}
+            </button>
+          </div>
+        )}
+
+        {status === 'dialogue' && deck && (
+          <div className={`${PANEL} p-8`}>
+            <h2 className="mb-2 text-xl font-bold text-white">
+              {deck.dialogue.title ?? t('step.dialogue')}
+            </h2>
+            <p className="mb-4 text-sm text-slate-300">
+              {deck.dialogue.scene_ru ?? deck.dialogue.scene}
+            </p>
+            <div className="space-y-3">
+              {dialogueBubbles.map((turn, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${turn.speaker === 'student' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
+                      turn.speaker === 'student'
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
+                        : 'border border-white/10 bg-white/5 text-slate-200'
+                    }`}
+                  >
+                    {turn.line}
+                  </div>
+                </div>
               ))}
             </div>
-          )}
-          {dialogueFinished && (
-            <button onClick={proceedToFinish} className="mt-4 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-              {t('dialogue.finish')}
-            </button>
-          )}
-          <div className="mt-6 rounded-2xl border border-slate-200 p-4">
-            {!demo && (
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => speakLine(lastPartnerLine)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-sm">
-                  {t('dialogue.speak')}
-                </button>
-                {!recorder.recording ? (
-                  <button
-                    onClick={startRecording}
-                    disabled={recorder.busy}
-                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 shadow-sm disabled:opacity-60"
-                  >
-                    {t('dialogue.record')}
+            {(deck.dialogue.choices?.length ?? 0) > 0 && dialogueChoicesVisible && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(deck.dialogue.choices ?? []).map((ch, idx) => (
+                  <button key={idx} onClick={() => pickChoice(ch)} className={GHOST_SM}>
+                    {ch.line}
                   </button>
-                ) : (
-                  <button
-                    onClick={stopRecording}
-                    disabled={recorder.busy}
-                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 shadow-sm disabled:opacity-60"
-                  >
-                    {recorder.busy ? t('step.loading') : t('dialogue.stop')}
-                  </button>
-                )}
+                ))}
               </div>
             )}
-            {micError && <p className="mt-2 text-xs text-red-600">{micError}</p>}
-            {voiceResult && (
-              <div className="mt-3 text-xs text-slate-600">
-                <p>{t('dialogue.transcript') ?? 'Transcript'}: {voiceResult.transcript ?? '-'}</p>
-                <p>{t('dialogue.rating')}: {voiceResult.rating ?? '-'}</p>
-                {voiceResult.tip && <p>{t('dialogue.tip')}: {voiceResult.tip}</p>}
-              </div>
+            {dialogueFinished && (
+              <button onClick={proceedToFinish} className={`mt-4 ${PRIMARY}`}>
+                {t('dialogue.finish')}
+              </button>
             )}
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              {!demo && (
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => speakLine(lastPartnerLine)} className={GHOST_SM}>
+                    {t('dialogue.speak')}
+                  </button>
+                  {!recorder.recording ? (
+                    <button
+                      onClick={startRecording}
+                      disabled={recorder.busy}
+                      className={GHOST_SM}
+                    >
+                      {t('dialogue.record')}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={stopRecording}
+                      disabled={recorder.busy}
+                      className="rounded-xl border border-rose-400/40 bg-rose-400/15 px-4 py-2 text-sm text-rose-200 transition hover:bg-rose-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {recorder.busy ? t('step.loading') : t('dialogue.stop')}
+                    </button>
+                  )}
+                </div>
+              )}
+              {micError && <p className="mt-2 text-xs text-rose-300">{micError}</p>}
+              {voiceResult && (
+                <div className="mt-3 text-xs text-slate-300">
+                  <p>
+                    {t('dialogue.transcript') ?? 'Transcript'}: {voiceResult.transcript ?? '-'}
+                  </p>
+                  <p>
+                    {t('dialogue.rating')}: {voiceResult.rating ?? '-'}
+                  </p>
+                  {voiceResult.tip && (
+                    <p>
+                      {t('dialogue.tip')}: {voiceResult.tip}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {status === 'finish' && finish && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-500 text-2xl text-white">
-            🎉
+        {status === 'finish' && finish && (
+          <div className={`${PANEL} p-8 text-center`}>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white">
+              🎉
+            </div>
+            <h1 className="text-2xl font-bold text-white">{t('finish.title')}</h1>
+            <p className="mt-2 text-slate-300">
+              {t('finish.score')}: {finish.score}%
+            </p>
+            {finish.xp !== undefined && (
+              <p className="text-slate-300">
+                {t('finish.xp')}: +{finish.xp}
+              </p>
+            )}
+            {finish.next_topic && (
+              <p className="text-slate-300">
+                {t('finish.nextTopic')}: {finish.next_topic}
+              </p>
+            )}
+            {finish.repeat_words && finish.repeat_words.length > 0 && (
+              <p className="mt-2 text-slate-300">
+                {t('finish.repeat')}: {finish.repeat_words.join(', ')}
+              </p>
+            )}
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <button onClick={start} className={PRIMARY}>
+                {t('finish.nextLesson')}
+              </button>
+              <Link href="/progress" className={SECONDARY}>
+                {t('finish.toProgress')}
+              </Link>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">{t('finish.title')}</h1>
-          <p className="mt-2 text-slate-600">{t('finish.score')}: {finish.score}%</p>
-          {finish.xp !== undefined && <p className="text-slate-600">{t('finish.xp')}: +{finish.xp}</p>}
-          {finish.next_topic && <p className="text-slate-600">{t('finish.nextTopic')}: {finish.next_topic}</p>}
-          {finish.repeat_words && finish.repeat_words.length > 0 && (
-            <p className="mt-2 text-slate-600">{t('finish.repeat')}: {finish.repeat_words.join(', ')}</p>
-          )}
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <button onClick={start} className="rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-              {t('finish.nextLesson')}
-            </button>
-            <Link href="/progress" className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
-              {t('finish.toProgress')}
-            </Link>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }
