@@ -595,3 +595,67 @@ export function finishTutorSession(sessionId: number): Promise<TutorFinishRespon
     body: { session_id: sessionId },
   });
 }
+
+// ---------- словарь ----------
+
+export type VocabStatus = 'learning' | 'known';
+
+export type VocabWord = {
+  id: number;
+  word: string;
+  translation: string;
+  example?: string;
+  status?: VocabStatus | string;
+  next_review?: string | null;
+};
+
+export type VocabListResponse = {
+  words: VocabWord[];
+  total: number;
+  due: number;
+};
+
+export type VocabAddPayload = {
+  word: string;
+  translation: string;
+  example?: string;
+};
+
+export type VocabCheckPayload = {
+  word_id: number;
+  translation: string;
+  sentence: string;
+};
+
+export type VocabCheckResponse = {
+  translation_ok: boolean;
+  sentence_ok: boolean;
+  score: number;
+  feedback?: string;
+  improved?: string;
+};
+
+/** Словарь пользователя: слова из уроков и добавленные вручную. */
+export function getVocab(limit = 50, offset = 0): Promise<VocabListResponse> {
+  return apiFetch<VocabListResponse>(`/api/vocab?limit=${limit}&offset=${offset}`);
+}
+
+/** Добавляет слово. Идемпотентно: повторный вызов не создаёт дубль. */
+export function addVocabWord(payload: VocabAddPayload): Promise<{ word: VocabWord }> {
+  return apiFetch<{ word: VocabWord }>('/api/vocab', {
+    method: 'POST',
+    body: payload satisfies VocabAddPayload,
+  });
+}
+
+/** Проверка перевода и своего предложения (перевод + мягкая обратная связь). */
+export function checkVocabWord(payload: VocabCheckPayload): Promise<VocabCheckResponse> {
+  return apiFetch<VocabCheckResponse>('/api/vocab/check', {
+    method: 'POST',
+    body: payload satisfies VocabCheckPayload,
+  });
+}
+
+export function deleteVocabWord(id: number): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>(`/api/vocab/${id}`, { method: 'DELETE' });
+}

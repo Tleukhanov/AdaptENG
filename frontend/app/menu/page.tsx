@@ -26,6 +26,7 @@ const TOPICS: Topic[] = [
 
 const LINKS = [
   { href: '/lesson', key: 'lesson', emoji: '🚀' },
+  { href: '/vocab', key: 'vocab', emoji: '📖' },
   { href: '/chat', key: 'chat', emoji: '💬' },
   { href: '/progress', key: 'progress', emoji: '📈' },
   { href: '/achievements', key: 'achievements', emoji: '🏆' },

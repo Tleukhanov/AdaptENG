@@ -25,6 +25,7 @@ import type { Character, Locale } from '@/lib/characters';
 import { useRecorder } from '@/lib/recorder';
 import { useSession } from '@/lib/session';
 import { createSpeechRecognizer, isSpeechSupported } from '@/lib/speech';
+import AddToVocabButton, { VocabFlyTarget } from '@/app/vocab/AddToVocabButton';
 
 /**
  * «Урок 0» — экран знакомства с наставником-аватаром.
@@ -789,6 +790,7 @@ export default function LessonZeroPage() {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
+            <VocabFlyTarget />
             <button
               type="button"
               onClick={toggleMute}
@@ -912,6 +914,11 @@ export default function LessonZeroPage() {
                         ))}
                       </ul>
                     ) : null}
+                  </div>
+                ) : null}
+                {user ? (
+                  <div className="pt-0.5">
+                    <AddToVocabButton manual />
                   </div>
                 ) : null}
                 {bubble.interests && bubble.interests.length > 0 ? (
