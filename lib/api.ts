@@ -474,3 +474,40 @@ export function finishDiagnostic(
     body: { answers, tasks },
   });
 }
+
+// ---------- гостевой онбординг (до регистрации) ----------
+
+export type GuestGoal = 'exam' | 'communication' | 'work' | 'general';
+export type GuestMinutes = 10 | 20 | 30 | 60;
+export type GuestLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
+
+/**
+ * Ответы гостевого онбординга. Живут в подписанной HttpOnly-cookie
+ * (`adapteng_guest`), поэтому читать их из JS нельзя — только через
+ * `getGuestProfile`. При регистрации сервер переносит их в профиль.
+ */
+export type GuestProfile = {
+  goal: GuestGoal;
+  minutes: GuestMinutes;
+  level: GuestLevel;
+};
+
+/** Гостевой профиль из cookie; `null`, если гость ещё не отвечал. */
+export async function getGuestProfile(): Promise<GuestProfile | null> {
+  const data = await apiFetch<{ profile: GuestProfile | null }>('/api/guest/profile');
+  return data.profile ?? null;
+}
+
+/** Сохраняет ответы онбординга (ставит HttpOnly-cookie). */
+export async function saveGuestProfile(profile: GuestProfile): Promise<GuestProfile> {
+  const data = await apiFetch<{ profile: GuestProfile }>('/api/guest/profile', {
+    method: 'POST',
+    body: profile satisfies GuestProfile,
+  });
+  return data.profile;
+}
+
+/** Сбрасывает гостевой профиль. */
+export async function clearGuestProfile(): Promise<void> {
+  await apiFetch<{ ok: boolean }>('/api/guest/profile', { method: 'DELETE' });
+}

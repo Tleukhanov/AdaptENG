@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import Link from 'next/link';
 import { getLocale } from '@/lib/i18n';
 import { sampleCharacters } from '@/lib/characters';
 import type { Character, Locale } from '@/lib/characters';
@@ -38,8 +39,20 @@ export default async function LandingPage() {
             {t('hero.title')}
           </h1>
           <p className="mt-5 max-w-xl text-lg text-slate-600">{t('hero.subtitle')}</p>
-          <div className="mt-8 max-w-sm">
-            <LoginButton locale={locale} />
+          <div className="mt-8 flex max-w-sm flex-col gap-3">
+            <Link
+              href="/welcome"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2"
+            >
+              {t('welcome.landingCta')}
+            </Link>
+            <p className="text-xs leading-relaxed text-slate-500">{t('welcome.landingHint')}</p>
+            <Link
+              href="/login"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+            >
+              {t('nav.login')}
+            </Link>
           </div>
         </div>
 
