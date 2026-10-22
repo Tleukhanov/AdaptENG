@@ -241,13 +241,13 @@ export default function OnboardingPage() {
   function chip(active: boolean) {
     return `rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
       active
-        ? 'border-indigo-400 bg-indigo-50 text-indigo-700 shadow-sm'
+        ? 'border-blue-400 bg-blue-50 text-blue-700 shadow-sm'
         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
     }`;
   }
 
   function primaryButton(disabled = false) {
-    return `inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40`;
+    return `inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40`;
   }
 
   if (loading) {
@@ -261,12 +261,12 @@ export default function OnboardingPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-blue-500">
           {t('step', { current: stepNumber, total: STAGES.length })}
         </p>
         <div className="h-1.5 w-32 overflow-hidden rounded-full bg-slate-200">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all"
+            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-sky-500 transition-all"
             style={{ width: `${(stepNumber / STAGES.length) * 100}%` }}
           />
         </div>
@@ -306,7 +306,7 @@ export default function OnboardingPage() {
               value={customGoal}
               onChange={(event) => setCustomGoal(event.target.value)}
               placeholder={t('goalOtherPlaceholder')}
-              className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-400"
+              className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400"
             />
           ) : null}
           <div className="mt-6 flex justify-end">
@@ -376,7 +376,7 @@ export default function OnboardingPage() {
           <button
             type="button"
             onClick={() => setStage('test-intro')}
-            className="mt-3 w-full rounded-2xl border border-dashed border-indigo-300 bg-indigo-50/50 px-4 py-3 text-sm font-semibold text-indigo-700"
+            className="mt-3 w-full rounded-2xl border border-dashed border-blue-300 bg-blue-50/50 px-4 py-3 text-sm font-semibold text-blue-700"
           >
             {t('levelTest')}
           </button>
@@ -418,7 +418,7 @@ export default function OnboardingPage() {
 
       {stage === 'test-answer' && (
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-500">
             {t('taskOf', { current: taskIndex + 1, total: tasks.length })}
           </p>
           <h1 className="mt-3 text-xl font-bold text-slate-900">{tasks[taskIndex]?.text}</h1>
@@ -427,7 +427,7 @@ export default function OnboardingPage() {
             onChange={(event) => setAnswer(event.target.value)}
             rows={4}
             placeholder={t('answerPlaceholder')}
-            className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-400"
+            className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400"
           />
           <div className="mt-6 flex justify-end">
             <button

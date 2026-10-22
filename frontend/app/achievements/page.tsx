@@ -90,7 +90,7 @@ export default function AchievementsPage() {
     <main className="mx-auto max-w-5xl px-4 py-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-slate-900">{t('title')}</h1>
-        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500">
+        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-600 hover:text-blue-500">
           {t('back')}
         </Link>
       </div>
@@ -99,7 +99,7 @@ export default function AchievementsPage() {
 
       {status === 'ready' && data && (
         <>
-          <div className="mt-8 flex items-center gap-5 rounded-3xl border border-slate-200 bg-gradient-to-r from-indigo-50 to-violet-50 p-6 shadow-sm">
+          <div className="mt-8 flex items-center gap-5 rounded-3xl border border-slate-200 bg-gradient-to-r from-blue-50 to-sky-50 p-6 shadow-sm">
             <span className="text-4xl">{data.level.emoji}</span>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">

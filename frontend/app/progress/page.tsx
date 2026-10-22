@@ -108,7 +108,7 @@ export default function ProgressPage() {
     <main className="mx-auto max-w-5xl px-4 py-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-slate-900">{t('title')}</h1>
-        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500">
+        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-600 hover:text-blue-500">
           {t('back')}
         </Link>
       </div>
@@ -130,7 +130,7 @@ export default function ProgressPage() {
             <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('nextTopic')}</p>
               <p className="mt-2 text-lg font-bold text-slate-900">{data.nextTopic}</p>
-              <Link href="/lesson" className="mt-4 inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
+              <Link href="/lesson" className="mt-4 inline-flex items-center rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
                 {t('startLesson')}
               </Link>
             </div>

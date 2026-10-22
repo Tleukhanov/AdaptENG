@@ -72,7 +72,7 @@ export default function LeaderboardPage() {
     <main className="mx-auto max-w-4xl px-4 py-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-slate-900">{t('title')}</h1>
-        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500">
+        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-600 hover:text-blue-500">
           {t('back')}
         </Link>
       </div>
@@ -94,10 +94,10 @@ export default function LeaderboardPage() {
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.user_id} className={`border-b border-slate-100 last:border-0 ${r.isMe ? 'bg-indigo-50' : ''}`}>
+                  <tr key={r.user_id} className={`border-b border-slate-100 last:border-0 ${r.isMe ? 'bg-blue-50' : ''}`}>
                     <td className="px-3 py-3 font-semibold text-slate-500 sm:px-5">
                       {r.rank}
-                      {r.isMe ? <span className="ml-2 rounded-full bg-indigo-500 px-2 py-0.5 text-[10px] font-bold text-white">{t('you')}</span> : null}
+                      {r.isMe ? <span className="ml-2 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white">{t('you')}</span> : null}
                     </td>
                     <td className="px-3 py-3 sm:px-5">
                       <p className="font-semibold text-slate-900">{r.first_name || r.username || `#${r.user_id}`}</p>

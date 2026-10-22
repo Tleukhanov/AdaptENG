@@ -421,7 +421,7 @@ export default function LessonPage() {
       <div className="mb-4 flex items-center justify-between gap-4">
         <div className="flex-1">
           <div className="h-2 rounded-full bg-slate-200">
-            <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${progress}%` }} />
+            <div className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-sky-500" style={{ width: `${progress}%` }} />
           </div>
           <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t(`step.${status}`)}</p>
         </div>
@@ -455,7 +455,7 @@ export default function LessonPage() {
         <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10">
           <div
             aria-hidden
-            className="mx-auto mb-5 flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-2xl text-white"
+            className="mx-auto mb-5 flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-500 text-2xl text-white"
           >
             ✨
           </div>
@@ -465,7 +465,7 @@ export default function LessonPage() {
           </p>
 
           <div className="mx-auto mt-6 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-1/3 animate-[loading_1.2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" />
+            <div className="h-full w-1/3 animate-[loading_1.2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-blue-500 to-sky-500" />
           </div>
 
           <p className="mt-4 text-sm text-slate-500">
@@ -478,7 +478,7 @@ export default function LessonPage() {
           <button
             onClick={start}
             disabled={starting}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
             {starting ? t('generating.working') : t('presentation.start')}
           </button>
@@ -487,7 +487,7 @@ export default function LessonPage() {
 
       {status === 'cover' && !deck && (
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-2xl text-white">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-500 text-2xl text-white">
             🌟
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{t('start')}</h1>
@@ -495,7 +495,7 @@ export default function LessonPage() {
           <button
             onClick={start}
             disabled={starting}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
             {starting ? t('generating.working') : t('presentation.start')}
           </button>
@@ -505,7 +505,7 @@ export default function LessonPage() {
       {status === 'cover' && deck && (
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-2xl text-white">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-500 text-2xl text-white">
               {deck.cover.emoji}
             </div>
             <div>
@@ -514,7 +514,7 @@ export default function LessonPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setStatus('slides')} className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
+            <button onClick={() => setStatus('slides')} className="rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
               {t('presentation.start')}
             </button>
             <Link href="/dashboard" className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">
@@ -527,7 +527,7 @@ export default function LessonPage() {
       {status === 'slides' && deck && (
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-2xl text-white">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-500 text-2xl text-white">
               {deck.slides[slideIndex]?.emoji ?? deck.cover.emoji}
             </div>
             <div>
@@ -535,7 +535,7 @@ export default function LessonPage() {
               <p className="text-slate-600">{deck.slides[slideIndex]?.body ?? deck.cover.subtitle}</p>
             </div>
           </div>
-          <button onClick={goNextSlide} className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
+          <button onClick={goNextSlide} className="rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
             {slideIndex < deck.slides.length - 1 ? t('presentation.next') : t('presentation.start')}
           </button>
         </div>
@@ -564,7 +564,7 @@ export default function LessonPage() {
       {status === 'cards' && deck && !currentCard && (
         <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
           <h2 className="text-xl font-bold text-slate-900">{t('step.cards')}</h2>
-          <button onClick={skipCards} className="mt-6 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
+          <button onClick={skipCards} className="mt-6 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
             {t('presentation.next')}
           </button>
         </div>
@@ -598,7 +598,7 @@ export default function LessonPage() {
             </div>
           )}
           {quizAnswered && (
-            <button onClick={nextQuiz} className="mt-4 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
+            <button onClick={nextQuiz} className="mt-4 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
               {t('quiz.next')}
             </button>
           )}
@@ -608,7 +608,7 @@ export default function LessonPage() {
       {status === 'quiz' && deck && !currentQuiz && (
         <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
           <h2 className="text-xl font-bold text-slate-900">{t('step.quiz')}</h2>
-          <button onClick={skipQuiz} className="mt-6 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
+          <button onClick={skipQuiz} className="mt-6 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
             {t('presentation.next')}
           </button>
         </div>
@@ -621,7 +621,7 @@ export default function LessonPage() {
           <div className="space-y-3">
             {dialogueBubbles.map((turn, idx) => (
               <div key={idx} className={`flex ${turn.speaker === 'student' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm shadow-sm ${turn.speaker === 'student' ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm shadow-sm ${turn.speaker === 'student' ? 'bg-gradient-to-r from-blue-500 to-sky-500 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>
                   {turn.line}
                 </div>
               </div>
@@ -637,7 +637,7 @@ export default function LessonPage() {
             </div>
           )}
           {dialogueFinished && (
-            <button onClick={proceedToFinish} className="mt-4 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
+            <button onClick={proceedToFinish} className="mt-4 rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
               {t('dialogue.finish')}
             </button>
           )}
@@ -680,7 +680,7 @@ export default function LessonPage() {
 
       {status === 'finish' && finish && (
         <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-2xl text-white">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-500 text-2xl text-white">
             🎉
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{t('finish.title')}</h1>
@@ -691,7 +691,7 @@ export default function LessonPage() {
             <p className="mt-2 text-slate-600">{t('finish.repeat')}: {finish.repeat_words.join(', ')}</p>
           )}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <button onClick={start} className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
+            <button onClick={start} className="rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
               {t('finish.nextLesson')}
             </button>
             <Link href="/progress" className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm">

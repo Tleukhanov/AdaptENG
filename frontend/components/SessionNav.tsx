@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useSession } from '@/lib/session';
@@ -15,15 +14,10 @@ export default function SessionNav() {
     return <div className="h-9 w-16 animate-pulse rounded-lg bg-slate-200" aria-hidden />;
   }
 
+  // Неавторизованным кнопку входа не показываем: основной путь — онбординг
+  // «Начать бесплатно», а вход доступен ссылкой в футере.
   if (!user) {
-    return (
-      <Link
-        href="/login"
-        className="adapteng-gradient inline-flex min-h-[36px] items-center rounded-lg px-3 py-2 font-semibold text-white"
-      >
-        {t('nav.login')}
-      </Link>
-    );
+    return null;
   }
 
   const label = user.email || user.first_name || t('nav.profile');
