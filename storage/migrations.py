@@ -120,6 +120,32 @@ async def _m002_user_profiles_minutes_self_level(db: MigrationDB) -> None:
         )
 
 
+async def _m003_tutor_sessions(db: MigrationDB) -> None:
+    """tutor_sessions — сессии «Урока 0» (знакомство с наставником)."""
+    # PK зависит от бэкенда; DDL повторяет фрагмент schema.py, потому что
+    # миграция — это исторический снимок и должна работать на старой базе.
+    pk = "INTEGER PRIMARY KEY AUTOINCREMENT" if db.backend == "sqlite" else "SERIAL PRIMARY KEY"
+    await db.execute(
+        [
+            f"""
+            CREATE TABLE IF NOT EXISTS tutor_sessions (
+                id {pk},
+                user_id INTEGER NULL REFERENCES users(id),
+                guest_token TEXT NULL,
+                character TEXT NOT NULL DEFAULT 'default',
+                mode TEXT NOT NULL DEFAULT 'intro',
+                state_json TEXT NOT NULL DEFAULT '{{}}',
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS idx_tutor_user ON tutor_sessions(user_id, status)",
+            "CREATE INDEX IF NOT EXISTS idx_tutor_guest ON tutor_sessions(guest_token, status)",
+        ]
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(version=1, name="users_email_password", run=_m001_users_email_password),
     Migration(
@@ -127,6 +153,7 @@ MIGRATIONS: tuple[Migration, ...] = (
         name="user_profiles_minutes_self_level",
         run=_m002_user_profiles_minutes_self_level,
     ),
+    Migration(version=3, name="tutor_sessions", run=_m003_tutor_sessions),
 )
 
 MIGRATIONS_TABLE = """

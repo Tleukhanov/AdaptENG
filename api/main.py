@@ -29,6 +29,7 @@ from .routers import (
     health,
     lessons,
     progress,
+    tutor,
     users,
     voice,
 )
@@ -108,6 +109,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             window_sec=settings.api_rate_limit_window_sec,
             limit=settings.api_rate_limit_per_min,
         )
+        # Гостевой «Урок 0»: не больше N ходов в сутки на IP.
+        app.state.tutor_guest_limiter = ClientWindowLimiter(
+            window_sec=86_400.0,
+            limit=settings.tutor_guest_turns_per_day,
+        )
         logger.info(
             "Load guard: llm_concurrency=%s queue_max=%s stt_concurrency=%s",
             settings.llm_max_concurrency,
@@ -157,6 +163,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(progress.router)
     app.include_router(analytics.router)
     app.include_router(diagnostic.router)
+    app.include_router(tutor.router)
 
     return app
 

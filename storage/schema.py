@@ -235,6 +235,21 @@ CREATE TABLE IF NOT EXISTS user_achievements (
     achievement_id TEXT NOT NULL,
     PRIMARY KEY (user_id, achievement_id)
 );
+
+CREATE TABLE IF NOT EXISTS tutor_sessions (
+    id {AutoPK},
+    user_id INTEGER NULL REFERENCES users(id),
+    guest_token TEXT NULL,
+    character TEXT NOT NULL DEFAULT 'default',
+    mode TEXT NOT NULL DEFAULT 'intro',
+    state_json TEXT NOT NULL DEFAULT '{{}}',
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tutor_user ON tutor_sessions(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_tutor_guest ON tutor_sessions(guest_token, status);
 """
 
 _AUTO_PK = {

@@ -93,6 +93,25 @@ class DiagnosticSession:
 
 
 @dataclass
+class TutorSession:
+    """Сессия «Урока 0»: короткий разговор-знакомство с наставником.
+
+    Принадлежит либо пользователю (``user_id``), либо гостю (``guest_token``
+    из подписанной cookie). Состояние диалога живёт в ``state_json``.
+    """
+
+    id: int
+    user_id: int | None = None
+    guest_token: str | None = None
+    character: str = "default"
+    mode: str = "intro"
+    state_json: str = "{}"
+    status: str = "active"  # active | finished | aborted
+    created_at: str = ""
+    updated_at: str = ""
+
+
+@dataclass
 class LessonNote:
     """Структурированный итог урока (Фаза 5), сгенерированный LLM."""
 
@@ -597,6 +616,47 @@ class Repository(ABC):
 
     @abstractmethod
     async def abort_active_diagnostics(self, user_id: int) -> None: ...
+
+    # ---------- «Урок 0»: знакомство с наставником ----------
+
+    @abstractmethod
+    async def create_tutor_session(
+        self,
+        *,
+        user_id: int | None = None,
+        guest_token: str | None = None,
+        character: str = "default",
+        mode: str = "intro",
+        state_json: str = "{}",
+    ) -> TutorSession: ...
+
+    @abstractmethod
+    async def get_tutor_session(self, session_id: int) -> TutorSession | None: ...
+
+    @abstractmethod
+    async def get_active_tutor_session(
+        self,
+        *,
+        user_id: int | None = None,
+        guest_token: str | None = None,
+    ) -> TutorSession | None:
+        """Активная сессия пользователя или гостя (ровно один из ключей)."""
+
+    @abstractmethod
+    async def save_tutor_state(
+        self,
+        session_id: int,
+        state_json: str,
+        turn_index: int | None = None,
+    ) -> None:
+        """Сохраняет состояние диалога.
+
+        ``turn_index`` — опциональный ход для будущих бэкендов: сейчас номер
+        хода живёт внутри ``state_json``, поэтому параметр не пишется отдельно.
+        """
+
+    @abstractmethod
+    async def finish_tutor_session(self, session_id: int) -> None: ...
 
     # ---------- предложения тем (Фаза 2) ----------
 

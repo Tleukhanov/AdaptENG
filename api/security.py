@@ -10,6 +10,9 @@
   привязана к Telegram.
 * Куки сессии: HttpOnly + SameSite=Lax + Secure (в проде). Фронт шлёт их
   автоматически (same-origin прокси), поэтому токен не лежит в localStorage.
+* Гостевые куки ``adapteng_guest`` (онбординг) и ``adapteng_tutor`` (токен
+  гостя «Урока 0») подписаны тем же ``jwt_secret`` по схеме
+  ``base64url(json).hmac_sha256_hex``.
 """
 
 from __future__ import annotations
@@ -162,21 +165,15 @@ def _guest_signature(settings: Settings, encoded: str) -> str:
     ).hexdigest()
 
 
-def encode_guest_profile(settings: Settings, profile: dict) -> str:
-    """Собирает подписанное значение гостевой cookie с ``iat``."""
-    payload = {
-        "goal": profile.get("goal", ""),
-        "minutes": profile.get("minutes", 0),
-        "level": profile.get("level", ""),
-        "iat": int(time.time()),
-    }
+def _sign_payload(settings: Settings, payload: dict) -> str:
+    """Подписывает произвольный JSON-словарь: ``base64url(json).hmac``."""
     raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     encoded = _b64url_encode(raw)
     return f"{encoded}.{_guest_signature(settings, encoded)}"
 
 
-def decode_guest_profile(settings: Settings, token: str | None) -> dict | None:
-    """Проверяет подпись и срок жизни. Любая проблема → ``None``."""
+def _verify_payload(settings: Settings, token: str | None, ttl_days: int) -> dict | None:
+    """Проверяет подпись и срок жизни подписанного значения. Любая проблема → ``None``."""
     if not token:
         return None
     try:
@@ -208,9 +205,27 @@ def decode_guest_profile(settings: Settings, token: str | None) -> dict | None:
     now = int(time.time())
     if iat > now + 300:  # запас на расхождение часов
         return None
-    if now - iat > settings.guest_cookie_ttl_days * 86_400:
+    if now - iat > ttl_days * 86_400:
         return None
     return payload
+
+
+def encode_guest_profile(settings: Settings, profile: dict) -> str:
+    """Собирает подписанное значение гостевой cookie с ``iat``."""
+    return _sign_payload(
+        settings,
+        {
+            "goal": profile.get("goal", ""),
+            "minutes": profile.get("minutes", 0),
+            "level": profile.get("level", ""),
+            "iat": int(time.time()),
+        },
+    )
+
+
+def decode_guest_profile(settings: Settings, token: str | None) -> dict | None:
+    """Проверяет подпись и срок жизни. Любая проблема → ``None``."""
+    return _verify_payload(settings, token, settings.guest_cookie_ttl_days)
 
 
 def set_guest_cookie(response, settings: Settings, profile: dict) -> None:
@@ -230,6 +245,60 @@ def clear_guest_cookie(response, settings: Settings) -> None:
     """Сбрасывает гостевую cookie (после регистрации или по DELETE)."""
     response.delete_cookie(
         key=settings.guest_cookie_name,
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+        path="/",
+    )
+
+
+# ---------- гостевая cookie «Урока 0» ----------
+#
+# Гость без аккаунта получает стабильный случайный токен (hex, 32 символа) в
+# подписанной HttpOnly-cookie ``adapteng_tutor``. Токен — ключ к его сессиям
+# урока 0 в ``tutor_sessions.guest_token``; серверного состояния в cookie нет.
+
+
+def new_guest_token() -> str:
+    """Случайный гостевой токен: 16 байт → 32 hex-символа."""
+    return secrets.token_hex(16)
+
+
+def encode_tutor_token(settings: Settings, token: str) -> str:
+    """Подписанное значение cookie ``adapteng_tutor``."""
+    return _sign_payload(settings, {"token": token, "iat": int(time.time())})
+
+
+def decode_tutor_token(settings: Settings, token: str | None) -> str | None:
+    """Гостевой токен из cookie или ``None`` (битая/протухшая cookie)."""
+    payload = _verify_payload(settings, token, settings.tutor_cookie_ttl_days)
+    if payload is None:
+        return None
+    value = payload.get("token")
+    if not isinstance(value, str) or len(value) != 32:
+        return None
+    if any(char not in "0123456789abcdef" for char in value):
+        return None
+    return value
+
+
+def set_tutor_cookie(response, settings: Settings, token: str) -> None:
+    """Ставит подписанную HttpOnly-cookie с токеном гостя урока 0."""
+    response.set_cookie(
+        key=settings.tutor_cookie_name,
+        value=encode_tutor_token(settings, token),
+        max_age=settings.tutor_cookie_ttl_days * 86_400,
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+        path="/",
+    )
+
+
+def clear_tutor_cookie(response, settings: Settings) -> None:
+    """Сбрасывает cookie урока 0."""
+    response.delete_cookie(
+        key=settings.tutor_cookie_name,
         httponly=True,
         secure=settings.session_cookie_secure,
         samesite="lax",

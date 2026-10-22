@@ -100,6 +100,26 @@ def get_current_user_id(
     return user_id
 
 
+def get_optional_user_id(
+    request: Request,
+    settings: Settings = Depends(get_settings_dep),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+) -> int | None:
+    """Опциональная авторизация: ``users.id`` для залогиненных, ``None`` для гостя.
+
+    Битая/протухшая cookie не превращается в 401: запрос просто идёт как
+    гостевой (эндпоинты урока 0 работают и без регистрации).
+    """
+    token = ""
+    if credentials is not None and credentials.credentials:
+        token = credentials.credentials
+    else:
+        token = request.cookies.get(settings.session_cookie_name, "")
+    if not token:
+        return None
+    return decode_access_token(settings, token)
+
+
 async def current_user(repo: Repository, user_id: int):
     """Возвращает пользователя по внутреннему id либо 401."""
     user = await repo.get_user(user_id)

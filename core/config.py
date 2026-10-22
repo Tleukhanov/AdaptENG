@@ -142,6 +142,13 @@ class Settings(BaseSettings):
     # Гостевая cookie онбординга (до регистрации): имя и срок жизни.
     guest_cookie_name: str = "adapteng_guest"
     guest_cookie_ttl_days: int = 30
+    # Урок 0 (знакомство с наставником): подписанная cookie гостя, число
+    # ходов наставника в одном уроке и суточный лимит ходов гостя на IP.
+    tutor_cookie_name: str = "adapteng_tutor"
+    tutor_cookie_ttl_days: int = 30
+    tutor_max_turns: int = 7
+    tutor_min_turns: int = 4
+    tutor_guest_turns_per_day: int = 12
     # Минимальная длина пароля при регистрации.
     min_password_length: int = 8
     # Список email администраторов (через запятую) — доступ к /api/admin/*.

@@ -158,3 +158,32 @@ class TestPostgresIntegration:
         loaded = await repo.get_active_diagnostic(user.id)
         answers = json.loads(loaded.answers_json)
         assert answers == ["answer-a", "answer-b"]
+
+    async def test_tutor_sessions_roundtrip(self, repo):
+        user = await repo.get_or_create_user(770006, username="pg-smoke-6")
+        session = await repo.create_tutor_session(
+            user_id=user.id,
+            character="chill",
+            mode="intro",
+            state_json='{"turn_index": 1}',
+        )
+        assert session.id > 0
+        loaded = await repo.get_tutor_session(session.id)
+        assert loaded is not None
+        assert loaded.user_id == user.id and loaded.guest_token is None
+        assert loaded.status == "active"
+
+        active = await repo.get_active_tutor_session(user_id=user.id)
+        assert active is not None and active.id == session.id
+
+        await repo.save_tutor_state(session.id, '{"turn_index": 2}', turn_index=2)
+        saved = await repo.get_tutor_session(session.id)
+        assert json.loads(saved.state_json)["turn_index"] == 2
+
+        guest = await repo.create_tutor_session(guest_token="b" * 32)
+        guest_active = await repo.get_active_tutor_session(guest_token="b" * 32)
+        assert guest_active is not None and guest_active.id == guest.id
+
+        await repo.finish_tutor_session(session.id)
+        assert await repo.get_active_tutor_session(user_id=user.id) is None
+        assert (await repo.get_tutor_session(session.id)).status == "finished"

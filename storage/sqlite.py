@@ -6,6 +6,7 @@
   Та же таблица даёт и историю для промпта, и статистику практики.
 - lesson_sessions: состояние структурированных уроков
 - diagnostic_sessions: состояние диагностики уровня (Фаза 3)
+- tutor_sessions: состояние «Урока 0» — знакомства с наставником (гость или user)
 - user_profiles: память пользователя (Фаза 4): цели, интересы, слабые места
 - lesson_notes: итоги уроков (Фаза 5): слова, грамматика, ошибки, рекомендация
 """
@@ -36,6 +37,7 @@ from .repo import (
     Stats,
     Subscription,
     TopicProposal,
+    TutorSession,
     UserProfile,
     UserRow,
     WeakArea,
@@ -1381,6 +1383,103 @@ class SQLiteRepository(Repository):
             "UPDATE diagnostic_sessions SET status = 'aborted', updated_at = ? "
             "WHERE user_id = ? AND status = 'active'",
             (_now(), user_id),
+        )
+        await conn.commit()
+
+    # ---------- «Урок 0»: знакомство с наставником ----------
+
+    @staticmethod
+    def _row_to_tutor(row) -> TutorSession:
+        return TutorSession(
+            id=row["id"],
+            user_id=row["user_id"],
+            guest_token=row["guest_token"],
+            character=row["character"],
+            mode=row["mode"],
+            state_json=row["state_json"],
+            status=row["status"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
+        )
+
+    async def create_tutor_session(
+        self,
+        *,
+        user_id: int | None = None,
+        guest_token: str | None = None,
+        character: str = "default",
+        mode: str = "intro",
+        state_json: str = "{}",
+    ) -> TutorSession:
+        conn = self._require_conn()
+        now = _now()
+        cursor = await conn.execute(
+            "INSERT INTO tutor_sessions "
+            "(user_id, guest_token, character, mode, state_json, status, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, 'active', ?, ?)",
+            (user_id, guest_token, character, mode, state_json, now, now),
+        )
+        await conn.commit()
+        return TutorSession(
+            id=cursor.lastrowid,
+            user_id=user_id,
+            guest_token=guest_token,
+            character=character,
+            mode=mode,
+            state_json=state_json,
+            status="active",
+            created_at=now,
+            updated_at=now,
+        )
+
+    async def get_tutor_session(self, session_id: int) -> TutorSession | None:
+        conn = self._require_conn()
+        cursor = await conn.execute("SELECT * FROM tutor_sessions WHERE id = ?", (session_id,))
+        row = await cursor.fetchone()
+        return self._row_to_tutor(row) if row else None
+
+    async def get_active_tutor_session(
+        self,
+        *,
+        user_id: int | None = None,
+        guest_token: str | None = None,
+    ) -> TutorSession | None:
+        conn = self._require_conn()
+        if user_id is not None:
+            cursor = await conn.execute(
+                "SELECT * FROM tutor_sessions WHERE user_id = ? AND status = 'active' "
+                "ORDER BY id DESC LIMIT 1",
+                (user_id,),
+            )
+        elif guest_token is not None:
+            cursor = await conn.execute(
+                "SELECT * FROM tutor_sessions WHERE guest_token = ? AND status = 'active' "
+                "ORDER BY id DESC LIMIT 1",
+                (guest_token,),
+            )
+        else:
+            raise ValueError("нужен user_id или guest_token")
+        row = await cursor.fetchone()
+        return self._row_to_tutor(row) if row else None
+
+    async def save_tutor_state(
+        self,
+        session_id: int,
+        state_json: str,
+        turn_index: int | None = None,
+    ) -> None:
+        conn = self._require_conn()
+        await conn.execute(
+            "UPDATE tutor_sessions SET state_json = ?, updated_at = ? WHERE id = ?",
+            (state_json, _now(), session_id),
+        )
+        await conn.commit()
+
+    async def finish_tutor_session(self, session_id: int) -> None:
+        conn = self._require_conn()
+        await conn.execute(
+            "UPDATE tutor_sessions SET status = 'finished', updated_at = ? WHERE id = ?",
+            (_now(), session_id),
         )
         await conn.commit()
 

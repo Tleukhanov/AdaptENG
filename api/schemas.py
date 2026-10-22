@@ -403,6 +403,109 @@ class HealthResponse(BaseModel):
     stt_available: bool = False
 
 
+# ---------- «Урок 0»: знакомство с наставником ----------
+
+
+class TutorSessionRequest(BaseModel):
+    """Старт урока 0. Пока поддерживается только режим ``intro``."""
+
+    mode: str = "intro"
+
+    @field_validator("mode")
+    @classmethod
+    def _check_mode(cls, value: str) -> str:
+        mode = value.strip().lower()
+        if mode != "intro":
+            raise ValueError("mode: допустимо только intro")
+        return mode
+
+
+class TutorIssueOut(BaseModel):
+    """Мягкая правка: что не так и как сказать лучше."""
+
+    problem: str = ""
+    suggestion: str = ""
+
+
+class TutorCorrectionOut(BaseModel):
+    """Исправленный вариант ответа студента (не больше одной ошибки за ход)."""
+
+    corrected_text: str = ""
+    issues: list[TutorIssueOut] = Field(default_factory=list)
+
+
+class TutorTurnOut(BaseModel):
+    """Один ход наставника (``reply`` читается вслух через TTS)."""
+
+    reply: str
+    kind: str = "ask"
+    question: str | None = None
+    correction: TutorCorrectionOut | None = None
+    should_finish: bool = False
+
+
+class TutorSessionResponse(BaseModel):
+    """Сессия урока 0 + первый ход наставника."""
+
+    session_id: int
+    turn: TutorTurnOut
+    turn_index: int
+    max_turns: int
+
+
+class TutorTurnRequest(BaseModel):
+    """Ответ студента: 1..600 символов после trim."""
+
+    session_id: int
+    text: str = Field(min_length=1, max_length=600)
+
+    @field_validator("text")
+    @classmethod
+    def _strip_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("text must not be empty")
+        return value
+
+
+class TutorTurnResponse(BaseModel):
+    """Ход наставника по ответу студента."""
+
+    turn: TutorTurnOut
+    turn_index: int
+    max_turns: int
+    should_finish: bool = False
+
+
+class TutorFinishRequest(BaseModel):
+    """Завершение урока 0."""
+
+    session_id: int
+
+
+class TutorSummaryOut(BaseModel):
+    """Итог урока 0: уровень CEFR и мягкая обратная связь."""
+
+    level: str = "B1"
+    confidence: float = 0.0
+    matches_self_level: bool = False
+    interests: list[str] = Field(default_factory=list)
+    strengths: list[str] = Field(default_factory=list)
+    weaknesses: list[str] = Field(default_factory=list)
+    recommendation: str = ""
+    praise: str = ""
+
+
+class TutorFinishResponse(BaseModel):
+    """Итог урока 0. Для гостя прогресс не пишется (``registered=false``)."""
+
+    summary: TutorSummaryOut
+    turns: int = 0
+    xp: int = 0
+    streak_days: int = 0
+    registered: bool = False
+
+
 class ApiError(BaseModel):
     ok: bool = False
     error: str
