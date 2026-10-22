@@ -11,7 +11,12 @@ export default function SessionNav() {
   const { user, loading, logout } = useSession();
 
   if (loading) {
-    return <div className="h-9 w-16 animate-pulse rounded-lg bg-slate-200" aria-hidden />;
+    return (
+      <div
+        className="h-9 w-20 animate-pulse rounded-xl border border-white/10 bg-white/10"
+        aria-hidden
+      />
+    );
   }
 
   // Неавторизованным кнопку входа не показываем: основной путь — онбординг
@@ -24,7 +29,7 @@ export default function SessionNav() {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="hidden max-w-[160px] truncate text-xs text-slate-500 sm:inline">{label}</span>
+      <span className="hidden max-w-[160px] truncate text-xs text-slate-300 sm:inline">{label}</span>
       <button
         type="button"
         onClick={async () => {
@@ -32,7 +37,7 @@ export default function SessionNav() {
           router.push('/');
           router.refresh();
         }}
-        className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-slate-600 transition hover:text-slate-900"
+        className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
       >
         {t('nav.logout')}
       </button>
