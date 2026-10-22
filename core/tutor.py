@@ -338,6 +338,42 @@ def student_messages(state: dict[str, Any]) -> list[str]:
     ]
 
 
+def first_turn(character: str = "default", self_level: str = "") -> TutorTurn:
+    """Первый ход урока 0 — БЕЗ вызова LLM.
+
+    Так сессия стартует мгновенно и не зависит от 429/таймаута провайдера:
+    приветствие + вопрос «расскажи о себе и увлечениях». Язык — по самооценке:
+    до B1 простая английская фраза с подсказкой по-русски, B1+ — по-английски.
+    """
+    char = get_character(character) if character else get_character("default")
+    level = _normalize_level(self_level)
+    simple = level in ("", "A1", "A2")
+    emoji = getattr(char, "emoji", "📚") if char else "📚"
+    if simple:
+        reply = (
+            f"{emoji} Hi! I'm your English mentor. Nice to meet you!\n"
+            "Tell me about yourself in English: what do you do, and what do you like doing?\n"
+            "Можно простыми фразами — я помогу, если что-то не получится."
+        )
+        question = "Tell me about yourself: what do you do and what do you like doing?"
+    else:
+        reply = (
+            f"{emoji} Hi! I'm your English mentor — great to meet you.\n"
+            "Let's start easy: tell me a bit about yourself. What do you do, "
+            "and what do you enjoy doing outside work or school?"
+        )
+        question = "What do you do, and what do you enjoy doing outside work or school?"
+    return TutorTurn(
+        reply=reply,
+        kind="ask",
+        question=question,
+        correction=None,
+        interests=[],
+        level_signal=level,
+        should_finish=False,
+    )
+
+
 def last_turn(state: dict[str, Any]) -> TutorTurn | None:
     """Последний ход наставника (чтобы вернуть текущий ход сессии)."""
     for item in reversed(state.get("turns") or []):

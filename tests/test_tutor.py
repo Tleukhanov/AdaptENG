@@ -540,3 +540,66 @@ def test_service_forces_finish_on_last_turn():
     allowed = service._normalize(TutorTurn(reply="Nice!", should_finish=True), {"turn_index": 4})
     assert allowed.should_finish is True
     assert allowed.kind == "finish"
+
+
+# ---------- первый ход без LLM + фолбэк моделей ----------
+
+
+def test_first_turn_is_static_and_asks_about_hobbies() -> None:
+    """Первый ход не зовёт LLM: сессия стартует мгновенно даже при 429 у провайдера."""
+    from core.tutor import first_turn
+
+    turn = first_turn("default", "A1")
+    assert turn.kind == "ask"
+    assert turn.question
+    assert "yourself" in turn.reply.lower()
+    assert turn.should_finish is False
+
+
+def test_first_turn_language_depends_on_self_level() -> None:
+    from core.tutor import first_turn
+
+    simple = first_turn("default", "A1")
+    advanced = first_turn("default", "B2")
+    assert "Можно простыми фразами" in simple.reply
+    assert "Можно простыми фразами" not in advanced.reply
+    assert advanced.level_signal == "B2"
+
+
+def test_llm_provider_falls_back_to_second_model(monkeypatch) -> None:
+    """429 на основной модели → сразу пробуем запасную (без ожидания backoff)."""
+    import asyncio
+    from types import SimpleNamespace
+
+    from providers.llm_openai import OpenAIChatProvider
+
+    provider = OpenAIChatProvider(
+        base_url="https://example.com/v1",
+        api_key="k",
+        model="primary",
+        fallback_models=("backup",),
+        retries=1,
+        backoff=(0.0,),
+        timeout=5.0,
+        total_budget=10.0,
+    )
+    seen: list[str] = []
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            seen.append(kwargs["model"])
+            if kwargs["model"] == "primary":
+                raise RuntimeError("429 rate limited")
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=" fallback "))])
+
+    provider._client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+
+    # RuntimeError с текстом 429 не считается retryable по типу — подменяем
+    # проверку, чтобы тест проверял именно фолбэк по ретраибельной ошибке.
+    import providers.llm_openai as mod
+
+    monkeypatch.setattr(mod, "_is_retryable", lambda exc: True)
+
+    result = asyncio.run(provider.chat([{"role": "user", "content": "hi"}]))
+    assert result == "fallback"
+    assert seen == ["primary", "backup"]

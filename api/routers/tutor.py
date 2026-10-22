@@ -26,6 +26,7 @@ from core.config import Settings
 from core.profile import to_profile_snippet
 from core.progress import ProgressService
 from core.tutor import (
+    first_turn,
     TutorService,
     TutorSummary,
     TutorTurn,
@@ -289,7 +290,9 @@ async def start_session(
         max_turns=settings.tutor_max_turns,
     )
 
-    turn = await _generate_turn(request, service, state, "")
+    # Первый ход — статический: сессия стартует мгновенно и не зависит от
+    # 429/таймаута LLM (провайдеры часто лимитируют пул модели).
+    turn = first_turn(character=character, self_level=self_level)
     state = apply_turn(state, turn, "")
     state_json = _state_json(state)
 

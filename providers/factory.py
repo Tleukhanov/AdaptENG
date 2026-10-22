@@ -15,12 +15,17 @@ def create_llm(settings: Settings) -> LLMProvider:
             f"(или укажи LLM_BASE_URL/LLM_MODEL вручную)."
         )
     api_key = settings.llm_api_key or "not-needed"
+    fallbacks = tuple(
+        m.strip() for m in (getattr(settings, "llm_fallback_models", "") or "").split(",") if m.strip()
+    )
     return OpenAIChatProvider(
         base_url=settings.resolved_llm_base_url,
         api_key=api_key,
         model=settings.resolved_llm_model,
         default_temperature=settings.llm_temperature,
         timeout=getattr(settings, "llm_timeout_sec", 90.0),
+        fallback_models=fallbacks,
+        total_budget=getattr(settings, "llm_total_budget_sec", 24.0),
     )
 
 

@@ -90,6 +90,11 @@ class Settings(BaseSettings):
     llm_queue_timeout_sec: float = 25.0
     # Таймаут одного LLM-вызова: зависший запрос не должен держать слот вечно.
     llm_timeout_sec: float = 25.0
+    # Запасные модели через запятую: если основная упёрлась в 429/5xx (общий пул
+    # OpenRouter часто лимитирует одну модель), пробуем следующую.
+    llm_fallback_models: str = ""
+    # Сколько всего секунд ждём ответ (Heroku-роутер режет запрос на 30 c).
+    llm_total_budget_sec: float = 24.0
     # Распознавание речи (faster-whisper) — тяжёлое по CPU, свой маленький пул.
     stt_max_concurrency: int = 2
     # Троттлинг LLM-действий на пользователя (как LLMThrottle в боте).
