@@ -65,7 +65,7 @@ type ChatResponse = {
 
 type Status = 'loading' | 'ready' | 'error' | 'needLogin';
 
-const FALLBACK_PALETTE = ['#6366f1', '#8b5cf6'];
+const FALLBACK_PALETTE = ['#3b82f6', '#60a5fa'];
 
 
 function toChatCharacter(item: Character): ChatCharacter {
@@ -400,169 +400,193 @@ export default function ChatPage() {
 
   if (status === 'error') {
     return (
-      <main className="mx-auto max-w-md px-4 py-24 text-center">
-        <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700">
-          {t('error')}
+      <main className="relative isolate flex min-h-[calc(100dvh-4rem)] items-center justify-center overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 text-white">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_50%_-12%,rgba(37,99,235,0.28),transparent_72%)]"
+        />
+        <div className="relative w-full max-w-md text-center">
+          <div
+            role="alert"
+            className="rounded-3xl border border-rose-400/25 bg-rose-400/15 p-6 text-sm text-rose-200"
+          >
+            {t('error')}
+          </div>
+          <Link
+            href="/"
+            className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+          >
+            {t('back')}
+          </Link>
         </div>
-        <Link
-          href="/"
-          className="mt-6 inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white"
-        >
-          {t('back')}
-        </Link>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex h-[calc(100dvh-4rem)] max-w-3xl flex-col overflow-hidden px-4">
-      <header className="-mx-4 border-b border-slate-200/70 bg-white/85 px-4 backdrop-blur">
-        <div className="flex items-center gap-3 py-3">
-          <Link
-            href="/"
-            aria-label={t('back')}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100"
-          >
-            <BackIcon />
-          </Link>
-          {character ? (
+    <main className="relative isolate flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] text-white">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(37,99,235,0.28),transparent_70%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-32 right-[-15%] h-[380px] w-[380px] rounded-full bg-blue-500/10 blur-3xl"
+      />
+
+      <div className="relative mx-auto flex h-full w-full max-w-3xl flex-col px-4">
+        <header className="-mx-4 border-b border-white/10 bg-[#0b1425]/80 px-4 backdrop-blur">
+          <div className="flex items-center gap-3 py-3">
+            <Link
+              href="/"
+              aria-label={t('back')}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+            >
+              <BackIcon />
+            </Link>
+            {character ? (
+              <>
+                <Avatar character={character} />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-white">{character.name}</p>
+                  <p className="truncate text-xs text-slate-400">
+                    {character.tagline ?? t('subtitle')}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm font-semibold text-white">{t('title')}</p>
+            )}
+          </div>
+        </header>
+
+        <div
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          className="flex-1 space-y-4 overflow-y-auto py-6"
+        >
+          {messages.map((message) =>
+            message.role === 'user' ? (
+              <div key={message.id} className="flex flex-col items-end">
+                <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-blue-600 px-4 py-2.5 text-sm text-white shadow-lg shadow-blue-950/40">
+                  {message.text}
+                </div>
+                {message.correctedText ? (
+                  <div className="mt-1 max-w-[80%] rounded-2xl rounded-br-md border border-emerald-400/25 bg-emerald-400/15 px-4 py-2 text-xs text-emerald-300">
+                    <p className="font-semibold">{t('correction')}</p>
+                    <p className="mt-0.5">{message.correctedText}</p>
+                    {message.issues && message.issues.length > 0 ? (
+                      <ul className="mt-1 space-y-0.5 text-emerald-200/80">
+                        {message.issues.map((issue, idx) => (
+                          <li key={idx}>
+                            · {issue.note || issue.category || ''}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div key={message.id} className="flex items-start gap-2">
+                {character ? <Avatar character={character} size="sm" /> : null}
+                <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-bl-md border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-200 backdrop-blur">
+                  {message.text}
+                </div>
+              </div>
+            ),
+          )}
+
+          {sending ? (
+            <div className="flex items-start gap-2">
+              {character ? <Avatar character={character} size="sm" /> : null}
+              <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-white/10 bg-white/5 px-4 py-3 backdrop-blur">
+                <span className="sr-only">{t('typing')}</span>
+                <span className="h-2 w-2 animate-bounce rounded-full bg-blue-300/70 motion-reduce:animate-none [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-blue-300/70 motion-reduce:animate-none [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-blue-300/70 motion-reduce:animate-none" />
+              </div>
+            </div>
+          ) : null}
+
+          <div ref={bottomRef} />
+        </div>
+
+        <div className="-mx-4 border-t border-white/10 bg-[#0b1425]/80 px-4 pb-5 pt-3 backdrop-blur">
+          {banner ? (
+            <div className="mb-3 rounded-2xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+              {banner}
+            </div>
+          ) : null}
+
+          {voiceOff ? (
+            <p className="mb-2 text-xs text-blue-200/50">{t('voiceOff')}</p>
+          ) : null}
+
+          {characters.length > 0 ? (
             <>
-              <Avatar character={character} />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">{character.name}</p>
-                <p className="truncate text-xs text-slate-500">
-                  {character.tagline ?? t('subtitle')}
-                </p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-200/60">
+                {t('switch')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {characters.map((item) => {
+                  const active = item.id === character?.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => selectMentor(item)}
+                      className={
+                        active
+                          ? 'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/20 px-3.5 text-xs font-medium text-blue-50'
+                          : 'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white'
+                      }
+                    >
+                      <span>{item.emoji}</span>
+                      {item.name}
+                    </button>
+                  );
+                })}
               </div>
             </>
-          ) : (
-            <p className="text-sm font-semibold text-slate-900">{t('title')}</p>
-          )}
+          ) : null}
+
+          <form onSubmit={handleSubmit} className="mt-3 flex items-center gap-2">
+            <input
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder={t('placeholder')}
+              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/40"
+            />
+            <button
+              type="button"
+              onClick={handleVoice}
+              disabled={recorder.busy}
+              aria-label={t('mic')}
+              title={t('mic')}
+              aria-pressed={recorder.recording}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40 disabled:cursor-not-allowed disabled:opacity-60 ${
+                recorder.recording
+                  ? 'border-rose-400/50 bg-rose-400/15 text-rose-300'
+                  : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <MicIcon />
+            </button>
+            <button
+              type="submit"
+              disabled={sending || input.trim().length === 0}
+              className="shrink-0 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {t('send')}
+            </button>
+          </form>
         </div>
-      </header>
-
-      <div className="flex-1 space-y-4 overflow-y-auto py-6">
-
-        {messages.map((message) =>
-          message.role === 'user' ? (
-            <div key={message.id} className="flex flex-col items-end">
-              <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-slate-900 px-4 py-2.5 text-sm text-white">
-                {message.text}
-              </div>
-              {message.correctedText ? (
-                <div className="mt-1 max-w-[80%] rounded-2xl rounded-br-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800">
-                  <p className="font-semibold">{t('correction')}</p>
-                  <p className="mt-0.5">{message.correctedText}</p>
-                  {message.issues && message.issues.length > 0 ? (
-                    <ul className="mt-1 space-y-0.5 text-emerald-700">
-                      {message.issues.map((issue, idx) => (
-                        <li key={idx}>
-                          · {issue.note || issue.category || ''}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div key={message.id} className="flex items-start gap-2">
-              {character ? <Avatar character={character} size="sm" /> : null}
-              <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 shadow-sm">
-                {message.text}
-              </div>
-            </div>
-          ),
-        )}
-
-        {sending ? (
-          <div className="flex items-start gap-2">
-            {character ? <Avatar character={character} size="sm" /> : null}
-            <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <span className="sr-only">{t('typing')}</span>
-              <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.3s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.15s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
-            </div>
-          </div>
-        ) : null}
-
-        <div ref={bottomRef} />
-      </div>
-
-      <div className="-mx-4 border-t border-slate-200/70 bg-white/90 px-4 pb-5 pt-3 backdrop-blur">
-        {banner ? (
-          <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            {banner}
-          </div>
-        ) : null}
-
-        {voiceOff ? (
-          <p className="mb-2 text-xs text-slate-500">{t('voiceOff')}</p>
-        ) : null}
-
-        {characters.length > 0 ? (
-          <>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              {t('switch')}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {characters.map((item) => {
-                const active = item.id === character?.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => selectMentor(item)}
-                    className={
-                      active
-? 'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-slate-900 bg-slate-900 px-3.5 text-xs font-medium text-white'
-                    : 'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50'
-                    }
-                  >
-                    <span>{item.emoji}</span>
-                    {item.name}
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        ) : null}
-
-        <form onSubmit={handleSubmit} className="mt-3 flex items-center gap-2">
-          <input
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder={t('placeholder')}
-            className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          />
-          <button
-            type="button"
-            onClick={handleVoice}
-            disabled={recorder.busy}
-            aria-label={t('mic')}
-            title={t('mic')}
-            aria-pressed={recorder.recording}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition disabled:opacity-60 ${
-              recorder.recording
-                ? 'border-red-200 bg-red-50 text-red-600'
-                : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            <MicIcon />
-          </button>
-          <button
-            type="submit"
-            disabled={sending || input.trim().length === 0}
-            className="shrink-0 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {t('send')}
-          </button>
-        </form>
       </div>
 
       {toast ? (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl">
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900/95 px-4 py-3 text-sm text-white shadow-xl ring-1 ring-white/10">
           {toast}
         </div>
       ) : null}
