@@ -210,6 +210,70 @@ class ReviewAnswerRequest(BaseModel):
     quality: int
 
 
+class VocabWordOut(BaseModel):
+    """Слово личного словаря в ответе API."""
+
+    id: int
+    word: str
+    translation: str = ""
+    example: str = ""
+    status: str = "learning"  # learning | known
+    next_review: str = ""
+
+
+class VocabListResponse(BaseModel):
+    """Страница словаря пользователя: слова, всего и сколько ждёт повторения."""
+
+    words: list[VocabWordOut] = Field(default_factory=list)
+    total: int = 0
+    due: int = 0
+
+
+class VocabAddRequest(BaseModel):
+    """Новое слово словаря (можно привязать к уроку)."""
+
+    word: str = Field(..., max_length=80)
+    translation: str = Field(default="", max_length=200)
+    example: str = Field(default="", max_length=300)
+    lesson_id: int = 0
+
+    @field_validator("word")
+    @classmethod
+    def _strip_word(cls, value: str) -> str:
+        word = value.strip()
+        if not word:
+            raise ValueError("word must not be empty")
+        return word
+
+    @field_validator("translation", "example")
+    @classmethod
+    def _strip_optional(cls, value: str) -> str:
+        return value.strip()
+
+
+class VocabCheckRequest(BaseModel):
+    """Ответ студента: перевод слова и собственное предложение."""
+
+    word_id: int
+    translation: str = Field(default="", max_length=200)
+    sentence: str = Field(default="", max_length=300)
+
+    @field_validator("translation", "sentence")
+    @classmethod
+    def _strip_optional(cls, value: str) -> str:
+        return value.strip()
+
+
+class VocabCheckResponse(BaseModel):
+    """Оценка ИИ: перевод, предложение, балл, обратная связь и лучший вариант."""
+
+    translation_ok: bool = False
+    sentence_ok: bool = False
+    score: int = 0
+    feedback: str = ""
+    improved: str = ""
+
+
 class AchievementItem(BaseModel):
     """Одно достижение с признаком полученности."""
 

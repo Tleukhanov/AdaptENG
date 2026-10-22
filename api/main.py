@@ -31,6 +31,7 @@ from .routers import (
     progress,
     tutor,
     users,
+    vocab,
     voice,
 )
 from .security import require_secret
@@ -164,6 +165,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(analytics.router)
     app.include_router(diagnostic.router)
     app.include_router(tutor.router)
+    app.include_router(vocab.router)
 
     return app
 

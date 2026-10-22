@@ -1792,6 +1792,10 @@ class PostgresRepository(Repository):
                 word.id,
             )
 
+    async def delete_srs_word(self, word_id: int) -> None:
+        async with self._acquire() as conn:
+            await conn.execute("DELETE FROM user_vocabulary WHERE id = $1", word_id)
+
     def _row_to_srs_word(self, row) -> SRSWord:
         return SRSWord(
             id=row["id"], user_id=row["user_id"], word=row["word"],

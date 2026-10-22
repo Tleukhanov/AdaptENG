@@ -1687,6 +1687,11 @@ class SQLiteRepository(Repository):
         )
         await conn.commit()
 
+    async def delete_srs_word(self, word_id: int) -> None:
+        conn = self._require_conn()
+        await conn.execute("DELETE FROM user_vocabulary WHERE id = ?", (word_id,))
+        await conn.commit()
+
     def _row_to_srs_word(self, row) -> SRSWord:
         return SRSWord(
             id=row["id"], user_id=row["user_id"], word=row["word"],

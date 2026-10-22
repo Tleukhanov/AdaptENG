@@ -713,6 +713,10 @@ class Repository(ABC):
     @abstractmethod
     async def update_srs_word(self, word: SRSWord) -> None: ...
 
+    @abstractmethod
+    async def delete_srs_word(self, word_id: int) -> None:
+        """Удаляет слово из личного словаря (владение проверяет вызывающий)."""
+
     # ---------- лидерборд ----------
 
     @abstractmethod
