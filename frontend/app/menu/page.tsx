@@ -79,104 +79,118 @@ export default function MenuPage() {
   }, [sessionLoading, user]);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-500">AdaptENG</p>
-          <h1 className="text-3xl font-bold text-slate-900">
-            {t('hello')}{name ? `, ${name}` : ''} 👋
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">{t('subtitle')}</p>
+    <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 py-10 text-slate-100 sm:py-12">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(37,99,235,0.28),transparent_70%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-sky-500/10 blur-3xl"
+      />
+
+      <div className="relative mx-auto max-w-5xl">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-300">AdaptENG</p>
+            <h1 className="text-3xl font-bold text-white">
+              {t('hello')}{name ? `, ${name}` : ''} 👋
+            </h1>
+            <p className="mt-2 text-sm text-slate-400">{t('subtitle')}</p>
+          </div>
+          <Link
+            href="/"
+            className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+          >
+            {t('home')}
+          </Link>
         </div>
-        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-600 hover:text-blue-500">
-          {t('home')}
-        </Link>
-      </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
-        <span className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-          🎯 {t('level')}: {level ?? '—'}
-        </span>
-        <span className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-          ⭐ {t('xp')}: {progress?.xp ?? 0}
-        </span>
-        <span className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-          🔥 {t('streak')}: {progress?.streak_days ?? 0}
-        </span>
-        <span className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-          💎 {t('quota')}: {quota ?? '∞'}
-        </span>
-      </div>
-
-      <Link
-        href="/lesson/0"
-        className="mt-6 flex items-center gap-4 rounded-3xl border border-blue-200 bg-blue-50/80 px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
-      >
-        <span
-          aria-hidden="true"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 text-2xl shadow-lg shadow-blue-500/30"
-        >
-          📚
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-base font-bold text-blue-950">{t('introLesson')}</span>
-          <span className="mt-0.5 block text-xs leading-relaxed text-blue-800/70">
-            {t('introLessonHint')}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 backdrop-blur">
+            🎯 {t('level')}: <span className="text-sky-300">{level ?? '—'}</span>
           </span>
-        </span>
-        <span aria-hidden="true" className="text-lg text-blue-500">
-          →
-        </span>
-      </Link>
-
-      <Link
-        href="/lesson"
-        className="mt-6 block rounded-3xl bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400 p-6 text-white shadow-lg transition hover:opacity-95"
-      >
-        <p className="text-2xl font-bold">{t('startLesson')}</p>
-        <p className="mt-1 text-sm text-blue-100">{t('startLessonHint')}</p>
-      </Link>
-
-      <section className="mt-8">
-        <h2 className="text-lg font-bold text-slate-900">{t('topics')}</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {TOPICS.map((topic) => (
-            <Link
-              key={topic.id}
-              href={`/lesson?topic=${encodeURIComponent(topic.en)}`}
-              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <span className="text-xl">{topic.emoji}</span>
-              {ru ? topic.ru : topic.en}
-            </Link>
-          ))}
+          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 backdrop-blur">
+            ⭐ {t('xp')}: <span className="text-sky-300">{progress?.xp ?? 0}</span>
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 backdrop-blur">
+            🔥 {t('streak')}: <span className="text-sky-300">{progress?.streak_days ?? 0}</span>
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 backdrop-blur">
+            💎 {t('quota')}: <span className="text-sky-300">{quota ?? '∞'}</span>
+          </span>
         </div>
-      </section>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-bold text-slate-900">{t('sections')}</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <span className="mr-2">{link.emoji}</span>
-              {t(link.key)}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {user ? (
         <Link
-          href="/onboarding?force=1"
-          className="mt-4 inline-block text-sm font-semibold text-slate-500 hover:text-blue-600"
+          href="/lesson/0"
+          className="mt-6 flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 px-5 py-4 shadow-[0_20px_50px_-30px_rgba(2,6,23,0.9)] backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-400/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
         >
-          {t('toOnboarding')}
+          <span
+            aria-hidden="true"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-2xl shadow-lg shadow-blue-900/40"
+          >
+            📚
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-base font-bold text-white">{t('introLesson')}</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-slate-400">
+              {t('introLessonHint')}
+            </span>
+          </span>
+          <span aria-hidden="true" className="text-lg text-sky-300">
+            →
+          </span>
         </Link>
-      ) : null}
+
+        <Link
+          href="/lesson"
+          className="mt-6 block rounded-3xl bg-blue-600 p-6 text-white shadow-lg shadow-blue-900/40 transition hover:-translate-y-0.5 hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+        >
+          <p className="text-2xl font-bold">{t('startLesson')}</p>
+          <p className="mt-1 text-sm text-blue-100">{t('startLessonHint')}</p>
+        </Link>
+
+        <section className="mt-8">
+          <h2 className="text-lg font-bold text-white">{t('topics')}</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {TOPICS.map((topic) => (
+              <Link
+                key={topic.id}
+                href={`/lesson?topic=${encodeURIComponent(topic.en)}`}
+                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 shadow-[0_20px_50px_-34px_rgba(2,6,23,0.9)] backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-400/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+              >
+                <span className="text-xl">{topic.emoji}</span>
+                {ru ? topic.ru : topic.en}
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <h2 className="text-lg font-bold text-white">{t('sections')}</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm font-semibold text-slate-200 shadow-[0_20px_50px_-34px_rgba(2,6,23,0.9)] backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-400/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+              >
+                <span className="mr-2">{link.emoji}</span>
+                {t(link.key)}
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {user ? (
+          <Link
+            href="/onboarding?force=1"
+            className="mt-6 inline-block rounded-lg text-sm font-semibold text-slate-400 transition hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+          >
+            {t('toOnboarding')}
+          </Link>
+        ) : null}
+      </div>
     </main>
   );
 }
