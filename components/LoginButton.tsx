@@ -98,7 +98,7 @@ export default function LoginButton({ locale }: { locale: string }) {
     <div className="flex flex-col gap-3" data-locale={locale}>
       <Link
         href="/login"
-        className="w-full rounded-xl bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:opacity-95"
+        className="w-full rounded-xl bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400 px-5 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:opacity-95"
       >
         {tRoot('hero.cta')}
       </Link>

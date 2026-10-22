@@ -4,7 +4,6 @@ import { getLocale } from '@/lib/i18n';
 import { sampleCharacters } from '@/lib/characters';
 import type { Character, Locale } from '@/lib/characters';
 import CharacterCard from '@/components/CharacterCard';
-import LoginButton from '@/components/LoginButton';
 
 async function loadCharacters(locale: Locale): Promise<Character[]> {
   // Персонажи идут через тот же домен (/api/* проксирует Next.js).
@@ -32,7 +31,7 @@ export default async function LandingPage() {
     <main className="mx-auto max-w-6xl px-4">
       <section className="grid items-center gap-10 py-16 md:grid-cols-2 md:py-24">
         <div>
-          <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+          <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
             {t('hero.badge')}
           </span>
           <h1 className="mt-5 text-4xl font-extrabold leading-tight text-slate-900 md:text-5xl">
@@ -47,16 +46,10 @@ export default async function LandingPage() {
               {t('welcome.landingCta')}
             </Link>
             <p className="text-xs leading-relaxed text-slate-500">{t('welcome.landingHint')}</p>
-            <Link
-              href="/login"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
-            >
-              {t('nav.login')}
-            </Link>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white/70 p-6 shadow-xl shadow-indigo-100/60">
+        <div className="rounded-3xl border border-slate-200 bg-white/70 p-6 shadow-xl shadow-blue-100/60">
           <div className="flex items-center gap-3">
             <div className="adapteng-gradient flex h-12 w-12 items-center justify-center rounded-2xl text-2xl">
               {preview.emoji}
@@ -67,12 +60,22 @@ export default async function LandingPage() {
             </div>
           </div>
           <p className="mt-4 text-sm text-slate-600">{preview.description}</p>
-          <div className="mt-6 rounded-2xl bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">{t('login.title')}</p>
-            <p className="mt-1 text-sm text-slate-600">{t('login.subtitle')}</p>
-            <div className="mt-4">
-              <LoginButton locale={locale} />
-            </div>
+          <div className="mt-6 space-y-2 rounded-2xl bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">{t('hero.howTitle')}</p>
+            <ol className="space-y-2 text-sm text-slate-600">
+              <li className="flex gap-2">
+                <span className="font-semibold text-blue-600">1</span>
+                <span>{t('hero.how1')}</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-blue-600">2</span>
+                <span>{t('hero.how2')}</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-blue-600">3</span>
+                <span>{t('hero.how3')}</span>
+              </li>
+            </ol>
           </div>
         </div>
       </section>
@@ -88,7 +91,12 @@ export default async function LandingPage() {
       </section>
 
       <footer className="border-t border-slate-200 py-10 text-center text-sm text-slate-500">
-        {t('footer.tagline')}
+        <p>{t('footer.tagline')}</p>
+        <p className="mt-3">
+          <Link href="/login" className="text-xs text-slate-400 underline-offset-2 hover:text-slate-600 hover:underline">
+            {t('footer.existingAccount')}
+          </Link>
+        </p>
       </footer>
     </main>
   );

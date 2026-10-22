@@ -75,7 +75,7 @@ export default function LoginPage() {
               onChange={(e) => setName(e.target.value)}
               autoComplete="name"
               maxLength={80}
-              className="mt-1 min-h-[44px] w-full rounded-lg border border-slate-300 px-3 text-slate-900 outline-none focus:border-indigo-500"
+              className="mt-1 min-h-[44px] w-full rounded-lg border border-slate-300 px-3 text-slate-900 outline-none focus:border-blue-500"
             />
           </label>
         )}
@@ -89,7 +89,7 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
             placeholder="you@example.com"
-            className="mt-1 min-h-[44px] w-full rounded-lg border border-slate-300 px-3 text-slate-900 outline-none focus:border-indigo-500"
+            className="mt-1 min-h-[44px] w-full rounded-lg border border-slate-300 px-3 text-slate-900 outline-none focus:border-blue-500"
           />
         </label>
 
@@ -102,7 +102,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-            className="mt-1 min-h-[44px] w-full rounded-lg border border-slate-300 px-3 text-slate-900 outline-none focus:border-indigo-500"
+            className="mt-1 min-h-[44px] w-full rounded-lg border border-slate-300 px-3 text-slate-900 outline-none focus:border-blue-500"
           />
           {mode === 'register' && (
             <span className="mt-1 block text-xs text-slate-400">{t('auth.passwordHint')}</span>
