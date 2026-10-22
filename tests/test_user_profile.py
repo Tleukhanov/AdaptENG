@@ -88,6 +88,8 @@ def test_profile_default_is_empty(tmp_path) -> None:
         "notes": "",
         "level": None,
         "character": "",
+        "minutes_per_day": 0,
+        "self_level": "",
         "has_profile": False,
     }
 

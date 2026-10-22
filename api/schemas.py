@@ -288,6 +288,9 @@ class ProfileResponse(BaseModel):
     notes: str = ""
     level: str | None = None
     character: str = ""
+    # из гостевого онбординга: сколько минут в день и самооценка уровня
+    minutes_per_day: int = 0
+    self_level: str = ""
     has_profile: bool = False
 
 

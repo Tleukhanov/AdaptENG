@@ -120,6 +120,8 @@ async def get_profile(
         notes=profile.notes if profile else "",
         level=user.level,
         character=profile.character if profile else "",
+        minutes_per_day=profile.minutes_per_day if profile else 0,
+        self_level=profile.self_level if profile else "",
         has_profile=has_profile,
     )
 
@@ -179,6 +181,8 @@ async def update_profile(
         notes=profile.notes,
         level=user.level,
         character=profile.character,
+        minutes_per_day=profile.minutes_per_day,
+        self_level=profile.self_level,
         has_profile=bool(
             profile.goal
             or profile.interests
