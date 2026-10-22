@@ -818,8 +818,9 @@ class SQLiteRepository(Repository):
 
     async def get_profile(self, user_id: int) -> UserProfile | None:
         conn = self._require_conn()
-        cursor = await conn.execute(
-            "SELECT user_id, goal, interests, weak_areas, preferred_format, notes, character, updated_at "
+        cursor = await self._conn.execute(
+            "SELECT user_id, goal, interests, weak_areas, preferred_format, notes, character, "
+            "minutes_per_day, self_level, updated_at "
             "FROM user_profiles WHERE user_id = ?",
             (user_id,),
         )
@@ -834,6 +835,8 @@ class SQLiteRepository(Repository):
             preferred_format=row["preferred_format"],
             notes=row["notes"],
             character=row["character"],
+            minutes_per_day=row["minutes_per_day"],
+            self_level=row["self_level"],
             updated_at=row["updated_at"],
         )
 
@@ -841,12 +844,14 @@ class SQLiteRepository(Repository):
         conn = self._require_conn()
         await conn.execute(
             "INSERT INTO user_profiles "
-            "(user_id, goal, interests, weak_areas, preferred_format, notes, character, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+            "(user_id, goal, interests, weak_areas, preferred_format, notes, character, "
+            "minutes_per_day, self_level, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
             "ON CONFLICT(user_id) DO UPDATE SET "
             "goal = excluded.goal, interests = excluded.interests, weak_areas = excluded.weak_areas, "
             "preferred_format = excluded.preferred_format, notes = excluded.notes, "
-            "character = excluded.character, "
+            "character = excluded.character, minutes_per_day = excluded.minutes_per_day, "
+            "self_level = excluded.self_level, "
             "updated_at = excluded.updated_at",
             (
                 profile.user_id,
@@ -856,6 +861,8 @@ class SQLiteRepository(Repository):
                 profile.preferred_format,
                 profile.notes,
                 profile.character,
+                profile.minutes_per_day,
+                profile.self_level,
                 profile.updated_at,
             ),
         )

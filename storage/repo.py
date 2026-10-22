@@ -42,6 +42,8 @@ class UserProfile:
     preferred_format: str = ""  # voice | text | ""
     notes: str = ""  # особенности поведения (на русском)
     character: str = ""  # ID выбранного персонажа (напр. "chill", "toxic") или "" (по умолчанию)
+    minutes_per_day: int = 0  # желаемая длительность занятий, минут в день (0 = не задано)
+    self_level: str = ""  # самооценка уровня CEFR из гостевого онбординга
     updated_at: str = ""
 
 

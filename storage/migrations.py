@@ -106,8 +106,27 @@ async def _m001_users_email_password(db: MigrationDB) -> None:
     )
 
 
+async def _m002_user_profiles_minutes_self_level(db: MigrationDB) -> None:
+    """user_profiles: minutes_per_day (минут в день) и self_level (самооценка CEFR)."""
+    names = {name for name, _ in await db.columns("user_profiles")}
+    # Синтаксис ADD COLUMN с NOT NULL DEFAULT одинаково валиден в SQLite и PG.
+    if "minutes_per_day" not in names:
+        await db.execute(
+            ["ALTER TABLE user_profiles ADD COLUMN minutes_per_day INTEGER NOT NULL DEFAULT 0"]
+        )
+    if "self_level" not in names:
+        await db.execute(
+            ["ALTER TABLE user_profiles ADD COLUMN self_level TEXT NOT NULL DEFAULT ''"]
+        )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(version=1, name="users_email_password", run=_m001_users_email_password),
+    Migration(
+        version=2,
+        name="user_profiles_minutes_self_level",
+        run=_m002_user_profiles_minutes_self_level,
+    ),
 )
 
 MIGRATIONS_TABLE = """

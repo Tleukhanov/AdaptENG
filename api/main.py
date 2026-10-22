@@ -19,7 +19,19 @@ from storage import create_repository
 
 from .loadguard import ActionThrottle, AsyncQueueGuard, ClientWindowLimiter
 from .ratelimit import RateLimitMiddleware
-from .routers import analytics, auth, characters, chat, diagnostic, health, lessons, progress, users, voice
+from .routers import (
+    analytics,
+    auth,
+    characters,
+    chat,
+    diagnostic,
+    guest,
+    health,
+    lessons,
+    progress,
+    users,
+    voice,
+)
 from .security import require_secret
 
 logger = logging.getLogger(__name__)
@@ -136,6 +148,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(guest.router)
     app.include_router(users.router)
     app.include_router(characters.router)
     app.include_router(chat.router)

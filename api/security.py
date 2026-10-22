@@ -15,8 +15,10 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import hmac
+import json
 import os
 import secrets
 import time
@@ -126,6 +128,108 @@ def clear_session_cookie(response, settings: Settings) -> None:
     """Сбрасывает cookie сессии (выход)."""
     response.delete_cookie(
         key=settings.session_cookie_name,
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+        path="/",
+    )
+
+
+# ---------- гостевая cookie онбординга ----------
+#
+# Гость до регистрации отвечает на 3 вопроса. Ответы живут в подписанной
+# cookie (без серверного состояния): ``base64url(json).hmac_sha256_hex``.
+# Подпись считается по base64url-части тем же ``jwt_secret``, что и сессии.
+
+
+def _b64url_encode(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _b64url_decode(text: str) -> bytes | None:
+    try:
+        return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
+    except (ValueError, TypeError, binascii.Error):
+        return None
+
+
+def _guest_signature(settings: Settings, encoded: str) -> str:
+    """HMAC-SHA256 (hex) от base64url-части значения cookie."""
+    return hmac.new(
+        settings.jwt_secret.encode("utf-8"),
+        encoded.encode("ascii"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def encode_guest_profile(settings: Settings, profile: dict) -> str:
+    """Собирает подписанное значение гостевой cookie с ``iat``."""
+    payload = {
+        "goal": profile.get("goal", ""),
+        "minutes": profile.get("minutes", 0),
+        "level": profile.get("level", ""),
+        "iat": int(time.time()),
+    }
+    raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    encoded = _b64url_encode(raw)
+    return f"{encoded}.{_guest_signature(settings, encoded)}"
+
+
+def decode_guest_profile(settings: Settings, token: str | None) -> dict | None:
+    """Проверяет подпись и срок жизни. Любая проблема → ``None``."""
+    if not token:
+        return None
+    try:
+        encoded, signature = token.rsplit(".", 1)
+    except ValueError:
+        return None
+    try:
+        expected = _guest_signature(settings, encoded)
+        signature_ok = hmac.compare_digest(
+            expected.encode("ascii"), signature.encode("ascii")
+        )
+    except UnicodeEncodeError:
+        # Не-ASCII в base64url/подписи — заведомо битая cookie.
+        return None
+    if not signature_ok:
+        return None
+    raw = _b64url_decode(encoded)
+    if raw is None:
+        return None
+    try:
+        payload = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    iat = payload.get("iat")
+    if not isinstance(iat, int) or isinstance(iat, bool):
+        return None
+    now = int(time.time())
+    if iat > now + 300:  # запас на расхождение часов
+        return None
+    if now - iat > settings.guest_cookie_ttl_days * 86_400:
+        return None
+    return payload
+
+
+def set_guest_cookie(response, settings: Settings, profile: dict) -> None:
+    """Ставит подписанную HttpOnly-cookie с ответами гостевого онбординга."""
+    response.set_cookie(
+        key=settings.guest_cookie_name,
+        value=encode_guest_profile(settings, profile),
+        max_age=settings.guest_cookie_ttl_days * 86_400,
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+        path="/",
+    )
+
+
+def clear_guest_cookie(response, settings: Settings) -> None:
+    """Сбрасывает гостевую cookie (после регистрации или по DELETE)."""
+    response.delete_cookie(
+        key=settings.guest_cookie_name,
         httponly=True,
         secure=settings.session_cookie_secure,
         samesite="lax",

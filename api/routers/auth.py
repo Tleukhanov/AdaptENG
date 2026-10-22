@@ -13,19 +13,30 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from core.analytics import track_event
 from core.config import Settings
 from core.tg_auth import verify_login_widget
-from storage.repo import Repository
+from storage.repo import Repository, UserProfile
 
 from ..deps import build_user_public, get_repository, get_settings_dep
-from ..schemas import AuthResponse, LoginRequest, RegisterRequest, TelegramUserAuth, UserPublic
+from ..schemas import (
+    AuthResponse,
+    GUEST_GOAL_LABELS,
+    LoginRequest,
+    RegisterRequest,
+    TelegramUserAuth,
+    UserPublic,
+    normalize_guest_profile,
+)
 from ..security import (
+    clear_guest_cookie,
     clear_session_cookie,
     create_access_token,
+    decode_guest_profile,
     hash_password,
     password_problem,
     require_secret,
@@ -66,10 +77,17 @@ def _clear_failures(email: str) -> None:
     _login_failures.pop(email, None)
 
 
+def _guest_profile(request: Request, settings: Settings) -> dict | None:
+    """Валидный гостевой профиль из подписанной cookie (или ``None``)."""
+    token = request.cookies.get(settings.guest_cookie_name)
+    return normalize_guest_profile(decode_guest_profile(settings, token))
+
+
 @router.post("/register", response_model=AuthResponse)
 async def register(
     body: RegisterRequest,
     response: Response,
+    request: Request,
     settings: Settings = Depends(get_settings_dep),
     repo: Repository = Depends(get_repository),
 ) -> AuthResponse:
@@ -90,6 +108,24 @@ async def register(
         username=body.name or None,
         first_name=body.name or None,
     )
+
+    guest = _guest_profile(request, settings)
+    if guest is not None:
+        # Переносим гостевые ответы в профиль, не теряя уже существующие поля.
+        profile = await repo.get_profile(user.id) or UserProfile(user_id=user.id)
+        profile.goal = GUEST_GOAL_LABELS[guest["goal"]]
+        profile.minutes_per_day = guest["minutes"]
+        profile.self_level = guest["level"]
+        profile.updated_at = datetime.now(timezone.utc).isoformat()
+        await repo.save_profile(profile)
+        await track_event(
+            repo,
+            user.id,
+            "guest_profile_merged",
+            {"goal": guest["goal"], "minutes": guest["minutes"], "level": guest["level"]},
+        )
+        clear_guest_cookie(response, settings)
+
     profile = await repo.get_profile(user.id)
     public = await build_user_public(repo, user, profile, settings)
 

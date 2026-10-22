@@ -139,6 +139,9 @@ class Settings(BaseSettings):
     # Cookie сессии: имя и флаг Secure (в проде — 1, локально по http — 0).
     session_cookie_name: str = "adapteng_session"
     session_cookie_secure: int = 1
+    # Гостевая cookie онбординга (до регистрации): имя и срок жизни.
+    guest_cookie_name: str = "adapteng_guest"
+    guest_cookie_ttl_days: int = 30
     # Минимальная длина пароля при регистрации.
     min_password_length: int = 8
     # Список email администраторов (через запятую) — доступ к /api/admin/*.

@@ -168,6 +168,10 @@ class ProfileService:
             user_id=user_id,
             updated_at=datetime.now(timezone.utc).isoformat(),
         )
+        if previous is not None:
+            # Поля гостевого онбординга LLM не обновляет — сохраняем как есть.
+            merged.minutes_per_day = previous.minutes_per_day
+            merged.self_level = previous.self_level
         for field in PROFILE_FIELDS:
             new_value = update[field]
             if not new_value and previous is not None:

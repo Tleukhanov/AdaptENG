@@ -291,6 +291,78 @@ class ProfileResponse(BaseModel):
     has_profile: bool = False
 
 
+# ---------- гостевой онбординг (до регистрации) ----------
+
+GUEST_GOALS: tuple[str, ...] = ("exam", "communication", "work", "general")
+GUEST_MINUTES: tuple[int, ...] = (10, 20, 30, 60)
+GUEST_LEVELS: tuple[str, ...] = ("A1", "A2", "B1", "B2", "C1")
+
+#: Человекочитаемая цель для ``user_profiles.goal`` при переносе в аккаунт.
+GUEST_GOAL_LABELS: dict[str, str] = {
+    "exam": "Для экзамена (IELTS/TOEFL)",
+    "communication": "Для общения за границей",
+    "work": "Для работы и карьеры",
+    "general": "Для общего развития",
+}
+
+
+def normalize_guest_profile(payload: dict | None) -> dict | None:
+    """Проверяет значения гостевого профиля. Некорректные → ``None``."""
+    if not payload:
+        return None
+    goal = payload.get("goal")
+    minutes = payload.get("minutes")
+    level = payload.get("level")
+    if goal not in GUEST_GOALS or level not in GUEST_LEVELS:
+        return None
+    if not isinstance(minutes, int) or isinstance(minutes, bool) or minutes not in GUEST_MINUTES:
+        return None
+    return {"goal": goal, "minutes": minutes, "level": level}
+
+
+class GuestProfileIn(BaseModel):
+    """Ответы гостевого онбординга: цель, минуты в день, уровень."""
+
+    goal: str
+    minutes: int
+    level: str
+
+    @field_validator("goal")
+    @classmethod
+    def _check_goal(cls, value: str) -> str:
+        goal = value.strip().lower()
+        if goal not in GUEST_GOALS:
+            raise ValueError("goal: допустимо exam | communication | work | general")
+        return goal
+
+    @field_validator("minutes")
+    @classmethod
+    def _check_minutes(cls, value: int) -> int:
+        if value not in GUEST_MINUTES:
+            raise ValueError("minutes: допустимо 10 | 20 | 30 | 60")
+        return value
+
+    @field_validator("level")
+    @classmethod
+    def _check_level(cls, value: str) -> str:
+        level = value.strip().upper()
+        if level not in GUEST_LEVELS:
+            raise ValueError("level: допустимо A1 | A2 | B1 | B2 | C1")
+        return level
+
+
+class GuestProfileOut(BaseModel):
+    """Гостевой профиль без служебного ``iat``."""
+
+    goal: str
+    minutes: int
+    level: str
+
+
+class GuestProfileResponse(BaseModel):
+    profile: GuestProfileOut | None = None
+
+
 class DiagnosticTaskOut(BaseModel):
     """Задание диагностики уровня."""
 
