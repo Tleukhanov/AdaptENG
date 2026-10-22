@@ -68,7 +68,7 @@ export default function WelcomePage() {
       return;
     }
     if (user) {
-      router.replace('/menu');
+      router.replace('/lesson/0');
       return;
     }
     if (fetchedRef.current) {
@@ -137,7 +137,7 @@ export default function WelcomePage() {
     setError(null);
     try {
       await saveGuestProfile({ goal, minutes, level });
-      router.push('/menu');
+      router.push('/lesson/0');
     } catch (e) {
       setError(errorMessage(e, t('saveError')));
       setSaving(false);
@@ -189,7 +189,7 @@ export default function WelcomePage() {
               </div>
               <button
                 type="button"
-                onClick={() => router.push('/menu')}
+                onClick={() => router.push('/lesson/0')}
                 className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
               >
                 {t('continue')}

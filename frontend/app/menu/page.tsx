@@ -109,6 +109,27 @@ export default function MenuPage() {
       </div>
 
       <Link
+        href="/lesson/0"
+        className="mt-6 flex items-center gap-4 rounded-3xl border border-blue-200 bg-blue-50/80 px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
+      >
+        <span
+          aria-hidden="true"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 text-2xl shadow-lg shadow-blue-500/30"
+        >
+          📚
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-base font-bold text-blue-950">{t('introLesson')}</span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-blue-800/70">
+            {t('introLessonHint')}
+          </span>
+        </span>
+        <span aria-hidden="true" className="text-lg text-blue-500">
+          →
+        </span>
+      </Link>
+
+      <Link
         href="/lesson"
         className="mt-6 block rounded-3xl bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500 p-6 text-white shadow-lg transition hover:opacity-95"
       >

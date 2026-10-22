@@ -511,3 +511,87 @@ export async function saveGuestProfile(profile: GuestProfile): Promise<GuestProf
 export async function clearGuestProfile(): Promise<void> {
   await apiFetch<{ ok: boolean }>('/api/guest/profile', { method: 'DELETE' });
 }
+
+// ---------- «Урок 0»: знакомство с наставником ----------
+//
+// Работает и для гостя (сессия привязана к подписанной HttpOnly-cookie
+// `adapteng_tutor`), и для залогиненного пользователя. Повторный
+// `startTutorSession()` вернёт ту же активную сессию.
+
+export type TutorTurnKind = 'ask' | 'teach' | 'correct' | 'praise' | 'finish' | string;
+
+export type TutorIssue = {
+  problem: string;
+  suggestion: string;
+};
+
+export type TutorCorrection = {
+  corrected_text: string;
+  issues: TutorIssue[];
+};
+
+export type TutorTurn = {
+  /** Текст наставника — его же читает TTS. */
+  reply: string;
+  kind: TutorTurnKind;
+  question?: string | null;
+  correction?: TutorCorrection | null;
+  /** Приходят не во всех версиях бэкенда — поэтому опциональны. */
+  interests?: string[];
+  level_signal?: string;
+  should_finish?: boolean;
+};
+
+export type TutorSessionResponse = {
+  session_id: number;
+  turn: TutorTurn;
+  turn_index: number;
+  max_turns: number;
+};
+
+export type TutorTurnResponse = {
+  turn: TutorTurn;
+  turn_index: number;
+  max_turns: number;
+  should_finish: boolean;
+};
+
+export type TutorSummary = {
+  level: string;
+  confidence: number;
+  matches_self_level: boolean;
+  interests: string[];
+  strengths: string[];
+  weaknesses: string[];
+  recommendation: string;
+  praise: string;
+};
+
+export type TutorFinishResponse = {
+  summary: TutorSummary;
+  turns: number;
+  xp: number;
+  streak_days: number;
+  registered: boolean;
+};
+
+export function startTutorSession(mode: 'intro' = 'intro'): Promise<TutorSessionResponse> {
+  return apiFetch<TutorSessionResponse>('/api/tutor/session', {
+    method: 'POST',
+    body: { mode },
+  });
+}
+
+export function sendTutorTurn(sessionId: number, text: string): Promise<TutorTurnResponse> {
+  return apiFetch<TutorTurnResponse>('/api/tutor/turn', {
+    method: 'POST',
+    body: { session_id: sessionId, text },
+  });
+}
+
+export function finishTutorSession(sessionId: number): Promise<TutorFinishResponse> {
+  return apiFetch<TutorFinishResponse>('/api/tutor/finish', {
+    method: 'POST',
+    body: { session_id: sessionId },
+  });
+}

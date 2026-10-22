@@ -61,3 +61,81 @@ body {
     width: 100%;
   }
 }
+
+/* ---- «Урок 0»: аватар наставника ---- */
+@keyframes tutor-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes tutor-blink {
+  0%,
+  93%,
+  100% {
+    opacity: 1;
+  }
+  95%,
+  97% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes tutor-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(96, 165, 250, 0.35),
+      0 18px 45px -20px rgba(59, 130, 246, 0.8);
+  }
+  50% {
+    box-shadow:
+      0 0 0 10px rgba(96, 165, 250, 0),
+      0 22px 55px -16px rgba(59, 130, 246, 0.95);
+  }
+}
+
+@keyframes tutor-talk {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.035);
+  }
+}
+
+.tutor-avatar {
+  transition: box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.tutor-avatar--idle {
+  animation: tutor-float 5.5s ease-in-out infinite;
+}
+
+.tutor-avatar--idle .tutor-avatar__face {
+  animation: tutor-blink 7s ease-in-out infinite;
+}
+
+.tutor-avatar--thinking {
+  animation: tutor-glow 1.7s ease-in-out infinite;
+}
+
+.tutor-avatar--speaking {
+  animation: tutor-talk 0.7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutor-avatar,
+  .tutor-avatar--idle,
+  .tutor-avatar--thinking,
+  .tutor-avatar--speaking,
+  .tutor-avatar__face {
+    animation: none !important;
+  }
+}
