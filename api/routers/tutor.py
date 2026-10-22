@@ -126,6 +126,8 @@ def _turn_out(turn: TutorTurn) -> TutorTurnOut:
         kind=turn.kind,
         question=turn.question,
         correction=correction,
+        interests=list(turn.interests),
+        level_signal=turn.level_signal,
         should_finish=turn.should_finish,
     )
 

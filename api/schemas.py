@@ -441,6 +441,10 @@ class TutorTurnOut(BaseModel):
     kind: str = "ask"
     question: str | None = None
     correction: TutorCorrectionOut | None = None
+    # интересы, которые наставник услышал в ответе (для чипов «Запомнил»)
+    interests: list[str] = Field(default_factory=list)
+    # текущая оценка уровня по ответам ученика (A1..C1 или "")
+    level_signal: str = ""
     should_finish: bool = False
 
 
