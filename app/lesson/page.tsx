@@ -19,6 +19,7 @@ import { useSession } from '@/lib/session';
 import { apiDeckToLocal, sampleDeck } from '@/lib/deck';
 import type { ApiDeck, Deck, DeckStep, DialogueChoice, QuizItem, VocabCard } from '@/lib/deck';
 import type { Locale } from '@/lib/i18n';
+import AddToVocabButton, { VocabFlyTarget } from '@/app/vocab/AddToVocabButton';
 
 type Step = DeckStep;
 
@@ -459,6 +460,7 @@ export default function LessonPage() {
           >
             {t('exit')}
           </Link>
+          <VocabFlyTarget />
         </div>
 
         {error && (
@@ -581,6 +583,12 @@ export default function LessonPage() {
               {currentCard.transcription && (
                 <p className="text-slate-400">{currentCard.transcription}</p>
               )}
+              <AddToVocabButton
+                className="mt-3"
+                word={currentCard.word}
+                translation={currentCard.translation}
+                example={currentCard.example}
+              />
             </div>
             <button
               onClick={flipCard}
