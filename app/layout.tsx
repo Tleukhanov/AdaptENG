@@ -25,21 +25,21 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body className="antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <SessionProvider>
-            <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur">
+            <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1220]/85 backdrop-blur">
               <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
                 <Link href="/" className="flex items-center" aria-label="AdaptENG">
                   <Logo />
                 </Link>
-                <nav className="flex items-center gap-3 text-sm font-medium text-slate-600 sm:gap-5">
+                <nav className="flex items-center gap-3 text-sm font-medium text-slate-300 sm:gap-5">
                   <Link
                     href="/"
-                    className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 transition hover:text-slate-900"
+                    className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 transition hover:text-white"
                   >
                     {t('nav.home')}
                   </Link>
                   <Link
                     href="/dashboard"
-                    className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 transition hover:text-slate-900"
+                    className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 transition hover:text-white"
                   >
                     {t('nav.profile')}
                   </Link>
