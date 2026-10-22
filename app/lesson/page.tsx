@@ -8,6 +8,7 @@ import {
   apiBlob,
   errorMessage,
   finishLesson,
+  serverSttAvailable,
   startLesson,
   transcribeAudio,
 } from '@/lib/api';
@@ -325,6 +326,28 @@ export default function LessonPage() {
   async function startRecording() {
     setMicError(null);
     setVoiceResult(null);
+    // Серверного STT нет — сразу распознаём в браузере.
+    if (!(await serverSttAvailable())) {
+      if (isSpeechSupported()) {
+        const recognition = createSpeechRecognizer('en-US', {
+          onFinal: (text) => {
+            setVoiceResult({ transcript: text });
+            setMicError(null);
+          },
+          onError: (message) => setMicError(message),
+        });
+        if (recognition) {
+          try {
+            recognition.start();
+            return;
+          } catch {
+            // переходим к сообщению об ошибке
+          }
+        }
+      }
+      setMicError(t('voice.notSupported'));
+      return;
+    }
     const started = await recorder.start();
     if (!started) {
       setMicError(t('dialogue.micUnavailable'));

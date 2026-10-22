@@ -8,7 +8,14 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/session';
 import { sampleCharacters } from '@/lib/characters';
 import type { Character, Locale } from '@/lib/characters';
-import { ApiError, apiBlob, apiFetch, errorMessage, transcribeAudio } from '@/lib/api';
+import {
+  ApiError,
+  apiBlob,
+  apiFetch,
+  errorMessage,
+  serverSttAvailable,
+  transcribeAudio,
+} from '@/lib/api';
 import { useRecorder } from '@/lib/recorder';
 import { createSpeechRecognizer, isSpeechSupported } from '@/lib/speech';
 
@@ -236,7 +243,7 @@ export default function ChatPage() {
   // облачного STT или провайдер перегружен) — распознаём прямо в браузере.
   function listenInBrowser() {
     if (!isSpeechSupported()) {
-      setBanner(t('voice.unavailable'));
+      setBanner(t('voice.notSupported'));
       return;
     }
     setBanner(null);
@@ -286,6 +293,12 @@ export default function ChatPage() {
       return;
     }
     setBanner(null);
+    // Если серверного распознавания нет (нет ключа STT) — сразу в браузер,
+    // не тратя время на запись и загрузку файла.
+    if (!(await serverSttAvailable())) {
+      listenInBrowser();
+      return;
+    }
     const started = await recorder.start();
     if (!started) {
       setBanner(t('error'));
