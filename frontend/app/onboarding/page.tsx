@@ -71,6 +71,9 @@ const LEVEL_LABEL: Record<string, string> = {
   C1: 'Продвинутый',
 };
 
+const FOCUS_RING =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
+
 export default function OnboardingPage() {
   const router = useRouter();
   const locale = useLocale() as Locale;
@@ -239,340 +242,390 @@ export default function OnboardingPage() {
   }
 
   function chip(active: boolean) {
-    return `rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+    return `flex min-h-[52px] items-center justify-center rounded-2xl border px-4 py-3 text-sm font-semibold transition ${FOCUS_RING} ${
       active
-        ? 'border-blue-400 bg-blue-50 text-blue-700 shadow-sm'
-        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+        ? 'border-blue-400/60 bg-blue-500/15 text-sky-100 shadow-[0_0_0_1px_rgba(96,165,250,0.3),0_18px_40px_-24px_rgba(37,99,235,0.9)]'
+        : 'border-white/10 bg-white/[0.04] text-slate-200 hover:border-white/25 hover:bg-white/[0.08] hover:text-white'
     }`;
   }
 
   function primaryButton(disabled = false) {
-    return `inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40`;
+    return `inline-flex min-h-[48px] items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 ${FOCUS_RING} disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-slate-400 disabled:shadow-none`;
+  }
+
+  function backButtonClass() {
+    return `inline-flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white ${FOCUS_RING}`;
   }
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-16">
-        <p className="text-slate-600">...</p>
+      <main className="page-dark flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
+        <p role="status" className="text-sm font-medium text-slate-400">
+          ...
+        </p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-10">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-500">
-          {t('step', { current: stepNumber, total: STAGES.length })}
-        </p>
-        <div className="h-1.5 w-32 overflow-hidden rounded-full bg-slate-200">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-sky-500 transition-all"
-            style={{ width: `${(stepNumber / STAGES.length) * 100}%` }}
-          />
-        </div>
-      </div>
+    <main className="page-dark relative isolate min-h-[calc(100vh-4rem)] overflow-hidden px-4 py-10">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_50%_-12%,#17386b_0%,transparent_72%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-blue-500/10 blur-3xl"
+      />
 
-      {error ? (
-        <p className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </p>
-      ) : null}
-
-      {stage === 'q1' && (
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">{t('goalTitle')}</h1>
-          <p className="mt-2 text-sm text-slate-600">{t('goalHint')}</p>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            {GOALS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setGoal(item.id)}
-                className={chip(goal === item.id)}
-              >
-                {pick(item)}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setGoal('other')}
-              className={chip(goal === 'other')}
-            >
-              {t('goalOther')}
-            </button>
-          </div>
-          {goal === 'other' ? (
-            <input
-              value={customGoal}
-              onChange={(event) => setCustomGoal(event.target.value)}
-              placeholder={t('goalOtherPlaceholder')}
-              className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400"
-            />
-          ) : null}
-          <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              disabled={!goalText}
-              onClick={() => setStage('q2')}
-              className={primaryButton(!goalText)}
-            >
-              {t('next')}
-            </button>
-          </div>
-        </section>
-      )}
-
-      {stage === 'q2' && (
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">{t('hoursTitle')}</h1>
-          <p className="mt-2 text-sm text-slate-600">{t('hoursHint')}</p>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            {HOURS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setHours(item.id)}
-                className={chip(hours === item.id)}
-              >
-                {pick(item)}
-              </button>
-            ))}
-          </div>
-          <div className="mt-6 flex justify-between">
-            <button type="button" onClick={() => setStage('q1')} className="text-sm font-semibold text-slate-500">
-              {t('back')}
-            </button>
-            <button
-              type="button"
-              disabled={!hours}
-              onClick={() => setStage('q3')}
-              className={primaryButton(!hours)}
-            >
-              {t('next')}
-            </button>
-          </div>
-        </section>
-      )}
-
-      {stage === 'q3' && (
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">{t('levelTitle')}</h1>
-          <p className="mt-2 text-sm text-slate-600">{t('levelHint')}</p>
-          <div className="mt-5 grid grid-cols-3 gap-2">
-            {LEVELS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setLevel(item)}
-                className={`${chip(level === item)} flex flex-col items-center gap-1`}
-              >
-                <span className="text-base font-bold">{item}</span>
-                <span className="text-xs font-normal text-slate-500">
-                  {ru ? LEVEL_LABEL[item] : item}
-                </span>
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setStage('test-intro')}
-            className="mt-3 w-full rounded-2xl border border-dashed border-blue-300 bg-blue-50/50 px-4 py-3 text-sm font-semibold text-blue-700"
-          >
-            {t('levelTest')}
-          </button>
-          <div className="mt-6 flex justify-between">
-            <button type="button" onClick={() => setStage('q2')} className="text-sm font-semibold text-slate-500">
-              {t('back')}
-            </button>
-            <button
-              type="button"
-              disabled={!level}
-              onClick={() => setStage('q4')}
-              className={primaryButton(!level)}
-            >
-              {t('next')}
-            </button>
-          </div>
-        </section>
-      )}
-
-      {stage === 'test-intro' && (
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">{t('testTitle')}</h1>
-          <p className="mt-2 text-sm text-slate-600">{t('testIntro')}</p>
-          <ul className="mt-4 space-y-2 text-sm text-slate-600">
-            <li>· {t('testPoint1')}</li>
-            <li>· {t('testPoint2')}</li>
-            <li>· {t('testPoint3')}</li>
-          </ul>
-          <div className="mt-6 flex justify-between">
-            <button type="button" onClick={() => setStage('q3')} className="text-sm font-semibold text-slate-500">
-              {t('back')}
-            </button>
-            <button type="button" disabled={testBusy} onClick={runTest} className={primaryButton(testBusy)}>
-              {testBusy ? t('testPreparing') : t('testStart')}
-            </button>
-          </div>
-        </section>
-      )}
-
-      {stage === 'test-answer' && (
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-500">
-            {t('taskOf', { current: taskIndex + 1, total: tasks.length })}
+      <div className="relative mx-auto w-full max-w-2xl">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
+            {t('step', { current: stepNumber, total: STAGES.length })}
           </p>
-          <h1 className="mt-3 text-xl font-bold text-slate-900">{tasks[taskIndex]?.text}</h1>
-          <textarea
-            value={answer}
-            onChange={(event) => setAnswer(event.target.value)}
-            rows={4}
-            placeholder={t('answerPlaceholder')}
-            className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400"
-          />
-          <div className="mt-6 flex justify-end">
+          <div
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={STAGES.length}
+            aria-valuenow={stepNumber}
+            className="h-1.5 w-32 overflow-hidden rounded-full bg-white/10"
+          >
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-blue-500 to-sky-400 transition-all"
+              style={{ width: `${(stepNumber / STAGES.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {error ? (
+          <p
+            role="alert"
+            className="mt-6 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          >
+            {error}
+          </p>
+        ) : null}
+
+        {stage === 'q1' && (
+          <section className="panel mt-6 p-6">
+            <h1 className="text-2xl font-bold text-white">{t('goalTitle')}</h1>
+            <p className="mt-2 text-sm text-slate-300">{t('goalHint')}</p>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              {GOALS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={goal === item.id}
+                  onClick={() => setGoal(item.id)}
+                  className={chip(goal === item.id)}
+                >
+                  {pick(item)}
+                </button>
+              ))}
+              <button
+                type="button"
+                aria-pressed={goal === 'other'}
+                onClick={() => setGoal('other')}
+                className={chip(goal === 'other')}
+              >
+                {t('goalOther')}
+              </button>
+            </div>
+            {goal === 'other' ? (
+              <input
+                value={customGoal}
+                onChange={(event) => setCustomGoal(event.target.value)}
+                placeholder={t('goalOtherPlaceholder')}
+                className="field mt-3"
+              />
+            ) : null}
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                disabled={!goalText}
+                onClick={() => setStage('q2')}
+                className={primaryButton(!goalText)}
+              >
+                {t('next')}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {stage === 'q2' && (
+          <section className="panel mt-6 p-6">
+            <h1 className="text-2xl font-bold text-white">{t('hoursTitle')}</h1>
+            <p className="mt-2 text-sm text-slate-300">{t('hoursHint')}</p>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              {HOURS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={hours === item.id}
+                  onClick={() => setHours(item.id)}
+                  className={chip(hours === item.id)}
+                >
+                  {pick(item)}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setStage('q1')} className={backButtonClass()}>
+                {t('back')}
+              </button>
+              <button
+                type="button"
+                disabled={!hours}
+                onClick={() => setStage('q3')}
+                className={primaryButton(!hours)}
+              >
+                {t('next')}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {stage === 'q3' && (
+          <section className="panel mt-6 p-6">
+            <h1 className="text-2xl font-bold text-white">{t('levelTitle')}</h1>
+            <p className="mt-2 text-sm text-slate-300">{t('levelHint')}</p>
+            <div className="mt-5 grid grid-cols-3 gap-2">
+              {LEVELS.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={level === item}
+                  onClick={() => setLevel(item)}
+                  className={`${chip(level === item)} flex-col gap-1`}
+                >
+                  <span className="text-base font-bold">{item}</span>
+                  <span
+                    className={`text-xs font-normal ${
+                      level === item ? 'text-sky-200' : 'text-slate-400'
+                    }`}
+                  >
+                    {ru ? LEVEL_LABEL[item] : item}
+                  </span>
+                </button>
+              ))}
+            </div>
             <button
               type="button"
-              disabled={!answer.trim() || testBusy}
-              onClick={submitAnswer}
-              className={primaryButton(!answer.trim() || testBusy)}
+              onClick={() => setStage('test-intro')}
+              className={`mt-3 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-dashed border-blue-400/40 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-sky-200 transition hover:border-blue-300/60 hover:bg-blue-500/15 hover:text-white ${FOCUS_RING}`}
             >
-              {taskIndex + 1 >= tasks.length ? t('testFinish') : t('next')}
+              {t('levelTest')}
             </button>
-          </div>
-        </section>
-      )}
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setStage('q2')} className={backButtonClass()}>
+                {t('back')}
+              </button>
+              <button
+                type="button"
+                disabled={!level}
+                onClick={() => setStage('q4')}
+                className={primaryButton(!level)}
+              >
+                {t('next')}
+              </button>
+            </div>
+          </section>
+        )}
 
-      {stage === 'test-result' && result && (
-        <section className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">{t('resultTitle')}</p>
-          <h1 className="mt-2 text-4xl font-bold text-slate-900">{result.level}</h1>
-          <p className="mt-3 text-sm text-slate-700">{result.explanation_ru}</p>
-          {result.recommendation ? (
-            <p className="mt-2 text-sm font-semibold text-slate-700">{result.recommendation}</p>
-          ) : null}
-          {result.weaknesses.length > 0 ? (
-            <p className="mt-2 text-xs text-slate-500">
-              {t('resultWeak')}: {result.weaknesses.join(', ')}
+        {stage === 'test-intro' && (
+          <section className="panel mt-6 p-6">
+            <h1 className="text-2xl font-bold text-white">{t('testTitle')}</h1>
+            <p className="mt-2 text-sm text-slate-300">{t('testIntro')}</p>
+            <ul className="mt-4 space-y-2 text-sm text-slate-300">
+              <li>· {t('testPoint1')}</li>
+              <li>· {t('testPoint2')}</li>
+              <li>· {t('testPoint3')}</li>
+            </ul>
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setStage('q3')} className={backButtonClass()}>
+                {t('back')}
+              </button>
+              <button
+                type="button"
+                disabled={testBusy}
+                onClick={runTest}
+                className={primaryButton(testBusy)}
+              >
+                {testBusy ? t('testPreparing') : t('testStart')}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {stage === 'test-answer' && (
+          <section className="panel mt-6 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
+              {t('taskOf', { current: taskIndex + 1, total: tasks.length })}
             </p>
-          ) : null}
-          <div className="mt-6 flex justify-end">
-            <button type="button" onClick={() => setStage('q4')} className={primaryButton()}>
-              {t('next')}
-            </button>
-          </div>
-        </section>
-      )}
-
-      {stage === 'q4' && (
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">{t('interestsTitle')}</h1>
-          <p className="mt-2 text-sm text-slate-600">{t('interestsHint')}</p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {INTERESTS.map((item) => (
+            <h1 className="mt-3 text-xl font-bold text-white">{tasks[taskIndex]?.text}</h1>
+            <textarea
+              value={answer}
+              onChange={(event) => setAnswer(event.target.value)}
+              rows={4}
+              placeholder={t('answerPlaceholder')}
+              className="field mt-4"
+            />
+            <div className="mt-6 flex justify-end">
               <button
-                key={item.id}
                 type="button"
-                onClick={() =>
-                  setInterests((current) =>
-                    current.includes(item.id)
-                      ? current.filter((value) => value !== item.id)
-                      : [...current, item.id],
-                  )
-                }
-                className={chip(interests.includes(item.id))}
+                disabled={!answer.trim() || testBusy}
+                onClick={submitAnswer}
+                className={primaryButton(!answer.trim() || testBusy)}
               >
-                {pick(item)}
+                {taskIndex + 1 >= tasks.length ? t('testFinish') : t('next')}
               </button>
-            ))}
-          </div>
-          <div className="mt-6 flex justify-between">
-            <button type="button" onClick={() => setStage('q3')} className="text-sm font-semibold text-slate-500">
-              {t('back')}
-            </button>
-            <button type="button" onClick={() => setStage('q5')} className={primaryButton()}>
-              {t('next')}
-            </button>
-          </div>
-        </section>
-      )}
+            </div>
+          </section>
+        )}
 
-      {stage === 'q5' && (
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">{t('formatTitle')}</h1>
-          <p className="mt-2 text-sm text-slate-600">{t('formatHint')}</p>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            {FORMATS.map((item) => (
+        {stage === 'test-result' && result && (
+          <section className="panel mt-6 border-emerald-400/25 bg-emerald-500/[0.07] p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
+              {t('resultTitle')}
+            </p>
+            <h1 className="mt-2 text-4xl font-bold text-white">{result.level}</h1>
+            <p className="mt-3 text-sm text-slate-200">{result.explanation_ru}</p>
+            {result.recommendation ? (
+              <p className="mt-2 text-sm font-semibold text-slate-100">{result.recommendation}</p>
+            ) : null}
+            {result.weaknesses.length > 0 ? (
+              <p className="mt-2 text-xs text-slate-400">
+                {t('resultWeak')}: {result.weaknesses.join(', ')}
+              </p>
+            ) : null}
+            <div className="mt-6 flex justify-end">
+              <button type="button" onClick={() => setStage('q4')} className={primaryButton()}>
+                {t('next')}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {stage === 'q4' && (
+          <section className="panel mt-6 p-6">
+            <h1 className="text-2xl font-bold text-white">{t('interestsTitle')}</h1>
+            <p className="mt-2 text-sm text-slate-300">{t('interestsHint')}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {INTERESTS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={interests.includes(item.id)}
+                  onClick={() =>
+                    setInterests((current) =>
+                      current.includes(item.id)
+                        ? current.filter((value) => value !== item.id)
+                        : [...current, item.id],
+                    )
+                  }
+                  className={chip(interests.includes(item.id))}
+                >
+                  {pick(item)}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setStage('q3')} className={backButtonClass()}>
+                {t('back')}
+              </button>
+              <button type="button" onClick={() => setStage('q5')} className={primaryButton()}>
+                {t('next')}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {stage === 'q5' && (
+          <section className="panel mt-6 p-6">
+            <h1 className="text-2xl font-bold text-white">{t('formatTitle')}</h1>
+            <p className="mt-2 text-sm text-slate-300">{t('formatHint')}</p>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              {FORMATS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={format === item.id}
+                  onClick={() => setFormat(item.id)}
+                  className={chip(format === item.id)}
+                >
+                  {pick(item)}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setStage('q4')} className={backButtonClass()}>
+                {t('back')}
+              </button>
               <button
-                key={item.id}
                 type="button"
-                onClick={() => setFormat(item.id)}
-                className={chip(format === item.id)}
+                disabled={!format}
+                onClick={() => setStage('summary')}
+                className={primaryButton(!format)}
               >
-                {pick(item)}
+                {t('next')}
               </button>
-            ))}
-          </div>
-          <div className="mt-6 flex justify-between">
-            <button type="button" onClick={() => setStage('q4')} className="text-sm font-semibold text-slate-500">
-              {t('back')}
-            </button>
-            <button
-              type="button"
-              disabled={!format}
-              onClick={() => setStage('summary')}
-              className={primaryButton(!format)}
-            >
-              {t('next')}
-            </button>
-          </div>
-        </section>
-      )}
+            </div>
+          </section>
+        )}
 
-      {stage === 'summary' && (
-        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">{t('summaryTitle')}</h1>
-          <dl className="mt-5 space-y-3 text-sm">
-            <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
-              <dt className="text-slate-500">{t('goalTitle')}</dt>
-              <dd className="text-right font-semibold text-slate-900">{goalText || '—'}</dd>
+        {stage === 'summary' && (
+          <section className="panel mt-6 p-6">
+            <h1 className="text-2xl font-bold text-white">{t('summaryTitle')}</h1>
+            <dl className="mt-5 space-y-3 text-sm">
+              <div className="flex justify-between gap-4 border-b border-white/10 pb-3">
+                <dt className="text-slate-400">{t('goalTitle')}</dt>
+                <dd className="text-right font-semibold text-white">{goalText || '—'}</dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-white/10 pb-3">
+                <dt className="text-slate-400">{t('hoursTitle')}</dt>
+                <dd className="text-right font-semibold text-white">{hoursText || '—'}</dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-white/10 pb-3">
+                <dt className="text-slate-400">{t('levelTitle')}</dt>
+                <dd className="text-right font-semibold text-white">{level ?? '—'}</dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-white/10 pb-3">
+                <dt className="text-slate-400">{t('interestsTitle')}</dt>
+                <dd className="text-right font-semibold text-white">
+                  {interests.length > 0
+                    ? interests
+                        .map((id) => INTERESTS.find((item) => item.id === id))
+                        .filter((item): item is Option => Boolean(item))
+                        .map(pick)
+                        .join(', ')
+                    : '—'}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-slate-400">{t('formatTitle')}</dt>
+                <dd className="text-right font-semibold text-white">
+                  {FORMATS.find((item) => item.id === format)
+                    ? pick(FORMATS.find((item) => item.id === format)!)
+                    : '—'}
+                </dd>
+              </div>
+            </dl>
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <button type="button" onClick={() => setStage('q5')} className={backButtonClass()}>
+                {t('back')}
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={save}
+                className={primaryButton(saving)}
+              >
+                {saving ? t('saving') : t('save')}
+              </button>
             </div>
-            <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
-              <dt className="text-slate-500">{t('hoursTitle')}</dt>
-              <dd className="text-right font-semibold text-slate-900">{hoursText || '—'}</dd>
-            </div>
-            <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
-              <dt className="text-slate-500">{t('levelTitle')}</dt>
-              <dd className="text-right font-semibold text-slate-900">{level ?? '—'}</dd>
-            </div>
-            <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
-              <dt className="text-slate-500">{t('interestsTitle')}</dt>
-              <dd className="text-right font-semibold text-slate-900">
-                {interests.length > 0
-                  ? interests
-                      .map((id) => INTERESTS.find((item) => item.id === id))
-                      .filter((item): item is Option => Boolean(item))
-                      .map(pick)
-                      .join(', ')
-                  : '—'}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-slate-500">{t('formatTitle')}</dt>
-              <dd className="text-right font-semibold text-slate-900">
-                {FORMATS.find((item) => item.id === format) ? pick(FORMATS.find((item) => item.id === format)!) : '—'}
-              </dd>
-            </div>
-          </dl>
-          <div className="mt-6 flex justify-between">
-            <button type="button" onClick={() => setStage('q5')} className="text-sm font-semibold text-slate-500">
-              {t('back')}
-            </button>
-            <button type="button" disabled={saving} onClick={save} className={primaryButton(saving)}>
-              {saving ? t('saving') : t('save')}
-            </button>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
+      </div>
     </main>
   );
 }
