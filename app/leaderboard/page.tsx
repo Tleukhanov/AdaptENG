@@ -69,57 +69,79 @@ export default function LeaderboardPage() {
   }, [sessionLoading, user]);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold text-slate-900">{t('title')}</h1>
-        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-600 hover:text-blue-500">
-          {t('back')}
-        </Link>
-      </div>
+    <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 py-10 text-slate-100 sm:py-12">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(37,99,235,0.28),transparent_70%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-sky-500/10 blur-3xl"
+      />
 
-      {status === 'loading' && <p className="mt-10 text-slate-600">...</p>}
+      <div className="relative mx-auto max-w-4xl">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <Link
+            href="/"
+            className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+          >
+            {t('back')}
+          </Link>
+        </div>
 
-      {status === 'ready' && (
-        <div className="mt-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[280px] text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  <th className="px-3 py-3 sm:px-5">{t('rank')}</th>
-                  <th className="px-3 py-3 sm:px-5">{t('name')}</th>
-                  <th className="px-3 py-3 text-right sm:px-5">{t('xp')}</th>
-                  <th className="px-3 py-3 text-right sm:px-5">{t('lessons')}</th>
-                  <th className="hidden px-5 py-3 text-right sm:table-cell">{t('streak')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.user_id} className={`border-b border-slate-100 last:border-0 ${r.isMe ? 'bg-blue-50' : ''}`}>
-                    <td className="px-3 py-3 font-semibold text-slate-500 sm:px-5">
-                      {r.rank}
-                      {r.isMe ? <span className="ml-2 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white">{t('you')}</span> : null}
-                    </td>
-                    <td className="px-3 py-3 sm:px-5">
-                      <p className="font-semibold text-slate-900">{r.first_name || r.username || `#${r.user_id}`}</p>
-                      {r.level ? <p className="text-xs text-slate-500">{r.level}</p> : null}
-                    </td>
-                    <td className="px-3 py-3 text-right font-semibold text-slate-900 sm:px-5">{r.xp}</td>
-                    <td className="px-3 py-3 text-right text-slate-600 sm:px-5">{r.total_lessons}</td>
-                    <td className="hidden px-5 py-3 text-right text-slate-600 sm:table-cell">{r.streak_days}</td>
+        {status === 'loading' && <p className="mt-10 text-slate-300">...</p>}
+
+        {status === 'ready' && (
+          <div className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-[0_20px_50px_-32px_rgba(2,6,23,0.9)] backdrop-blur">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[280px] text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/5 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <th className="px-3 py-3 sm:px-5">{t('rank')}</th>
+                    <th className="px-3 py-3 sm:px-5">{t('name')}</th>
+                    <th className="px-3 py-3 text-right sm:px-5">{t('xp')}</th>
+                    <th className="px-3 py-3 text-right sm:px-5">{t('lessons')}</th>
+                    <th className="hidden px-5 py-3 text-right sm:table-cell">{t('streak')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr
+                      key={r.user_id}
+                      className={`border-b border-white/5 last:border-0 ${
+                        r.isMe ? 'bg-blue-500/10' : ''
+                      }`}
+                    >
+                      <td className="px-3 py-3 font-semibold text-slate-400 sm:px-5">
+                        {r.rank}
+                        {r.isMe ? <span className="ml-2 rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white">{t('you')}</span> : null}
+                      </td>
+                      <td className="px-3 py-3 sm:px-5">
+                        <p className="font-semibold text-white">{r.first_name || r.username || `#${r.user_id}`}</p>
+                        {r.level ? <p className="text-xs text-slate-400">{r.level}</p> : null}
+                      </td>
+                      <td className="px-3 py-3 text-right font-semibold text-sky-300 sm:px-5">{r.xp}</td>
+                      <td className="px-3 py-3 text-right text-slate-300 sm:px-5">{r.total_lessons}</td>
+                      <td className="hidden px-5 py-3 text-right text-slate-300 sm:table-cell">{r.streak_days}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {rows.length === 0 && <p className="p-6 text-slate-300">{t('noPlace')}</p>}
           </div>
-          {rows.length === 0 && <p className="p-6 text-slate-600">{t('noPlace')}</p>}
-        </div>
-      )}
+        )}
 
-      {status === 'error' && (
-        <div className="mt-10 rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700">
-          {t('error')}
-        </div>
-      )}
+        {status === 'error' && (
+          <div
+            role="alert"
+            className="mt-10 rounded-3xl border border-red-400/30 bg-red-500/10 p-6 text-red-200"
+          >
+            {t('error')}
+          </div>
+        )}
+      </div>
     </main>
   );
 }

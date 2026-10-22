@@ -23,9 +23,9 @@ type ProgressData = {
 
 function Stat({ label, value, children }: { label: string; value?: string | number; children?: ReactNode }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-[0_20px_50px_-32px_rgba(2,6,23,0.9)] backdrop-blur">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      {value !== undefined && value !== null ? <p className="mt-2 text-lg font-bold text-slate-900">{value}</p> : null}
+      {value !== undefined && value !== null ? <p className="mt-2 text-lg font-bold text-sky-300">{value}</p> : null}
       {children}
     </div>
   );
@@ -105,72 +105,101 @@ export default function ProgressPage() {
   const visibleDue = due.filter((w) => !reviewed.has(w.id));
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-12">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold text-slate-900">{t('title')}</h1>
-        <Link href="/" className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-600 hover:text-blue-500">
-          {t('back')}
-        </Link>
-      </div>
+    <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 py-10 text-slate-100 sm:py-12">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(37,99,235,0.28),transparent_70%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-sky-500/10 blur-3xl"
+      />
 
-      {status === 'loading' && <p className="mt-10 text-slate-600">...</p>}
+      <div className="relative mx-auto max-w-5xl">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <Link
+            href="/"
+            className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+          >
+            {t('back')}
+          </Link>
+        </div>
 
-      {status === 'ready' && data && (
-        <>
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <Stat label={t('lessons')} value={data.lessons} />
-            <Stat label={t('accuracy')} value={`${data.accuracy}%`} />
-            <Stat label={t('streak')} value={data.streak} />
-            <Stat label={t('xp')} value={data.xp} />
-            <Stat label={t('weak')} value={data.weak.length > 0 ? data.weak.join(', ') : '-'} />
-            <Stat label={t('strong')} value={data.strong.length > 0 ? data.strong.join(', ') : '-'} />
-          </div>
+        {status === 'loading' && <p className="mt-10 text-slate-300">...</p>}
 
-          {data.nextTopic && (
-            <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('nextTopic')}</p>
-              <p className="mt-2 text-lg font-bold text-slate-900">{data.nextTopic}</p>
-              <Link href="/lesson" className="mt-4 inline-flex items-center rounded-xl bg-gradient-to-r from-blue-500 to-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-sm">
-                {t('startLesson')}
-              </Link>
+        {status === 'ready' && data && (
+          <>
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              <Stat label={t('lessons')} value={data.lessons} />
+              <Stat label={t('accuracy')} value={`${data.accuracy}%`} />
+              <Stat label={t('streak')} value={data.streak} />
+              <Stat label={t('xp')} value={data.xp} />
+              <Stat label={t('weak')} value={data.weak.length > 0 ? data.weak.join(', ') : '-'} />
+              <Stat label={t('strong')} value={data.strong.length > 0 ? data.strong.join(', ') : '-'} />
             </div>
-          )}
 
-          <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900">{t('dueTitle')}</h2>
-            {visibleDue.length === 0 ? (
-              <p className="mt-2 text-slate-600">{t('dueEmpty')}</p>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {visibleDue.map((w) => (
-                  <div key={w.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-4">
-                    <div>
-                      <p className="font-semibold text-slate-900">{w.word}</p>
-                      <p className="text-sm text-slate-600">{w.translation}</p>
-                      <p className="text-xs text-slate-500">{w.example}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleReview(w.id, 5)} className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-sm">
-                        {t('know')}
-                      </button>
-                      <button onClick={() => handleReview(w.id, 1)} className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm">
-                        {t('dontKnow')}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+            {data.nextTopic && (
+              <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_50px_-32px_rgba(2,6,23,0.9)] backdrop-blur">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('nextTopic')}</p>
+                <p className="mt-2 text-lg font-bold text-white">{data.nextTopic}</p>
+                <Link
+                  href="/lesson"
+                  className="mt-4 inline-flex items-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+                >
+                  {t('startLesson')}
+                </Link>
               </div>
             )}
+
+            <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_50px_-32px_rgba(2,6,23,0.9)] backdrop-blur">
+              <h2 className="text-lg font-bold text-white">{t('dueTitle')}</h2>
+              {visibleDue.length === 0 ? (
+                <p className="mt-2 text-slate-300">{t('dueEmpty')}</p>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {visibleDue.map((w) => (
+                    <div
+                      key={w.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                    >
+                      <div>
+                        <p className="font-semibold text-white">{w.word}</p>
+                        <p className="text-sm text-slate-300">{w.translation}</p>
+                        <p className="text-xs text-slate-400">{w.example}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleReview(w.id, 5)}
+                          className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+                        >
+                          {t('know')}
+                        </button>
+                        <button
+                          onClick={() => handleReview(w.id, 1)}
+                          className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+                        >
+                          {t('dontKnow')}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </>
+        )}
+
+        {status === 'error' && (
+          <div
+            role="alert"
+            className="mt-10 rounded-3xl border border-red-400/30 bg-red-500/10 p-6 text-red-200"
+          >
+            {t('error')}
           </div>
-
-        </>
-      )}
-
-      {status === 'error' && (
-        <div className="mt-10 rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700">
-          {t('error')}
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }
