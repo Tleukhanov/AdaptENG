@@ -1,3 +1,6 @@
 -r requirements.txt
 pytest>=8
 pytest-asyncio>=0.24
+# httpx нужен для fastapi.testclient.TestClient (все API-тесты) и для
+# проверки rate-limit middleware в tests/test_loadguard.py
+httpx>=0.28,<0.29
