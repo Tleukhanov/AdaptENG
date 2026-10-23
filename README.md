@@ -8,6 +8,8 @@
 
 ---
 
+[![Live Demo](https://img.shields.io/badge/Live-Demo-2EA043?style=for-the-badge)](https://adapteng.app)
+
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![aiogram](https://img.shields.io/badge/aiogram-3.x-2CA5E0?logo=telegram)
 ![SQLite](https://img.shields.io/badge/SQLite-aiosqlite-003B57?logo=sqlite&logoColor=white)
