@@ -8,6 +8,7 @@ import {
   ApiError,
   apiBlob,
   apiFetch,
+  assessPronunciation,
   errorMessage,
   finishTutorSession,
   serverSttAvailable,
@@ -16,6 +17,7 @@ import {
   transcribeAudio,
 } from '@/lib/api';
 import type {
+  PronunciationAssessment,
   TutorCorrection,
   TutorFinishResponse,
   TutorMode,
@@ -27,6 +29,7 @@ import { useRecorder } from '@/lib/recorder';
 import { useSession } from '@/lib/session';
 import { createSpeechRecognizer, isSpeechSupported } from '@/lib/speech';
 import AddToVocabButton, { VocabFlyTarget } from '@/app/vocab/AddToVocabButton';
+import PronunciationCard from '@/components/PronunciationCard';
 
 /**
  * Диалог с наставником-аватаром — общий экран для «Урока 0» (`mode="intro"`)
@@ -197,6 +200,9 @@ export default function TutorSession({ mode, topic }: Props) {
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [voiceUnavailable, setVoiceUnavailable] = useState(false);
   const [avatarState, setAvatarState] = useState<AvatarState>('idle');
+  /** Оценка произношения последней записи (null — ещё не было / недоступна). */
+  const [pronunciation, setPronunciation] = useState<PronunciationAssessment | null>(null);
+  const [pronunciationNotice, setPronunciationNotice] = useState<string | null>(null);
   /** Тема текущей сессии; после «Следующего урока» — null (новая тема). */
   const [activeTopic, setActiveTopic] = useState<string | null>(
     isLesson ? topic?.trim() || null : null,
@@ -507,6 +513,8 @@ export default function TutorSession({ mode, topic }: Props) {
     setShouldFinish(false);
     sendingRef.current = false;
     finishingRef.current = false;
+    setPronunciation(null);
+    setPronunciationNotice(null);
     try {
       const data = await startTutorSession(mode, isLesson ? topicRef.current : undefined);
       setSessionId(data.session_id);
@@ -724,6 +732,28 @@ export default function TutorSession({ mode, topic }: Props) {
         return;
       }
       setBanner(null);
+      // Эталон — последняя реплика наставника: по ней считается точность.
+      const expected =
+        [...bubbles].reverse().find((item) => item.role === 'tutor' && item.text.trim())?.text.trim() ??
+        '';
+      try {
+        const assessment = await assessPronunciation(blob, expected);
+        const transcript = (assessment.transcript ?? '').trim();
+        setPronunciationNotice(null);
+        if (!transcript) {
+          setBanner({ text: t('voice.error') });
+          return;
+        }
+        setPronunciation(assessment);
+        setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        setToast(t('voice.captured'));
+        return;
+      } catch {
+        // Оценки нет (эндпоинт недоступен / STT занят) — мягко откатываемся
+        // на прежний путь: только распознанный текст, урок не ломаем.
+        setPronunciation(null);
+        setPronunciationNotice(t('voice.assessUnavailable'));
+      }
       try {
         const res = await transcribeAudio(blob, { mode: 'free' });
         const transcript = (res.transcript ?? '').trim();
@@ -743,6 +773,8 @@ export default function TutorSession({ mode, topic }: Props) {
       return;
     }
     setBanner(null);
+    setPronunciation(null);
+    setPronunciationNotice(null);
     if (!(await serverSttAvailable())) {
       listenInBrowser();
       return;
@@ -1013,6 +1045,14 @@ export default function TutorSession({ mode, topic }: Props) {
             </div>
           ),
         )}
+
+        {pronunciation || pronunciationNotice ? (
+          <PronunciationCard
+            assessment={pronunciation}
+            notice={pronunciationNotice}
+            className="sm:ml-[3.25rem]"
+          />
+        ) : null}
 
         {sending ? (
           <div className="flex items-start gap-2.5">

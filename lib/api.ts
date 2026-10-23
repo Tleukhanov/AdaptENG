@@ -304,6 +304,15 @@ export type TranscribeResponse = {
   duration_sec?: number;
 };
 
+/** Имя файла для multipart: по MIME, иначе бэкенд не поймёт формат. */
+function audioFileName(blob: Blob): string {
+  return blob.type.includes('mp4')
+    ? 'voice.m4a'
+    : blob.type.includes('ogg')
+      ? 'voice.ogg'
+      : 'voice.webm';
+}
+
 /**
  * Распознавание речи вне урока: файл уходит multipart-файлом (без base64),
  * поэтому не раздувается на треть и не упирается в лимит JSON.
@@ -313,8 +322,7 @@ export async function transcribeAudio(
   options: { expectedLine?: string; word?: string; mode?: 'free' | 'word' | 'lesson' } = {},
 ): Promise<TranscribeResponse> {
   const form = new FormData();
-  const name = blob.type.includes('mp4') ? 'voice.m4a' : blob.type.includes('ogg') ? 'voice.ogg' : 'voice.webm';
-  form.append('file', blob, name);
+  form.append('file', blob, audioFileName(blob));
   if (options.expectedLine) {
     form.append('expected_line', options.expectedLine);
   }
@@ -786,4 +794,154 @@ export function checkVocabWord(payload: VocabCheckPayload): Promise<VocabCheckRe
 
 export function deleteVocabWord(id: number): Promise<{ ok: boolean }> {
   return apiFetch<{ ok: boolean }>(`/api/vocab/${id}`, { method: 'DELETE' });
+}
+
+// ---------- админ-аналитика ----------
+//
+// Доступ проверяет бэкенд (ADMIN_EMAILS / ADMIN_TG_ID). Для обычного ученика
+// он отвечает 403, а если админ-метрики выключены в конфиге — 404. Оба случая
+// фронт показывает как «нет доступа», а не как ошибку.
+
+export type AdminRetentionPoint = {
+  percent: number;
+  cohort: number;
+  active?: number;
+  note?: string;
+};
+
+export type AdminFunnelData = {
+  days: number;
+  since: string;
+  total_users: number;
+  funnel: {
+    registered: number;
+    onboarding: number;
+    first_lesson: number;
+  };
+  conversion: {
+    register_to_onboarding: number;
+    onboarding_to_lesson: number;
+    register_to_lesson: number;
+  };
+  retention: {
+    d1: AdminRetentionPoint;
+    d7: AdminRetentionPoint;
+    d30: AdminRetentionPoint;
+  };
+  active_today: number;
+};
+
+export type AdminCohortRow = {
+  user_id: number;
+  username?: string | null;
+  first_name?: string | null;
+  level?: string | null;
+  turns: number;
+  accuracy: number;
+  lessons: number;
+  words: number;
+  streak_days: number;
+  accuracy_7d: number;
+  trend_delta: number;
+  retention_30: number;
+};
+
+export type AdminAnalytics = {
+  funnel: AdminFunnelData;
+  cohorts: AdminCohortRow[];
+  cohort_size: number;
+  note?: string;
+};
+
+/** Воронка и когорты. 403/404 — нет доступа (см. `ApiError.status`). */
+export function getAdminAnalytics(days = 30): Promise<AdminAnalytics> {
+  return apiFetch<AdminAnalytics>(`/api/admin/analytics?days=${days}`);
+}
+
+// ---------- напоминания на почту ----------
+
+export type NotificationSettings = {
+  email_reminders: boolean;
+};
+
+export function getNotificationSettings(): Promise<NotificationSettings> {
+  return apiFetch<NotificationSettings>('/api/me/notifications');
+}
+
+export function updateNotificationSettings(
+  payload: NotificationSettings,
+): Promise<NotificationSettings> {
+  return apiFetch<NotificationSettings>('/api/me/notifications', {
+    method: 'PUT',
+    body: payload satisfies NotificationSettings,
+  });
+}
+
+// ---------- оценка произношения ----------
+//
+// `POST /api/voice/assess` — детальная оценка по эталонной фразе: точность
+// по словам и (если провайдер умеет) проблемные фонемы. Провайдер `words`
+// даёт грубую оценку по совпадению слов — это подписывается в интерфейсе.
+
+export type PronunciationWord = {
+  word: string;
+  accuracy: number;
+  error_type?: string | null;
+};
+
+/**
+ * Фонемы приходят от разных провайдеров разной формы, поэтому поля
+ * опциональны: показываем то, что реально есть, и не выдумываем остальное.
+ */
+export type PronunciationPhoneme = {
+  phoneme?: string;
+  symbol?: string;
+  accuracy?: number;
+  score?: number;
+  errors?: number;
+  error_rate?: number;
+};
+
+export type PronunciationAssessment = {
+  provider: string;
+  accuracy: number;
+  fluency: number;
+  completeness: number;
+  transcript: string;
+  words: PronunciationWord[];
+  phonemes: PronunciationPhoneme[];
+};
+
+/** multipart: файл записи + эталонная фраза (последняя реплика наставника). */
+export async function assessPronunciation(
+  blob: Blob,
+  expectedText: string,
+): Promise<PronunciationAssessment> {
+  const form = new FormData();
+  form.append('file', blob, audioFileName(blob));
+  form.append('expected_text', expectedText);
+
+  const response = await fetch('/api/voice/assess', {
+    method: 'POST',
+    body: form,
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    let message = 'request failed';
+    try {
+      const data = (await response.json()) as { detail?: string; error?: string };
+      if (data && typeof data.detail === 'string' && data.detail) {
+        message = data.detail;
+      } else if (data && typeof data.error === 'string' && data.error) {
+        message = data.error;
+      }
+    } catch {
+      // без JSON-тела
+    }
+    if (response.status === 401) {
+      notifyUnauthorized();
+    }
+    throw new ApiError(message, response.status);
+  }
+  return (await response.json()) as PronunciationAssessment;
 }
