@@ -144,7 +144,7 @@ export default function MenuPage() {
         </Link>
 
         <Link
-          href="/lesson"
+          href="/lesson/next"
           className="mt-6 block rounded-3xl bg-blue-600 p-6 text-white shadow-lg shadow-blue-900/40 transition hover:-translate-y-0.5 hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
         >
           <p className="text-2xl font-bold">{t('startLesson')}</p>
@@ -157,7 +157,7 @@ export default function MenuPage() {
             {TOPICS.map((topic) => (
               <Link
                 key={topic.id}
-                href={`/lesson?topic=${encodeURIComponent(topic.en)}`}
+                href={`/lesson/next?topic=${encodeURIComponent(topic.en)}`}
                 className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 shadow-[0_20px_50px_-34px_rgba(2,6,23,0.9)] backdrop-blur transition hover:-translate-y-0.5 hover:border-blue-400/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
               >
                 <span className="text-xl">{topic.emoji}</span>

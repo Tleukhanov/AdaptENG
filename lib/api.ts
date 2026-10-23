@@ -575,10 +575,22 @@ export type TutorFinishResponse = {
   registered: boolean;
 };
 
-export function startTutorSession(mode: 'intro' = 'intro'): Promise<TutorSessionResponse> {
+/** Режим сессии: знакомство (`intro`) или обычный урок (`lesson`). */
+export type TutorMode = 'intro' | 'lesson';
+
+export function startTutorSession(
+  mode: TutorMode = 'intro',
+  topic?: string | null,
+): Promise<TutorSessionResponse> {
+  const body: { mode: TutorMode; topic?: string } = { mode };
+  const cleanTopic = topic?.trim();
+  // Тема имеет смысл только для урока; без неё бэкенд выберет её сам.
+  if (mode === 'lesson' && cleanTopic) {
+    body.topic = cleanTopic;
+  }
   return apiFetch<TutorSessionResponse>('/api/tutor/session', {
     method: 'POST',
-    body: { mode },
+    body,
   });
 }
 
