@@ -1,9 +1,10 @@
 """Наставник (web-продукт): «Урок 0» и персональный урок ``mode="lesson"``.
 
-Три эндпоинта:
+Эндпоинты:
 
 * ``POST /api/tutor/session`` — создать сессию и получить первый ход;
 * ``POST /api/tutor/turn`` — ответ студента и следующий ход наставника;
+* ``POST /api/tutor/turn/stream`` — то же, но текст реплики стримится по SSE;
 * ``POST /api/tutor/finish`` — итог: оценка CEFR, интересы, мягкая обратная
   связь; для залогиненных — XP, заметка урока, новые слова в SRS и
   обновление профиля.
@@ -17,10 +18,11 @@ from __future__ import annotations
 
 import json
 import logging
-from contextlib import nullcontext
+from contextlib import AsyncExitStack, asynccontextmanager, nullcontext
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
 
 from core.analytics import track_event
 from core.config import Settings
@@ -31,6 +33,8 @@ from core.srs import SRSService
 from core.tutor import (
     DEFAULT_LESSON_TOPIC,
     first_turn,
+    stream_turn,
+    turn_from_meta,
     TutorService,
     TutorSummary,
     TutorTurn,
@@ -527,6 +531,153 @@ async def next_turn(
         turn_index=int(state["turn_index"]),
         max_turns=max_turns,
         should_finish=bool(turn.should_finish),
+    )
+
+
+# ---------- POST /api/tutor/turn/stream (SSE) ----------
+
+#: Заголовки SSE: без кеша и без буферизации на прокси (Heroku/Nginx).
+SSE_HEADERS = {
+    "Cache-Control": "no-cache",
+    "X-Accel-Buffering": "no",
+}
+
+
+def _sse(event: str, data: dict) -> str:
+    """Одно SSE-событие: ``event: <name>`` + JSON в ``data``."""
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _meta_event(turn: TutorTurn, state: dict, max_turns: int) -> dict:
+    """Payload события ``meta``: структурированные поля хода (без текста)."""
+    return {
+        "kind": turn.kind,
+        "question": turn.question,
+        "correction": turn.correction.to_dict() if turn.correction else None,
+        "interests": list(turn.interests),
+        "new_words": list(turn.new_words),
+        "level_signal": turn.level_signal,
+        "should_finish": bool(turn.should_finish),
+        "turn_index": int(state.get("turn_index") or 0),
+        "max_turns": max_turns,
+    }
+
+
+@asynccontextmanager
+async def _llm_slot(request: Request):
+    """Слот очереди LLM на всё время стрима (или ничего, если очереди нет)."""
+    guard = getattr(request.app.state, "llm_guard", None)
+    if guard is None:
+        yield
+        return
+    async with guard.slot():
+        yield
+
+
+@router.post("/turn/stream")
+async def next_turn_stream(
+    request: Request,
+    body: TutorTurnRequest,
+    user_id: int | None = Depends(get_optional_user_id),
+    settings: Settings = Depends(get_settings_dep),
+    repo: Repository = Depends(get_repository),
+) -> StreamingResponse:
+    """Ход наставника со стримингом текста (SSE).
+
+    Проверки те же, что у ``/turn``: владение сессией (404), статус (409),
+    текст 1..600 (422), квоты/троттлинг (429). Все они срабатывают ДО
+    открытия потока и отвечают обычным JSON. Внутри потока: ``delta`` с
+    кусками реплики, затем ``meta``; сбой модели — событие ``error``.
+    """
+    user = await _user_or_none(repo, user_id)
+    guest_token = None if user is not None else _guest_token(request, settings)
+
+    session = await repo.get_tutor_session(body.session_id)
+    if session is None or not _owned(session, user.id if user else None, guest_token):
+        raise HTTPException(status_code=404, detail=SESSION_NOT_FOUND_ERROR)
+    if session.status != "active":
+        raise HTTPException(status_code=409, detail=SESSION_FINISHED_ERROR)
+
+    state = _load_state(session)
+    mode = str(state.get("mode") or session.mode or "intro")
+    default_max = (
+        settings.tutor_lesson_max_turns if mode == "lesson" else settings.tutor_max_turns
+    )
+    max_turns = int(state.get("max_turns") or default_max)
+    if int(state.get("turn_index") or 0) >= max_turns:
+        raise HTTPException(status_code=409, detail=MAX_TURNS_ERROR)
+
+    if user is not None:
+        await _check_user_limits(request, settings, repo, user)
+    else:
+        _check_guest_limit(request)
+
+    llm = get_llm(request)
+    if llm is None:
+        raise HTTPException(status_code=503, detail=LLM_MISSING_ERROR)
+
+    service = _service(settings, mode)
+
+    # Слот очереди берём до открытия потока: переполненная очередь — это
+    # обычный 429, а не SSE-событие error уже начатого ответа.
+    stack = AsyncExitStack()
+    try:
+        await stack.enter_async_context(_llm_slot(request))
+    except QueueFull:
+        logger.warning("Очередь LLM переполнена (tutor stream)")
+        raise HTTPException(status_code=429, detail=QUEUE_FULL_ERROR)
+
+    async def event_stream():
+        reply_parts: list[str] = []
+        meta: dict | None = None
+        try:
+            async for chunk, meta_payload in stream_turn(llm, state, body.text):
+                if meta_payload is not None:
+                    meta = meta_payload
+                    break
+                if not chunk:
+                    continue
+                reply_parts.append(chunk)
+                yield _sse("delta", {"text": chunk})
+
+            if meta is None:
+                logger.warning("Урок 0 (stream): LLM вернул невалидный ответ")
+                yield _sse("error", {"detail": LLM_ERROR})
+                return
+
+            turn = service.normalize_turn(
+                turn_from_meta("".join(reply_parts), meta), state
+            )
+            updated = apply_turn(state, turn, body.text)
+            await repo.save_tutor_state(
+                session.id,
+                _state_json(updated),
+                turn_index=updated["turn_index"],
+            )
+            await _consume_user(repo, settings, user)
+            if user is not None:
+                await track_event(
+                    repo,
+                    user.id,
+                    "tutor_turn",
+                    {
+                        "session_id": session.id,
+                        "turn_index": updated["turn_index"],
+                        "kind": turn.kind,
+                        "stream": True,
+                    },
+                )
+            yield _sse("meta", _meta_event(turn, updated, max_turns))
+        except Exception:
+            logger.warning("Урок 0 (stream): LLM не ответил", exc_info=True)
+            yield _sse("error", {"detail": LLM_ERROR})
+        finally:
+            await stack.aclose()
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
     )
 
 

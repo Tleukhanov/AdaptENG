@@ -9,10 +9,15 @@
 Модуль не знает ни про FastAPI, ни про Telegram: только LLM, промпты и
 устойчивый разбор JSON. Состояние диалога — обычный ``dict``, который
 роутер сохраняет в ``tutor_sessions.state_json``.
+
+Для стриминга (SSE) модель отвечает «текст реплики → ``<<<META>>>`` → JSON»:
+``stream_turn`` отдаёт текст по мере генерации, а meta-блок разбирает после
+маркера; старый формат (чистый JSON) поддерживается как один кусок.
 """
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -153,6 +158,33 @@ FORMAT_RULE = (
     "No markdown, no code fences, no text outside JSON. "
     "If you break this rule the student sees an error."
 )
+
+#: Маркер, отделяющий текст реплики от служебного JSON в стриминговом ответе.
+META_MARKER = "<<<META>>>"
+
+#: Правило формата для стриминга: сначала текст реплики, затем meta-блок.
+STREAM_FORMAT_RULE = (
+    "CRITICAL OUTPUT FORMAT — this overrides all other instructions: "
+    "first write ONLY what the tutor says to the student, as plain text "
+    "(the same text that would go into the \"reply\" field), "
+    f"then a new line with exactly {META_MARKER}, "
+    "then ONE compact JSON object with the fields \"kind\", \"question\", "
+    "\"correction\", \"interests\", \"level_signal\", \"new_words\", \"should_finish\". "
+    "No markdown, no code fences, no text after the JSON. Example:\n"
+    "Great job! What did you do at the weekend?\n"
+    f"{META_MARKER}\n"
+    '{"kind": "ask", "question": "What did you do at the weekend?", "correction": null, '
+    '"interests": [], "level_signal": "B1", "new_words": [], "should_finish": false}'
+)
+
+#: Температура хода наставника (та же, что в обычном ``/turn``).
+TURN_TEMPERATURE = 0.7
+
+#: Строка «только JSON» из базовых промптов — в стриме её заменяем на meta-формат.
+JSON_ONLY_RULE = (
+    "Respond ONLY with a single valid JSON object. No markdown, no extra text, no code fences."
+)
+STREAM_JSON_REPLACEMENT = "Follow the OUTPUT FORMAT rule at the end of this message."
 
 FIRST_TURN_HINT = (
     "Start the lesson now: introduce yourself briefly and ask your first question "
@@ -764,6 +796,35 @@ def build_turn_messages(state: dict[str, Any], user_text: str) -> list[dict[str,
     ]
 
 
+def build_stream_prompt(state: dict[str, Any], user_text: str) -> list[dict[str, str]]:
+    """Сообщения для стримингового хода.
+
+    Тот же системный промпт и блок состояния, что у ``build_turn_messages``,
+    но требование формата заменено на «текст реплики, затем ``<<<META>>>`` и
+    JSON»: строгий JSON mode не даёт стримить реплику по мере генерации.
+    """
+    messages = build_turn_messages(state, user_text)
+    return [
+        {
+            "role": "system",
+            "content": _stream_system_text(messages[0]["content"]),
+        },
+        {
+            "role": "system",
+            "content": _stream_system_text(messages[1]["content"]),
+        },
+        messages[2],
+    ]
+
+
+def _stream_system_text(text: str) -> str:
+    """Системный текст под стрим: JSON-only правило → формат с ``<<<META>>>``."""
+    return (
+        text.replace(JSON_ONLY_RULE, STREAM_JSON_REPLACEMENT)
+        .replace(FORMAT_RULE, STREAM_FORMAT_RULE)
+    )
+
+
 def build_summary_messages(state: dict[str, Any]) -> list[dict[str, str]]:
     """Сообщения для итоговой оценки уровня урока 0."""
     answers = student_messages(state)
@@ -784,6 +845,85 @@ def build_summary_messages(state: dict[str, Any]) -> list[dict[str, str]]:
 # ---------- разбор ответов LLM ----------
 
 
+def split_stream_text(buffer: str) -> tuple[str, str]:
+    """Делит накопленный буфер стрима на безопасный текст и остаток.
+
+    Возвращает ``(safe_text, rest)``: ``safe_text`` можно сразу отправлять
+    клиенту, ``rest`` — хвост, который может оказаться началом маркера
+    ``<<<META>>>`` (держим до следующего чанка) либо уже начавшимся
+    meta-блоком — тогда он начинается с маркера.
+    """
+    index = buffer.find(META_MARKER)
+    if index != -1:
+        return buffer[:index], buffer[index:]
+
+    keep = 0
+    for size in range(min(len(buffer), len(META_MARKER) - 1), 0, -1):
+        if META_MARKER.startswith(buffer[-size:]):
+            keep = size
+            break
+    if keep:
+        return buffer[:-keep], buffer[-keep:]
+    return buffer, ""
+
+
+def _turn_from_payload(payload: dict[str, Any]) -> TutorTurn:
+    """Нормализует поля JSON-хода (общая часть parse_turn и parse_meta_block)."""
+    kind = str(payload.get("kind") or "ask").strip().lower()
+    return TutorTurn(
+        reply=_text(payload.get("reply")),
+        kind=kind if kind in TURN_KINDS else "ask",
+        question=_text_or_none(payload.get("question")),
+        correction=TutorCorrection.from_dict(payload.get("correction")),
+        interests=_string_list(payload.get("interests")),
+        level_signal=_normalize_level(payload.get("level_signal")),
+        new_words=_string_list(
+            payload.get("new_words"), limit=MAX_NEW_WORDS_PER_TURN
+        ),
+        should_finish=bool(payload.get("should_finish")),
+    )
+
+
+def _meta_from_turn(turn: TutorTurn) -> dict[str, Any]:
+    """Служебные поля хода без текста реплики (payload события ``meta``)."""
+    return {
+        "kind": turn.kind,
+        "question": turn.question,
+        "correction": turn.correction.to_dict() if turn.correction else None,
+        "interests": list(turn.interests),
+        "new_words": list(turn.new_words),
+        "level_signal": turn.level_signal,
+        "should_finish": bool(turn.should_finish),
+    }
+
+
+def turn_from_meta(reply: str, meta: dict[str, Any]) -> TutorTurn:
+    """Собирает ход из накопленного текста реплики и разобранного meta-блока."""
+    turn = _turn_from_payload(meta if isinstance(meta, dict) else {})
+    turn.reply = _text(reply)
+    return turn
+
+
+def parse_meta_block(raw: str) -> dict[str, Any] | None:
+    """Терпимо разбирает meta-блок после ``<<<META>>>``.
+
+    Переживает ```json-обёртки и лишний текст (как ``parse_turn``), а также
+    чистый JSON без маркера. Битый JSON или не-объект → ``None``.
+    """
+    text = raw.strip()
+    if META_MARKER in text:
+        text = text.split(META_MARKER, 1)[1].strip()
+    if not text:
+        return None
+    try:
+        payload = extract_json(text)
+    except (JsonParseError, ValueError, TypeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return _meta_from_turn(_turn_from_payload(payload))
+
+
 def parse_turn(raw: str) -> TutorTurn | None:
     """Терпимо разбирает JSON-ход наставника. Битый JSON → ``None``."""
     try:
@@ -793,24 +933,10 @@ def parse_turn(raw: str) -> TutorTurn | None:
     if not isinstance(payload, dict):
         return None
 
-    reply = _text(payload.get("reply"))
-    question = _text_or_none(payload.get("question"))
-    if not reply and not question:
+    turn = _turn_from_payload(payload)
+    if not turn.reply and not turn.question:
         return None
-
-    kind = str(payload.get("kind") or "ask").strip().lower()
-    return TutorTurn(
-        reply=reply,
-        kind=kind if kind in TURN_KINDS else "ask",
-        question=question,
-        correction=TutorCorrection.from_dict(payload.get("correction")),
-        interests=_string_list(payload.get("interests")),
-        level_signal=_normalize_level(payload.get("level_signal")),
-        new_words=_string_list(
-            payload.get("new_words"), limit=MAX_NEW_WORDS_PER_TURN
-        ),
-        should_finish=bool(payload.get("should_finish")),
-    )
+    return turn
 
 
 def parse_summary(raw: str) -> TutorSummary | None:
@@ -881,6 +1007,88 @@ def fallback_summary(state: dict[str, Any], self_level: str = "") -> TutorSummar
 # ---------- сервис ----------
 
 
+async def _stream_chunks(
+    llm: LLMProvider,
+    messages: list[dict[str, str]],
+) -> AsyncIterator[str]:
+    """Куски ответа: ``chat_stream`` провайдера либо один чанк из ``chat()``.
+
+    Провайдеры без стриминга (и фейки в тестах) обходятся обычным вызовом —
+    тогда весь текст приходит одним куском.
+    """
+    stream = getattr(llm, "chat_stream", None)
+    if stream is not None:
+        emitted = False
+        try:
+            async for chunk in stream(
+                messages, temperature=TURN_TEMPERATURE, json_mode=False
+            ):
+                if chunk:
+                    emitted = True
+                    yield chunk
+            return
+        except NotImplementedError:
+            if emitted:
+                raise
+        # Метод объявлен, но не реализован — идём в обычный chat().
+
+    raw = await llm.chat(messages, temperature=TURN_TEMPERATURE, json_mode=False)
+    if raw:
+        yield raw
+
+
+async def stream_turn(
+    llm: LLMProvider,
+    state: dict[str, Any],
+    user_text: str,
+) -> AsyncIterator[tuple[str, dict[str, Any] | None]]:
+    """Стрим хода наставника: куски текста, затем разобранный meta-блок.
+
+    Модель отвечает «текст реплики → ``<<<META>>>`` → JSON». Текст уходит
+    клиенту по мере генерации; meta разбирается после маркера. Обратная
+    совместимость: чистый JSON (старый формат) отдаётся одним куском.
+
+    Финальный кортеж — ``("", meta)``; ``meta is None`` означает, что ответ
+    модели не разобрался (битый JSON) и ход сохранять нельзя.
+    """
+    messages = build_stream_prompt(state, user_text)
+    buffer = ""
+    mode: str | None = None  # "text" | "json"
+
+    async for chunk in _stream_chunks(llm, messages):
+        buffer += chunk
+        if mode is None:
+            probe = buffer.lstrip()
+            if not probe:
+                continue
+            mode = "json" if probe.startswith("{") else "text"
+        if mode == "json":
+            # Чистый JSON нельзя стримить по кускам: копим и разбираем целиком.
+            continue
+        safe, buffer = split_stream_text(buffer)
+        if safe:
+            yield safe, None
+
+    if mode == "json":
+        turn = parse_turn(buffer)
+        if turn is None:
+            yield "", None
+            return
+        if turn.reply:
+            yield turn.reply, None
+        yield "", _meta_from_turn(turn)
+        return
+
+    if META_MARKER in buffer:
+        yield "", parse_meta_block(buffer)
+        return
+
+    # Ответ без meta: отдаём придержанный хвост, но ход сохранить нечем.
+    if buffer:
+        yield buffer, None
+    yield "", None
+
+
 class TutorService:
     """Один LLM-вызов на ход урока 0 и один — на итоговую оценку.
 
@@ -910,7 +1118,7 @@ class TutorService:
         raw = await llm.chat(build_summary_messages(state), temperature=0.2, json_mode=True)
         return parse_summary(raw)
 
-    def _normalize(self, turn: TutorTurn, state: dict[str, Any]) -> TutorTurn:
+    def normalize_turn(self, turn: TutorTurn, state: dict[str, Any]) -> TutorTurn:
         """Гарантирует 5–7 ходов: последний завершает урок, ранний — нет.
 
         ``min_turns`` — минимум ответов студента ПОСЛЕ приветствия, поэтому
@@ -926,3 +1134,6 @@ class TutorService:
         elif turn.kind == "finish":
             turn.kind = "ask"
         return turn
+
+    #: Совместимость: старое приватное имя использовалось в тестах и коде.
+    _normalize = normalize_turn

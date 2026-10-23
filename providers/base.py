@@ -5,6 +5,7 @@
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 
 
 class LLMProvider(ABC):
@@ -18,6 +19,21 @@ class LLMProvider(ABC):
         json_mode: bool = False,
     ) -> str:
         raise NotImplementedError
+
+    async def chat_stream(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[str]:
+        """Куски ответа по мере генерации.
+
+        Базовая реализация — фолбэк для провайдеров без стриминга: обычный
+        ``chat()`` и один чанк с готовым текстом.
+        """
+        text = await self.chat(messages, temperature=temperature, json_mode=json_mode)
+        if text:
+            yield text
 
 
 class STTProvider(ABC):

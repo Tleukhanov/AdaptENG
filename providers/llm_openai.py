@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import AsyncIterator
 
 from openai import APIConnectionError, APITimeoutError, AsyncOpenAI, RateLimitError
 
@@ -150,6 +151,113 @@ class OpenAIChatProvider(LLMProvider):
         if last_error is not None:
             raise last_error
         raise TimeoutError("LLM: истёк бюджет времени на ответ")
+
+    async def chat_stream(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float | None = None,
+        json_mode: bool = False,
+    ) -> AsyncIterator[str]:
+        """Куски ответа по мере генерации (SSE-совместимый ``stream=True``).
+
+        Тот же бюджет времени и фолбэк моделей, что у ``chat()``. Ошибка ДО
+        первого чанка повторяется/уходит на запасную модель; после первого
+        чанка стрим обрывается ошибкой — склеивать два ответа нельзя.
+        """
+        deadline = time.monotonic() + self._total_budget
+        last_error: Exception | None = None
+
+        base_kwargs: dict = {
+            "messages": messages,
+            "temperature": temperature if temperature is not None else self._temperature,
+        }
+        if json_mode:
+            base_kwargs["response_format"] = {"type": "json_object"}
+
+        for model in (self._model, *self._fallback_models):
+            for attempt in range(self._max_retries + 1):
+                remaining = deadline - time.monotonic()
+                if remaining <= 1.0:
+                    break
+                per_attempt = min(self._timeout, remaining)
+                started = False
+                stream = None
+                try:
+                    stream = await asyncio.wait_for(
+                        self._client.chat.completions.create(
+                            model=model,
+                            timeout=per_attempt,
+                            stream=True,
+                            **base_kwargs,
+                        ),
+                        timeout=per_attempt + 1.0,
+                    )
+                    async for event in stream:
+                        if time.monotonic() > deadline:
+                            raise TimeoutError("LLM: истёк бюджет времени на стрим")
+                        chunk = _chunk_text(event)
+                        if not chunk:
+                            continue
+                        started = True
+                        yield chunk
+                    return
+                except Exception as exc:  # noqa: BLE001 — решаем по типу ошибки
+                    last_error = exc
+                    if started:
+                        # Часть ответа уже ушла клиенту: повтор дал бы дубль.
+                        logger.warning(
+                            "LLM %s: стрим оборвался после первого чанка (%s)",
+                            model,
+                            type(exc).__name__,
+                        )
+                        raise
+                    if not _is_retryable(exc):
+                        raise
+                    if model != self._model:
+                        logger.warning(
+                            "LLM: запасная модель %s не стримится (%s)",
+                            model,
+                            type(exc).__name__,
+                        )
+                        break
+                    if attempt < self._max_retries:
+                        delay = min(
+                            self._backoff[min(attempt, len(self._backoff) - 1)],
+                            max(0.0, deadline - time.monotonic() - 1.0),
+                        )
+                        if delay <= 0:
+                            break
+                        logger.warning(
+                            "LLM %s: %s (%s), повтор стрима %s/%s через %.1fs",
+                            model,
+                            type(exc).__name__,
+                            _short(exc),
+                            attempt + 1,
+                            self._max_retries,
+                            delay,
+                        )
+                        await asyncio.sleep(delay)
+                finally:
+                    closer = getattr(stream, "aclose", None)
+                    if closer is not None:
+                        try:
+                            await closer()
+                        except Exception:  # noqa: BLE001 — закрытие не должно ломать поток
+                            logger.debug("LLM: не удалось закрыть stream", exc_info=True)
+
+        if last_error is not None:
+            raise last_error
+        raise TimeoutError("LLM: истёк бюджет времени на ответ")
+
+
+def _chunk_text(event) -> str:
+    """Текст дельты из чанка OpenAI-стрима (usage-чанки без choices пропускаем)."""
+    choices = getattr(event, "choices", None) or []
+    if not choices:
+        return ""
+    delta = getattr(choices[0], "delta", None)
+    content = getattr(delta, "content", None)
+    return content or ""
 
 
 def _short(exc: Exception) -> str:
