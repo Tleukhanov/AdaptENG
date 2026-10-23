@@ -16,6 +16,9 @@ class UserRow:
     is_unlimited: bool = False  # промокодом снят дневной лимит LLM
     email: str | None = None  # web-вход (без Telegram)
     email_verified_at: str | None = None  # ISO-время подтверждения email
+    # Согласие на ежедневные email-напоминания (users.reminders_enabled).
+    reminders_enabled: bool = True
+    created_at: str = ""  # ISO-время регистрации (нужно напоминаниям)
 
 
 @dataclass
@@ -327,6 +330,14 @@ class Repository(ABC):
 
     @abstractmethod
     async def set_email_verified(self, user_id: int, at: str) -> None: ...
+
+    @abstractmethod
+    async def get_reminders_enabled(self, user_id: int) -> bool:
+        """Согласие пользователя на ежедневные email-напоминания."""
+
+    @abstractmethod
+    async def set_reminders_enabled(self, user_id: int, value: bool) -> None:
+        """Включает/выключает email-напоминания (users.reminders_enabled)."""
 
     @abstractmethod
     async def link_telegram(self, user_id: int, tg_id: int) -> None: ...
@@ -681,6 +692,15 @@ class Repository(ABC):
 
     @abstractmethod
     async def get_last_activity(self, user_id: int) -> str | None: ...
+
+    @abstractmethod
+    async def has_lesson_on(self, user_id: int, day: str) -> bool:
+        """Был ли у пользователя урок в этот день (``YYYY-MM-DD``).
+
+        Считаем и заметки уроков, и сессии: сессия может существовать, даже
+        если заметка ещё не сгенерирована. Нужно для напоминаний: не шлём
+        письмо тому, кто уже занимался сегодня.
+        """
 
     # ---------- слабые области (Фаза 13) ----------
 

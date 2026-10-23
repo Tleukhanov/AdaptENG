@@ -23,6 +23,8 @@ from ..deps import (
 from ..schemas import (
     CharacterSetResponse,
     MeResponse,
+    NotificationSettings,
+    NotificationSettingsUpdate,
     ProfileResponse,
     ProfileUpdateRequest,
     SetCharacterRequest,
@@ -62,6 +64,30 @@ async def me(
     character_view = character_localized(get_character(char_id), locale)
 
     return MeResponse(user=UserPublic(**public), character=character_view)
+
+
+@router.get("/me/notifications", response_model=NotificationSettings)
+async def get_notifications(
+    user_id: int = Depends(get_current_user_id),
+    repo: Repository = Depends(get_repository),
+) -> NotificationSettings:
+    """Текущие настройки email-напоминаний."""
+    user = await current_user(repo, user_id)
+    return NotificationSettings(
+        email_reminders=await repo.get_reminders_enabled(user.id)
+    )
+
+
+@router.put("/me/notifications", response_model=NotificationSettings)
+async def update_notifications(
+    body: NotificationSettingsUpdate,
+    user_id: int = Depends(get_current_user_id),
+    repo: Repository = Depends(get_repository),
+) -> NotificationSettings:
+    """Включает/выключает ежедневные email-напоминания."""
+    user = await current_user(repo, user_id)
+    await repo.set_reminders_enabled(user.id, body.email_reminders)
+    return NotificationSettings(email_reminders=body.email_reminders)
 
 
 @router.put("/me/character", response_model=CharacterSetResponse)

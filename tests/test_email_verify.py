@@ -263,7 +263,8 @@ async def test_migration_v4_adds_email_verified_at_on_old_schema(tmp_path):
     await conn.commit()
 
     applied = await apply_migrations(_SQLiteMigrationDB(conn))
-    assert applied == [4]
+    # v4 добавляет users.email_verified_at, v5 — users.reminders_enabled.
+    assert applied == [4, 5]
 
     cursor = await conn.execute("PRAGMA table_info(users)")
     columns = {row["name"] for row in await cursor.fetchall()}

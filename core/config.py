@@ -180,6 +180,15 @@ class Settings(BaseSettings):
     smtp_starttls: int = 1
     email_from: str = "AdaptENG <no-reply@adapteng.com>"
     email_verify_ttl_hours: int = 24
+    # ---- Email-напоминания (ежедневный пинг «Продолжим?») ----
+    # 1 = включить планировщик напоминаний. По умолчанию 0: в dev и на тестах
+    # письма не должны уходить сами. В проде выставить REMINDERS_ENABLED=1.
+    reminders_enabled: int = 0
+    # Час (UTC), когда планировщик рассылает напоминания (0..23).
+    reminder_hour_utc: int = 8
+    # Не напоминать тем, кто не заходил дольше N дней: возвращать «спящих»
+    # письмом бессмысленно, а база получателей остаётся живой.
+    reminder_min_age_days: int = 30
     # 1 = демо-режим api: /api/auth/tg принимает любое TG-выражение без проверки
     # hash (только локальная отладка фронта, НИКОГДА в проде).
     api_insecure_auth: int = 0

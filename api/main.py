@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.config import Settings, get_settings
 from core.email import create_email_sender
 from core.practice import PracticeService
+from core.reminders import setup_reminder_scheduler
 from providers import create_llm, create_pronunciation, create_stt, create_tts
 from storage import create_repository
 
@@ -136,9 +137,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "AdaptENG api started (db=%s)",
             "postgres" if settings.database_url else "sqlite",
         )
+        # Ежедневные email-напоминания. Выключены по умолчанию (REMINDERS_ENABLED=0):
+        # в dev и тестах письма не должны уходить сами. Планировщик один на процесс.
+        reminder_scheduler = setup_reminder_scheduler(
+            repo, app.state.email_sender, settings
+        )
+        if reminder_scheduler is not None:
+            reminder_scheduler.start()
+            logger.info(
+                "Email reminders scheduler started (hour=%s UTC)",
+                settings.reminder_hour_utc,
+            )
         try:
             yield
         finally:
+            if reminder_scheduler is not None and reminder_scheduler.running:
+                reminder_scheduler.shutdown(wait=False)
             await repo.close()
 
     app = FastAPI(

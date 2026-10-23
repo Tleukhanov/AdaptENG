@@ -51,6 +51,25 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _user_from_row(row) -> UserRow:
+    """UserRow из строки users; новые колонки опциональны (старые SELECT-ы)."""
+    keys = row.keys()
+    return UserRow(
+        id=row["id"],
+        tg_id=row["tg_id"],
+        username=row["username"],
+        first_name=row["first_name"],
+        level=row["level"],
+        is_unlimited=bool(row["unlimited"]),
+        email=row["email"] if "email" in keys else None,
+        email_verified_at=row["email_verified_at"] if "email_verified_at" in keys else None,
+        reminders_enabled=(
+            bool(row["reminders_enabled"]) if "reminders_enabled" in keys else True
+        ),
+        created_at=row["created_at"] if "created_at" in keys else "",
+    )
+
+
 class SQLiteRepository(Repository):
     def __init__(self, db_path: str):
         self._db_path = db_path
@@ -135,79 +154,48 @@ class SQLiteRepository(Repository):
             (tg_id,),
         )
         row = await cursor.fetchone()
-        return UserRow(
-            id=row["id"],
-            tg_id=row["tg_id"],
-            username=row["username"],
-            first_name=row["first_name"],
-            level=row["level"],
-            is_unlimited=bool(row["unlimited"]),
-        )
+        return _user_from_row(row)
 
     async def get_user(self, user_id: int) -> UserRow | None:
         conn = self._require_conn()
         cursor = await conn.execute(
-            "SELECT id, tg_id, username, first_name, level, unlimited, email, email_verified_at "
+            "SELECT id, tg_id, username, first_name, level, unlimited, email, "
+            "email_verified_at, reminders_enabled, created_at "
             "FROM users WHERE id = ?",
             (user_id,),
         )
         row = await cursor.fetchone()
         if row is None:
             return None
-        return UserRow(
-            id=row["id"],
-            tg_id=row["tg_id"],
-            username=row["username"],
-            first_name=row["first_name"],
-            level=row["level"],
-            is_unlimited=bool(row["unlimited"]),
-            email=row["email"],
-            email_verified_at=row["email_verified_at"],
-        )
+        return _user_from_row(row)
 
     # ---------- email-аккаунты (web-вход без Telegram) ----------
 
     async def get_user_by_email(self, email: str) -> UserRow | None:
         conn = self._require_conn()
         cursor = await conn.execute(
-            "SELECT id, tg_id, username, first_name, level, unlimited, email, email_verified_at "
+            "SELECT id, tg_id, username, first_name, level, unlimited, email, "
+            "email_verified_at, reminders_enabled, created_at "
             "FROM users WHERE email = ?",
             (email,),
         )
         row = await cursor.fetchone()
         if row is None:
             return None
-        return UserRow(
-            id=row["id"],
-            tg_id=row["tg_id"],
-            username=row["username"],
-            first_name=row["first_name"],
-            level=row["level"],
-            is_unlimited=bool(row["unlimited"]),
-            email=row["email"],
-            email_verified_at=row["email_verified_at"],
-        )
+        return _user_from_row(row)
 
     async def get_user_by_tg_id(self, tg_id: int) -> UserRow | None:
         conn = self._require_conn()
         cursor = await conn.execute(
-            "SELECT id, tg_id, username, first_name, level, unlimited, email, email_verified_at "
+            "SELECT id, tg_id, username, first_name, level, unlimited, email, "
+            "email_verified_at, reminders_enabled, created_at "
             "FROM users WHERE tg_id = ?",
             (tg_id,),
         )
         row = await cursor.fetchone()
         if row is None:
             return None
-        return UserRow(
-            id=row["id"],
-            tg_id=row["tg_id"],
-            username=row["username"],
-            first_name=row["first_name"],
-            level=row["level"],
-            is_unlimited=bool(row["unlimited"]),
-            email=row["email"],
-            email_verified_at=row["email_verified_at"],
-        )
+        return _user_from_row(row)
 
     async def create_email_user(
         self,
@@ -256,6 +244,22 @@ class SQLiteRepository(Repository):
         conn = self._require_conn()
         await conn.execute(
             "UPDATE users SET email_verified_at = ? WHERE id = ?", (at, user_id)
+        )
+        await conn.commit()
+
+    async def get_reminders_enabled(self, user_id: int) -> bool:
+        conn = self._require_conn()
+        cursor = await conn.execute(
+            "SELECT reminders_enabled FROM users WHERE id = ?", (user_id,)
+        )
+        row = await cursor.fetchone()
+        return bool(row["reminders_enabled"]) if row else False
+
+    async def set_reminders_enabled(self, user_id: int, value: bool) -> None:
+        conn = self._require_conn()
+        await conn.execute(
+            "UPDATE users SET reminders_enabled = ? WHERE id = ?",
+            (1 if value else 0, user_id),
         )
         await conn.commit()
 
@@ -758,18 +762,7 @@ class SQLiteRepository(Repository):
             "ORDER BY id DESC LIMIT ?",
             (int(limit),),
         )
-        rows = await cursor.fetchall()
-        return [
-            UserRow(
-                id=row["id"],
-                tg_id=row["tg_id"],
-                username=row["username"],
-                first_name=row["first_name"],
-                level=row["level"],
-                is_unlimited=bool(row["unlimited"]),
-            )
-            for row in rows
-        ]
+        return [_user_from_row(row) for row in await cursor.fetchall()]
 
     async def get_diagnostic_sessions(self, user_id: int) -> list[DiagnosticSession]:
         conn = self._require_conn()
@@ -1585,6 +1578,23 @@ class SQLiteRepository(Repository):
             return best
         return best if best >= note else note
 
+    async def has_lesson_on(self, user_id: int, day: str) -> bool:
+        """Был ли урок в этот день: заметка или сессия урока (ISO-дата начала)."""
+        conn = self._require_conn()
+        prefix = f"{day}%"
+        cursor = await conn.execute(
+            "SELECT 1 FROM lesson_notes WHERE user_id = ? AND created_at LIKE ? LIMIT 1",
+            (user_id, prefix),
+        )
+        if await cursor.fetchone() is not None:
+            return True
+        cursor = await conn.execute(
+            "SELECT 1 FROM lesson_sessions WHERE user_id = ? "
+            "AND (created_at LIKE ? OR updated_at LIKE ?) LIMIT 1",
+            (user_id, prefix, prefix),
+        )
+        return await cursor.fetchone() is not None
+
     # ---------- weak areas (Фаза 13) ----------
 
     async def get_weak_areas(self, user_id: int) -> list[WeakArea]:
@@ -1717,20 +1727,10 @@ class SQLiteRepository(Repository):
     async def get_all_users(self) -> list[UserRow]:
         conn = self._require_conn()
         cursor = await conn.execute(
-            "SELECT id, tg_id, username, first_name, level, unlimited FROM users"
+            "SELECT id, tg_id, username, first_name, level, unlimited, email, "
+            "email_verified_at, reminders_enabled, created_at FROM users"
         )
-        rows = await cursor.fetchall()
-        return [
-            UserRow(
-                id=row["id"],
-                tg_id=row["tg_id"],
-                username=row["username"],
-                first_name=row["first_name"],
-                level=row["level"],
-                is_unlimited=bool(row["unlimited"]),
-            )
-            for row in rows
-        ]
+        return [_user_from_row(row) for row in await cursor.fetchall()]
 
     # ---------- лидерборд ----------
 

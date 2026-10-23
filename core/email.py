@@ -109,6 +109,16 @@ class EmailSender(ABC):
     async def send_verification(self, email: str, link: str) -> bool:
         """Отправляет письмо со ссылкой. ``True`` — реально отправлено."""
 
+    async def send_reminder(
+        self, email: str, subject: str, text: str, html: str
+    ) -> bool:
+        """Ежедневное напоминание «Продолжим?». ``True`` — реально отправлено.
+
+        Не абстрактный: сторонние отправители (тесты, будущие каналы) могут
+        не поддерживать напоминания, и это не должно ломать их создание.
+        """
+        raise NotImplementedError
+
 
 class DevEmailSender(EmailSender):
     """Dev-режим без SMTP: ссылка пишется в лог, письмо не уходит."""
@@ -121,6 +131,16 @@ class DevEmailSender(EmailSender):
             "Email verification (dev mode, SMTP_HOST пуст): %s -> %s",
             email,
             link,
+        )
+        return False
+
+    async def send_reminder(
+        self, email: str, subject: str, text: str, html: str
+    ) -> bool:
+        logger.info(
+            "Reminder email (dev mode, SMTP_HOST пуст): %s — %s",
+            email,
+            subject,
         )
         return False
 
@@ -148,6 +168,17 @@ class SMTPSender(EmailSender):
         )
         return message
 
+    def _build_reminder_message(
+        self, email: str, subject: str, text: str, html: str
+    ) -> EmailMessage:
+        message = EmailMessage()
+        message["Subject"] = subject
+        message["From"] = self.sender
+        message["To"] = email
+        message.set_content(text)
+        message.add_alternative(html, subtype="html")
+        return message
+
     def _send_sync(self, email: str, link: str) -> None:
         message = self._build_message(email, link)
         with smtplib.SMTP(self.host, self.port, timeout=15) as smtp:
@@ -166,6 +197,32 @@ class SMTPSender(EmailSender):
             logger.warning("Не удалось отправить письмо на %s: %s", email, exc)
             return False
         logger.info("Письмо подтверждения отправлено на %s", email)
+        return True
+
+    def _send_reminder_sync(
+        self, email: str, subject: str, text: str, html: str
+    ) -> None:
+        message = self._build_reminder_message(email, subject, text, html)
+        with smtplib.SMTP(self.host, self.port, timeout=15) as smtp:
+            smtp.ehlo()
+            if self.starttls:
+                smtp.starttls()
+                smtp.ehlo()
+            if self.user:
+                smtp.login(self.user, self.password)
+            smtp.send_message(message)
+
+    async def send_reminder(
+        self, email: str, subject: str, text: str, html: str
+    ) -> bool:
+        try:
+            await asyncio.to_thread(
+                self._send_reminder_sync, email, subject, text, html
+            )
+        except Exception as exc:  # noqa: BLE001 - напоминание не должно ронять батч
+            logger.warning("Не удалось отправить напоминание на %s: %s", email, exc)
+            return False
+        logger.info("Напоминание отправлено на %s", email)
         return True
 
 

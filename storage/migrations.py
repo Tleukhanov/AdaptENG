@@ -153,6 +153,20 @@ async def _m004_users_email_verified_at(db: MigrationDB) -> None:
         await db.execute(["ALTER TABLE users ADD COLUMN email_verified_at TEXT"])
 
 
+async def _m005_users_reminders_enabled(db: MigrationDB) -> None:
+    """users: reminders_enabled — согласие на ежедневные email-напоминания.
+
+    DEFAULT 1: существующие web-пользователи с email получают напоминания,
+    пока явно не отключат их в настройках. Кому напоминать, решает ещё и
+    планировщик (нужен подтверждённый/заполненный email и активность).
+    """
+    names = {name for name, _ in await db.columns("users")}
+    if "reminders_enabled" not in names:
+        await db.execute(
+            ["ALTER TABLE users ADD COLUMN reminders_enabled INTEGER NOT NULL DEFAULT 1"]
+        )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(version=1, name="users_email_password", run=_m001_users_email_password),
     Migration(
@@ -165,6 +179,11 @@ MIGRATIONS: tuple[Migration, ...] = (
         version=4,
         name="users_email_verified_at",
         run=_m004_users_email_verified_at,
+    ),
+    Migration(
+        version=5,
+        name="users_reminders_enabled",
+        run=_m005_users_reminders_enabled,
     ),
 )
 

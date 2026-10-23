@@ -376,6 +376,18 @@ class ProfileResponse(BaseModel):
     has_profile: bool = False
 
 
+class NotificationSettings(BaseModel):
+    """Настройки уведомлений: сейчас единственный канал — email-напоминания."""
+
+    email_reminders: bool = True
+
+
+class NotificationSettingsUpdate(BaseModel):
+    """Тело PUT /api/me/notifications: флаг обязателен, чтобы не включить случайно."""
+
+    email_reminders: bool
+
+
 # ---------- гостевой онбординг (до регистрации) ----------
 
 GUEST_GOALS: tuple[str, ...] = ("exam", "communication", "work", "general")

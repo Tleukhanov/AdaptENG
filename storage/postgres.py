@@ -158,6 +158,7 @@ class PostgresRepository(Repository):
 
     @staticmethod
     def _user_from_row(row) -> UserRow:
+        keys = row.keys()
         return UserRow(
             id=row["id"],
             tg_id=row["tg_id"],
@@ -165,10 +166,14 @@ class PostgresRepository(Repository):
             first_name=row["first_name"],
             level=row["level"],
             is_unlimited=bool(row["unlimited"]),
-            email=row["email"] if "email" in row.keys() else None,
+            email=row["email"] if "email" in keys else None,
             email_verified_at=(
-                row["email_verified_at"] if "email_verified_at" in row.keys() else None
+                row["email_verified_at"] if "email_verified_at" in keys else None
             ),
+            reminders_enabled=(
+                bool(row["reminders_enabled"]) if "reminders_enabled" in keys else True
+            ),
+            created_at=row["created_at"] if "created_at" in keys else "",
         )
 
     async def get_user(self, user_id: int) -> UserRow | None:
@@ -176,7 +181,8 @@ class PostgresRepository(Repository):
             row = await conn.fetchrow(
                 _adopt(
                     "SELECT id, tg_id, username, first_name, level, unlimited, email, "
-                    "email_verified_at FROM users WHERE id = ?"
+                    "email_verified_at, reminders_enabled, created_at "
+                    "FROM users WHERE id = ?"
                 ),
                 user_id,
             )
@@ -188,7 +194,8 @@ class PostgresRepository(Repository):
         async with self._acquire() as conn:
             row = await conn.fetchrow(
                 "SELECT id, tg_id, username, first_name, level, unlimited, email, "
-                "email_verified_at FROM users WHERE email = $1",
+                "email_verified_at, reminders_enabled, created_at "
+                "FROM users WHERE email = $1",
                 email,
             )
         return self._user_from_row(row) if row else None
@@ -197,7 +204,8 @@ class PostgresRepository(Repository):
         async with self._acquire() as conn:
             row = await conn.fetchrow(
                 "SELECT id, tg_id, username, first_name, level, unlimited, email, "
-                "email_verified_at FROM users WHERE tg_id = $1",
+                "email_verified_at, reminders_enabled, created_at "
+                "FROM users WHERE tg_id = $1",
                 tg_id,
             )
         return self._user_from_row(row) if row else None
@@ -251,6 +259,21 @@ class PostgresRepository(Repository):
             await conn.execute(
                 _adopt("UPDATE users SET email_verified_at = ? WHERE id = ?"),
                 at,
+                user_id,
+            )
+
+    async def get_reminders_enabled(self, user_id: int) -> bool:
+        async with self._acquire() as conn:
+            value = await conn.fetchval(
+                "SELECT reminders_enabled FROM users WHERE id = $1", user_id
+            )
+        return bool(value) if value is not None else False
+
+    async def set_reminders_enabled(self, user_id: int, value: bool) -> None:
+        async with self._acquire() as conn:
+            await conn.execute(
+                "UPDATE users SET reminders_enabled = $1 WHERE id = $2",
+                1 if value else 0,
                 user_id,
             )
 
@@ -1672,6 +1695,25 @@ class PostgresRepository(Repository):
             return best
         return best if best >= note else note
 
+    async def has_lesson_on(self, user_id: int, day: str) -> bool:
+        """Был ли урок в этот день: заметка или сессия урока (ISO-дата начала)."""
+        prefix = f"{day}%"
+        async with self._acquire() as conn:
+            note = await conn.fetchval(
+                "SELECT 1 FROM lesson_notes WHERE user_id = $1 AND created_at LIKE $2 LIMIT 1",
+                user_id,
+                prefix,
+            )
+            if note is not None:
+                return True
+            session = await conn.fetchval(
+                "SELECT 1 FROM lesson_sessions WHERE user_id = $1 "
+                "AND (created_at LIKE $2 OR updated_at LIKE $2) LIMIT 1",
+                user_id,
+                prefix,
+            )
+        return session is not None
+
     # ---------- слабые области ----------
 
     async def get_weak_areas(self, user_id: int) -> list[WeakArea]:
@@ -1820,7 +1862,8 @@ class PostgresRepository(Repository):
     async def get_all_users(self) -> list[UserRow]:
         async with self._acquire() as conn:
             rows = await conn.fetch(
-                "SELECT id, tg_id, username, first_name, level, unlimited FROM users"
+                "SELECT id, tg_id, username, first_name, level, unlimited, email, "
+                "email_verified_at, reminders_enabled, created_at FROM users"
             )
         return [self._user_from_row(row) for row in rows]
 
