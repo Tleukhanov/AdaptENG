@@ -471,17 +471,30 @@ class HealthResponse(BaseModel):
 
 
 class TutorSessionRequest(BaseModel):
-    """Старт урока 0. Пока поддерживается только режим ``intro``."""
+    """Старт урока: ``intro`` (знакомство) или ``lesson`` (персональный урок).
+
+    ``topic`` опционален: если не задан, роутер выберет тему из плана,
+    профиля или прошлых ошибок.
+    """
 
     mode: str = "intro"
+    topic: str | None = Field(default=None, max_length=120)
 
     @field_validator("mode")
     @classmethod
     def _check_mode(cls, value: str) -> str:
         mode = value.strip().lower()
-        if mode != "intro":
-            raise ValueError("mode: допустимо только intro")
+        if mode not in ("intro", "lesson"):
+            raise ValueError("mode: допустимо intro или lesson")
         return mode
+
+    @field_validator("topic")
+    @classmethod
+    def _clean_topic(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        topic = value.strip()
+        return topic or None
 
 
 class TutorIssueOut(BaseModel):
@@ -509,6 +522,8 @@ class TutorTurnOut(BaseModel):
     interests: list[str] = Field(default_factory=list)
     # текущая оценка уровня по ответам ученика (A1..C1 или "")
     level_signal: str = ""
+    # новые слова/фразы, которые наставник ввёл за этот ход (режим lesson)
+    new_words: list[str] = Field(default_factory=list)
     should_finish: bool = False
 
 

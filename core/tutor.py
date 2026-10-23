@@ -1,8 +1,10 @@
-"""«Урок 0» — короткий разговор-знакомство с наставником.
+"""Наставник: «Урок 0» (знакомство) и обычный персональный урок.
 
-Цель урока: познакомиться со студентом, выяснить его интересы и хобби,
-по живым ответам оценить реальный уровень CEFR и сравнить его с самооценкой
-из онбординга, а затем дать мягкую обратную связь.
+«Урок 0» — короткий разговор-знакомство: познакомиться со студентом, выяснить
+интересы и хобби, по живым ответам оценить реальный уровень CEFR.
+
+``mode="lesson"`` — урок 1+: короткий повтор прошлой ошибки, новая тема,
+практика и итог. Первый ход в обоих режимах статический (без LLM).
 
 Модуль не знает ни про FastAPI, ни про Telegram: только LLM, промпты и
 устойчивый разбор JSON. Состояние диалога — обычный ``dict``, который
@@ -25,6 +27,18 @@ TUTOR_LEVELS = ("A1", "A2", "B1", "B2", "C1")
 
 #: Допустимые виды хода наставника.
 TURN_KINDS = ("ask", "teach", "correct", "praise", "finish")
+
+#: Режимы наставника: знакомство («Урок 0») и обычный персональный урок.
+TUTOR_MODES = ("intro", "lesson")
+
+#: Фазы урока: повтор ошибки → новая тема → практика → итог.
+LESSON_PHASES = ("review", "teach", "practice", "wrap")
+
+#: Тема урока по умолчанию, если профиль и план ничего не подсказали.
+DEFAULT_LESSON_TOPIC = "Everyday English: small talk"
+
+#: Сколько новых слов наставник может ввести за один ход.
+MAX_NEW_WORDS_PER_TURN = 2
 
 #: Сколько последних ответов студента показывать модели в блоке состояния.
 MAX_STATE_ANSWERS = 7
@@ -67,7 +81,46 @@ Rules for the JSON:
 - "interests" may be an empty array.
 """
 
-SUMMARY_SYSTEM_PROMPT = """You are an experienced English teacher. A short "Lesson 0" getting-to-know-you conversation is over.
+LESSON_SYSTEM_PROMPT = """You are <<NAME>>, a friendly English tutor running a full personalised lesson for a Russian-speaking student.
+
+Lesson scenario — follow this order:
+1. REVIEW: if the student has weak areas from previous lessons, start with a short review (about 5 minutes) of the most important mistake. Ask the student to make their own example, using their interests for context.
+2. TEACH: introduce the new topic <<TOPIC>> with 1-2 useful new words or phrases and one interesting fact that broadens the student's horizons.
+3. PRACTICE: ask 2-3 questions about the topic, react naturally and correct mistakes gently.
+4. WRAP: on the last turn summarise what was learned, praise the student, say what to review next and set "should_finish" to true.
+
+Lesson rules:
+- The lesson has 6 to 9 tutor turns. On every turn write a short natural reaction and ask EXACTLY ONE question; the final wrap-up needs no question.
+- REVIEW comes first and must be brief: one quick example, one question, then move on to the new topic.
+- Adapt the language to the student's level: for A1/A2 use short simple English sentences and add brief explanations in Russian in brackets; for B1+ use mostly English with richer vocabulary, synonyms and nuances.
+- Introduce at most 2 new words or phrases per turn and put them in "new_words" as strings like "word — краткий перевод". Do not repeat words that were already introduced.
+- Use the student's interests for examples and questions: <<INTERESTS>>.
+- Correct gently: at most ONE mistake per turn. Praise the attempt before correcting. Never shame the student.
+- Never ask more than one question per turn and never repeat a question that was already asked.
+
+Respond ONLY with a single valid JSON object. No markdown, no extra text, no code fences.
+
+JSON schema:
+{
+  "reply": "what the tutor says out loud (for text-to-speech), in English",
+  "kind": "ask | teach | correct | praise | finish",
+  "question": "the single question for the student, or null",
+  "correction": {"corrected_text": "the student's sentence corrected", "issues": [{"problem": "short explanation in Russian", "suggestion": "how to say it better, in English"}]} | null,
+  "interests": ["interests or hobbies the student mentioned"],
+  "level_signal": "A1 | A2 | B1 | B2 | C1 | none",
+  "new_words": ["word — краткий перевод"],
+  "should_finish": false
+}
+
+Rules for the JSON:
+- "correction" is null when the student made no noticeable mistake.
+- "issues" contains at most one item.
+- "level_signal" is your current estimate of the student's level from their messages, or an empty string when there is not enough evidence yet.
+- "new_words" contains at most 2 items and may be an empty array.
+- "interests" may be an empty array.
+"""
+
+SUMMARY_SYSTEM_PROMPT = """You are an experienced English teacher. A short English lesson is over.
 
 Assess the student's CEFR level (A1, A2, B1, B2 or C1) from the student's OWN messages only: grammar control and range, vocabulary breadth, sentence complexity, fluency and how well they express personal ideas.
 
@@ -168,6 +221,7 @@ class TutorTurn:
     correction: TutorCorrection | None = None
     interests: list[str] = field(default_factory=list)
     level_signal: str = ""
+    new_words: list[str] = field(default_factory=list)
     should_finish: bool = False
 
     def to_dict(self) -> dict[str, Any]:
@@ -177,6 +231,7 @@ class TutorTurn:
             "kind": self.kind,
             "question": self.question,
             "correction": self.correction.to_dict() if self.correction else None,
+            "new_words": list(self.new_words),
             "should_finish": self.should_finish,
         }
 
@@ -202,6 +257,9 @@ class TutorTurn:
             correction=TutorCorrection.from_dict(payload.get("correction")),
             interests=_string_list(payload.get("interests")),
             level_signal=_normalize_level(payload.get("level_signal")),
+            new_words=_string_list(
+                payload.get("new_words"), limit=MAX_NEW_WORDS_PER_TURN
+            ),
             should_finish=bool(payload.get("should_finish")),
         )
 
@@ -285,21 +343,66 @@ def new_state(
     self_level: str = "",
     profile: str = "",
     max_turns: int = 7,
+    topic: str = "",
+    weak_areas: list[str] | None = None,
+    interests: list[str] | None = None,
+    plan: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Пустое состояние новой сессии урока 0."""
+    """Пустое состояние новой сессии урока.
+
+    Для режима ``lesson`` дополнительно хранит тему, фазу, план и список
+    прошлых ошибок: по ним строится статический первый ход, системный промпт
+    и итоговая заметка.
+    """
+    normalized_mode = (mode or "intro").strip().lower()
+    lesson = normalized_mode == "lesson"
+    areas = _merge_unique([], weak_areas or [], limit=6)
+    lesson_plan = [str(item).strip() for item in (plan or []) if str(item).strip()]
+    if lesson and not lesson_plan:
+        lesson_plan = build_lesson_plan(topic or DEFAULT_LESSON_TOPIC, areas)
     return {
         "character": character or "default",
-        "mode": mode or "intro",
+        "mode": normalized_mode,
         "self_level": _normalize_level(self_level),
         "profile": profile or "",
         "max_turns": max(1, int(max_turns)),
         "turn_index": 0,
         "turns": [],
         "asked": [],
-        "interests": [],
+        "interests": _merge_unique([], interests or []),
         "corrections": [],
         "level_signals": [],
+        "topic": (topic or "").strip() if lesson else "",
+        "phase": "review" if lesson and areas else ("teach" if lesson else ""),
+        "plan": lesson_plan if lesson else [],
+        "weak_areas": areas if lesson else [],
+        "new_words": [],
     }
+
+
+def build_lesson_plan(topic: str, weak_areas: list[str] | None = None) -> list[str]:
+    """План урока из 2–4 пунктов: повтор → тема → практика → итог."""
+    areas = [str(item).strip() for item in (weak_areas or []) if str(item).strip()]
+    items: list[str] = []
+    if areas:
+        items.append(f"Review the previous mistake: {areas[0]}")
+    items.append(f"New topic: {topic}")
+    items.append(f"Practice: 2-3 questions about {topic}")
+    items.append("Wrap-up: key words, feedback and what to review next")
+    return items[:4]
+
+
+def next_phase(state: dict[str, Any]) -> str:
+    """Фаза следующего хода наставника (для режима ``lesson``)."""
+    if str(state.get("mode") or "intro") != "lesson":
+        return ""
+    upcoming = int(state.get("turn_index") or 0) + 1
+    max_turns = int(state.get("max_turns") or 9)
+    if upcoming >= max_turns:
+        return "wrap"
+    if upcoming <= 2:
+        return "teach"
+    return "practice"
 
 
 def apply_turn(state: dict[str, Any], turn: TutorTurn, user_text: str) -> dict[str, Any]:
@@ -318,15 +421,24 @@ def apply_turn(state: dict[str, Any], turn: TutorTurn, user_text: str) -> dict[s
         signals.append(turn.level_signal)
 
     turns.append(turn.to_state())
-    return {
+    new_words = _merge_unique(
+        list(state.get("new_words") or []),
+        list(turn.new_words),
+        limit=24,
+    )
+    updated = {
         **state,
         "turns": turns,
         "asked": asked,
         "interests": interests,
         "corrections": corrections,
         "level_signals": signals,
+        "new_words": new_words,
         "turn_index": int(state.get("turn_index") or 0) + 1,
     }
+    if str(updated.get("mode") or "intro") == "lesson":
+        updated["phase"] = next_phase(updated)
+    return updated
 
 
 def student_messages(state: dict[str, Any]) -> list[str]:
@@ -338,17 +450,38 @@ def student_messages(state: dict[str, Any]) -> list[str]:
     ]
 
 
-def first_turn(character: str = "default", self_level: str = "") -> TutorTurn:
-    """Первый ход урока 0 — БЕЗ вызова LLM.
+def first_turn(
+    character: str = "default",
+    self_level: str = "",
+    *,
+    mode: str = "intro",
+    weak_areas: list[str] | None = None,
+    interests: list[str] | None = None,
+    topic: str = "",
+) -> TutorTurn:
+    """Первый ход урока — БЕЗ вызова LLM.
 
-    Так сессия стартует мгновенно и не зависит от 429/таймаута провайдера:
-    приветствие + вопрос «расскажи о себе и увлечениях». Язык — по самооценке:
-    до B1 простая английская фраза с подсказкой по-русски, B1+ — по-английски.
+    Так сессия стартует мгновенно и не зависит от 429/таймаута провайдера.
+    Для ``intro`` — приветствие + вопрос «расскажи о себе». Для ``lesson`` —
+    короткий повтор прошлой ошибки (если она известна), объявление новой темы
+    и первый вопрос. Язык — по самооценке: до B1 простая английская фраза с
+    подсказкой по-русски, B1+ — по-английски.
     """
     char = get_character(character) if character else get_character("default")
     level = _normalize_level(self_level)
     simple = level in ("", "A1", "A2")
     emoji = getattr(char, "emoji", "📚") if char else "📚"
+
+    if (mode or "intro").strip().lower() == "lesson":
+        return _lesson_first_turn(
+            emoji=emoji,
+            level=level,
+            simple=simple,
+            weak_areas=weak_areas or [],
+            interests=interests or [],
+            topic=(topic or "").strip() or DEFAULT_LESSON_TOPIC,
+        )
+
     if simple:
         reply = (
             f"{emoji} Hi! I'm your English mentor. Nice to meet you!\n"
@@ -374,6 +507,71 @@ def first_turn(character: str = "default", self_level: str = "") -> TutorTurn:
     )
 
 
+def _lesson_first_turn(
+    *,
+    emoji: str,
+    level: str,
+    simple: bool,
+    weak_areas: list[str],
+    interests: list[str],
+    topic: str,
+) -> TutorTurn:
+    """Статический первый ход урока: повтор ошибки → тема → первый вопрос."""
+    interest = interests[0] if interests else ""
+    area = weak_areas[0] if weak_areas else ""
+
+    lines = [f'{emoji} Hi! Today we have a full lesson: "{topic}".']
+    if simple:
+        lines.append("Сегодня обычный урок — с повторением и новой темой.")
+
+    if area:
+        lines.append(
+            f"Before we start, a quick review (5 minutes): last time you made a "
+            f"mistake with {area}."
+        )
+        lines.append(_interest_example(interest))
+        question = (
+            f"Your turn: make one sentence about {interest or 'your day'} "
+            f"using {area}."
+        )
+        lines.append(f"After that we'll move on to the new topic: {topic}.")
+        lines.append(question)
+    else:
+        lines.append(f"Today's topic is {topic} — we'll learn a few useful words.")
+        question = (
+            f"What do you already know about {topic}, and what would you like to learn?"
+        )
+        lines.append(question)
+
+    if simple:
+        lines.append("Можно простыми фразами — я помогу, если что-то не получится.")
+
+    return TutorTurn(
+        reply="\n".join(lines),
+        kind="ask",
+        question=question,
+        correction=None,
+        interests=[],
+        level_signal=level,
+        new_words=[],
+        should_finish=False,
+    )
+
+
+def _interest_example(interest: str) -> str:
+    """Короткий пример в Present Simple, привязанный к интересам студента."""
+    topic = interest.strip()
+    if topic:
+        return (
+            f'Example from your interests: "I usually spend an hour on {topic} '
+            'every evening, and I often talk about it with my friends."'
+        )
+    return (
+        'Example: "I usually practise English for ten minutes every evening, '
+        'and I often watch films in English."'
+    )
+
+
 def last_turn(state: dict[str, Any]) -> TutorTurn | None:
     """Последний ход наставника (чтобы вернуть текущий ход сессии)."""
     for item in reversed(state.get("turns") or []):
@@ -390,20 +588,56 @@ def build_system_prompt(
     profile: str,
     mode: str,
     self_level: str,
+    *,
+    topic: str = "",
+    weak_areas: list[str] | None = None,
+    interests: list[str] | None = None,
+    plan: list[str] | None = None,
 ) -> str:
-    """Системный промпт: персонаж + правила урока + требование строгого JSON."""
+    """Системный промпт: персонаж + правила режима + требование строгого JSON."""
     char = get_character(character) if isinstance(character, str) else character
     if char is None:
         char = get_character("default")
 
     level = _normalize_level(self_level) or "unknown"
-    parts = [
-        TUTOR_SYSTEM_PROMPT.replace("<<NAME>>", char.name_en or char.name or "your tutor").replace(
-            "<<SELF_LEVEL>>", level
-        )
-    ]
-    if mode and mode != "intro":
-        parts.append(f'Lesson mode: "{mode}". Keep the same friendly getting-to-know-you format.')
+    normalized_mode = (mode or "intro").strip().lower()
+    name = char.name_en or char.name or "your tutor"
+
+    if normalized_mode == "lesson":
+        lesson_topic = (topic or "").strip() or DEFAULT_LESSON_TOPIC
+        lesson_interests = ", ".join(
+            str(item).strip() for item in (interests or []) if str(item).strip()
+        ) or "not known yet — ask the student"
+        parts = [
+            LESSON_SYSTEM_PROMPT.replace("<<NAME>>", name)
+            .replace("<<TOPIC>>", lesson_topic)
+            .replace("<<INTERESTS>>", lesson_interests)
+        ]
+        context = [
+            f"Current lesson topic: {lesson_topic}.",
+            f"Student level (self-assessed): {level}.",
+        ]
+        areas = [str(item).strip() for item in (weak_areas or []) if str(item).strip()]
+        if areas:
+            context.append(
+                "Previous mistakes to review briefly at the start: " + "; ".join(areas[:4]) + "."
+            )
+        plan_items = [str(item).strip() for item in (plan or []) if str(item).strip()]
+        if plan_items:
+            context.append(
+                "Lesson plan: "
+                + " → ".join(f"{index}) {item}" for index, item in enumerate(plan_items, 1))
+            )
+        parts.append("\n".join(context))
+    else:
+        parts = [
+            TUTOR_SYSTEM_PROMPT.replace("<<NAME>>", name).replace("<<SELF_LEVEL>>", level)
+        ]
+        if normalized_mode and normalized_mode != "intro":
+            parts.append(
+                f'Lesson mode: "{normalized_mode}". Keep the same friendly getting-to-know-you format.'
+            )
+
     if profile:
         parts.append(
             f"{profile}\n"
@@ -423,7 +657,53 @@ def build_state_block(state: dict[str, Any]) -> str:
     """Компактный блок «что спросили / что ответили / интересы и ошибки»."""
     max_turns = int(state.get("max_turns") or 7)
     index = int(state.get("turn_index") or 0)
+    mode = str(state.get("mode") or "intro")
     lines = [f"Lesson progress: {index} of {max_turns} tutor turns are done."]
+
+    if mode == "lesson":
+        topic = str(state.get("topic") or "").strip() or DEFAULT_LESSON_TOPIC
+        phase = str(state.get("phase") or "teach")
+        lines.append(
+            f'Full personalised lesson. Topic: "{topic}". Current phase: {phase}.'
+        )
+        if phase == "review":
+            lines.append(
+                "The first turn already asked for a quick review of a previous mistake; "
+                "acknowledge the answer briefly and move on to the new topic."
+            )
+        elif phase == "teach":
+            lines.append(
+                "Introduce the new topic with 1-2 useful words and one interesting fact."
+            )
+        elif phase == "practice":
+            lines.append("Practise: ask about the student's own experience and opinions.")
+        elif phase == "wrap":
+            lines.append(
+                "Wrap up now: summarise, praise the student and set should_finish=true."
+            )
+
+        areas = [
+            str(item).strip()
+            for item in state.get("weak_areas") or []
+            if str(item).strip()
+        ]
+        if areas:
+            lines.append("Previous mistakes to review: " + "; ".join(areas[:4]))
+
+        plan_items = [
+            str(item).strip() for item in state.get("plan") or [] if str(item).strip()
+        ]
+        if plan_items:
+            lines.append("Lesson plan: " + " → ".join(plan_items))
+
+        new_words = [
+            str(item).strip() for item in state.get("new_words") or [] if str(item).strip()
+        ]
+        if new_words:
+            lines.append(
+                "Words already introduced (do NOT introduce them again): "
+                + "; ".join(new_words[-8:])
+            )
 
     asked = [str(item).strip() for item in state.get("asked") or [] if str(item).strip()]
     if asked:
@@ -469,6 +749,10 @@ def build_turn_messages(state: dict[str, Any], user_text: str) -> list[dict[str,
         str(state.get("profile") or ""),
         str(state.get("mode") or "intro"),
         str(state.get("self_level") or ""),
+        topic=str(state.get("topic") or ""),
+        weak_areas=list(state.get("weak_areas") or []),
+        interests=list(state.get("interests") or []),
+        plan=list(state.get("plan") or []),
     )
     return [
         {"role": "system", "content": system},
@@ -522,6 +806,9 @@ def parse_turn(raw: str) -> TutorTurn | None:
         correction=TutorCorrection.from_dict(payload.get("correction")),
         interests=_string_list(payload.get("interests")),
         level_signal=_normalize_level(payload.get("level_signal")),
+        new_words=_string_list(
+            payload.get("new_words"), limit=MAX_NEW_WORDS_PER_TURN
+        ),
         should_finish=bool(payload.get("should_finish")),
     )
 

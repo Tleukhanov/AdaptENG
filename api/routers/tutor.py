@@ -1,11 +1,12 @@
-"""«Урок 0» — короткий разговор-знакомство с наставником (web-продукт).
+"""Наставник (web-продукт): «Урок 0» и персональный урок ``mode="lesson"``.
 
 Три эндпоинта:
 
 * ``POST /api/tutor/session`` — создать сессию и получить первый ход;
 * ``POST /api/tutor/turn`` — ответ студента и следующий ход наставника;
 * ``POST /api/tutor/finish`` — итог: оценка CEFR, интересы, мягкая обратная
-  связь; для залогиненных — XP, заметка урока и обновление профиля.
+  связь; для залогиненных — XP, заметка урока, новые слова в SRS и
+  обновление профиля.
 
 Работает и для гостя (подписанная cookie ``adapteng_tutor``), и для
 залогиненного пользователя. Логика диалога — в ``core.tutor``, здесь только
@@ -23,9 +24,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from core.analytics import track_event
 from core.config import Settings
+from core.lesson_plan import LessonPlan
 from core.profile import to_profile_snippet
 from core.progress import ProgressService
+from core.srs import SRSService
 from core.tutor import (
+    DEFAULT_LESSON_TOPIC,
     first_turn,
     TutorService,
     TutorSummary,
@@ -36,6 +40,7 @@ from core.tutor import (
     last_turn,
     new_state,
 )
+from core.weak_areas import WeakAreaService
 from storage.repo import LessonNote, Repository, TutorSession, UserProfile
 
 from ..deps import (
@@ -61,6 +66,7 @@ from ..schemas import (
     TutorTurnResponse,
 )
 from ..security import decode_tutor_token, new_guest_token, set_tutor_cookie
+from .guest import guest_profile_from_request
 
 router = APIRouter(prefix="/api/tutor", tags=["tutor"])
 
@@ -78,20 +84,99 @@ MAX_TURNS_ERROR = "Урок завершён — нажми «Завершить
 
 #: Тема заметки урока в прогрессе.
 TUTOR_TOPIC = "Урок 0: знакомство"
+#: Префикс темы заметки для персонального урока (mode=lesson).
+LESSON_NOTE_PREFIX = "Урок: "
 #: XP за завершённый урок 0 (как +10 за урок в ProgressService).
 TUTOR_XP = 10
 #: Фолбэк числа ходов, если в состоянии сессии его нет (старые записи).
 MAX_TURNS_DEFAULT = 7
+#: Минимум ходов персонального урока: раньше 6-го хода урок не завершается.
+LESSON_MIN_TURNS = 5
 
 
 # ---------- утилиты ----------
 
 
-def _service(settings: Settings) -> TutorService:
+def _service(settings: Settings, mode: str = "intro") -> TutorService:
+    lesson = (mode or "intro").strip().lower() == "lesson"
     return TutorService(
-        max_turns=settings.tutor_max_turns,
-        min_turns=settings.tutor_min_turns,
+        max_turns=settings.tutor_lesson_max_turns if lesson else settings.tutor_max_turns,
+        min_turns=LESSON_MIN_TURNS if lesson else settings.tutor_min_turns,
     )
+
+
+def _split_list(value: str) -> list[str]:
+    """Строка «a, b, c» → список без пустых элементов."""
+    return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
+def _add_unique(items: list[str], additions: list[str]) -> list[str]:
+    for item in additions:
+        text = str(item).strip()
+        if text and text not in items:
+            items.append(text)
+    return items
+
+
+async def _lesson_context(
+    repo: Repository,
+    user_id: int,
+    profile: UserProfile | None,
+    last_note: LessonNote | None,
+) -> tuple[list[str], list[str]]:
+    """Прошлые ошибки и интересы для урока: профиль + weak_areas + заметка."""
+    weak_areas = _split_list(profile.weak_areas) if profile else []
+    interests = _split_list(profile.interests) if profile else []
+
+    for area in await WeakAreaService(repo).get_weak_areas(user_id):
+        _add_unique(weak_areas, [area.area])
+    if last_note is not None:
+        _add_unique(weak_areas, _split_list(last_note.mistakes))
+
+    return weak_areas[:6], interests[:8]
+
+
+async def _pick_lesson_topic(
+    repo: Repository,
+    user_id: int | None,
+    interests: list[str],
+    weak_areas: list[str],
+    requested: str | None,
+) -> str:
+    """Тема урока: запрос → план уроков → интересы → прошлые ошибки → дефолт."""
+    if requested and requested.strip():
+        return requested.strip()
+
+    if user_id is not None:
+        plan_row = await repo.get_lesson_plan(user_id)
+        if plan_row is not None:
+            plan = LessonPlan.from_json(plan_row.plan_json)
+            if plan.lessons:
+                completed = await repo.count_finished_lessons(user_id)
+                offset = max(completed - int(plan_row.based_on_lessons or 0), 0)
+                lesson = plan.lessons[min(offset, len(plan.lessons) - 1)]
+                if lesson.topic.strip():
+                    return lesson.topic.strip()
+
+    if interests:
+        return interests[0]
+    if weak_areas:
+        return f"Practising {weak_areas[0]}"
+    return DEFAULT_LESSON_TOPIC
+
+
+def _last_note_snippet(note: LessonNote) -> str:
+    """Короткая строка о прошлом уроке для системного промпта."""
+    parts: list[str] = []
+    if note.topic:
+        parts.append(f"Last lesson topic: {note.topic}")
+    if note.vocabulary:
+        parts.append(f"words: {note.vocabulary}")
+    if note.mistakes:
+        parts.append(f"mistakes: {note.mistakes}")
+    if note.recommendation:
+        parts.append(f"recommended next step: {note.recommendation}")
+    return "; ".join(parts)
 
 
 def _load_state(session: TutorSession) -> dict:
@@ -129,6 +214,7 @@ def _turn_out(turn: TutorTurn) -> TutorTurnOut:
         correction=correction,
         interests=list(turn.interests),
         level_signal=turn.level_signal,
+        new_words=list(turn.new_words),
         should_finish=turn.should_finish,
     )
 
@@ -240,8 +326,10 @@ async def start_session(
     settings: Settings = Depends(get_settings_dep),
     repo: Repository = Depends(get_repository),
 ) -> TutorSessionResponse:
-    """Создаёт сессию урока 0 и делает первый ход наставника.
+    """Создаёт сессию наставника и делает первый ход.
 
+    ``mode="intro"`` — знакомство («Урок 0»), ``mode="lesson"`` — обычный
+    персональный урок с темой, повтором прошлой ошибки и SRS в конце.
     Если у пользователя/гостя уже есть активная сессия — возвращает её
     текущий ход (защита от спама повторными нажатиями).
     """
@@ -269,9 +357,16 @@ async def start_session(
     else:
         _check_guest_limit(request)
 
+    mode = body.mode
+    lesson = mode == "lesson"
+    max_turns = settings.tutor_lesson_max_turns if lesson else settings.tutor_max_turns
+
     profile_snippet = ""
     self_level = ""
     character = "default"
+    topic = (body.topic or "").strip() if lesson else ""
+    weak_areas: list[str] = []
+    interests: list[str] = []
     if user is not None:
         profile = await repo.get_profile(user.id)
         if profile is not None:
@@ -280,19 +375,49 @@ async def start_session(
             character = profile.character or "default"
         if not self_level:
             self_level = user.level or ""
+        if lesson:
+            notes = await repo.get_lesson_notes(user.id, limit=1)
+            last_note = notes[0] if notes else None
+            weak_areas, interests = await _lesson_context(
+                repo, user.id, profile, last_note
+            )
+            if last_note is not None:
+                snippet = _last_note_snippet(last_note)
+                if snippet:
+                    profile_snippet = f"{profile_snippet} {snippet}".strip()
+                    if not profile_snippet.endswith("."):
+                        profile_snippet += "."
+            topic = await _pick_lesson_topic(
+                repo, user.id, interests, weak_areas, body.topic
+            )
+    elif lesson:
+        # У гостя нет серверной истории, но самооценка из онбординга есть.
+        guest = guest_profile_from_request(request, settings)
+        if guest is not None:
+            self_level = str(guest.get("level") or "")
+        topic = topic or DEFAULT_LESSON_TOPIC
 
-    service = _service(settings)
     state = new_state(
         character=character,
-        mode=body.mode,
+        mode=mode,
         self_level=self_level,
         profile=profile_snippet,
-        max_turns=settings.tutor_max_turns,
+        max_turns=max_turns,
+        topic=topic,
+        weak_areas=weak_areas,
+        interests=interests,
     )
 
     # Первый ход — статический: сессия стартует мгновенно и не зависит от
     # 429/таймаута LLM (провайдеры часто лимитируют пул модели).
-    turn = first_turn(character=character, self_level=self_level)
+    turn = first_turn(
+        character=character,
+        self_level=self_level,
+        mode=mode,
+        weak_areas=weak_areas,
+        interests=interests,
+        topic=topic,
+    )
     state = apply_turn(state, turn, "")
     state_json = _state_json(state)
 
@@ -310,7 +435,7 @@ async def start_session(
             user_id=user.id if user is not None else None,
             guest_token=guest_token,
             character=character,
-            mode=body.mode,
+            mode=mode,
             state_json=state_json,
         )
 
@@ -350,7 +475,11 @@ async def next_turn(
         raise HTTPException(status_code=409, detail=SESSION_FINISHED_ERROR)
 
     state = _load_state(session)
-    max_turns = int(state.get("max_turns") or settings.tutor_max_turns)
+    mode = str(state.get("mode") or session.mode or "intro")
+    default_max = (
+        settings.tutor_lesson_max_turns if mode == "lesson" else settings.tutor_max_turns
+    )
+    max_turns = int(state.get("max_turns") or default_max)
     if int(state.get("turn_index") or 0) >= max_turns:
         raise HTTPException(status_code=409, detail=MAX_TURNS_ERROR)
 
@@ -359,7 +488,7 @@ async def next_turn(
     else:
         _check_guest_limit(request)
 
-    service = _service(settings)
+    service = _service(settings, mode)
     turn = await _generate_turn(request, service, state, body.text)
 
     state = apply_turn(state, turn, body.text)
@@ -413,7 +542,9 @@ async def _build_summary(
             try:
                 with_guard = guard.slot() if guard is not None else nullcontext()
                 async with with_guard:
-                    summary = await _service(settings).summarize(llm, state)
+                    summary = await _service(
+                        settings, str(state.get("mode") or "intro")
+                    ).summarize(llm, state)
             except QueueFull:
                 logger.warning("Очередь LLM переполнена (tutor finish)")
             except Exception:
@@ -424,6 +555,29 @@ async def _build_summary(
     if summary is None:
         summary = fallback_summary(state, self_level)
     return finalize(state, summary, self_level)
+
+
+def _parse_new_words(raw: list | None) -> list[dict[str, str]]:
+    """«word — перевод» из состояния → записи для SRS (битые строки пропускаем)."""
+    entries: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in raw or []:
+        text = str(item).strip()
+        if not text:
+            continue
+        word, translation = text, ""
+        for separator in (" — ", " – ", " - ", "—", "–", ":", " -"):
+            if separator in text:
+                head, _, tail = text.partition(separator)
+                if head.strip():
+                    word, translation = head.strip(), tail.strip()
+                break
+        key = word.lower()
+        if not word or key in seen:
+            continue
+        seen.add(key)
+        entries.append({"word": word, "translation": translation, "example": ""})
+    return entries
 
 
 async def _apply_progress(
@@ -466,19 +620,29 @@ async def _apply_progress(
                 if problem and problem not in problems:
                     problems.append(problem)
 
+    lesson = str(state.get("mode") or "intro") == "lesson"
+    lesson_topic = str(state.get("topic") or "").strip()
+    note_topic = (
+        f"{LESSON_NOTE_PREFIX}{lesson_topic or DEFAULT_LESSON_TOPIC}"
+        if lesson
+        else TUTOR_TOPIC
+    )
+    new_words = _parse_new_words(state.get("new_words"))
+    vocabulary = ", ".join(entry["word"] for entry in new_words)
+
     lesson_row = await repo.start_lesson(
         user.id,
-        TUTOR_TOPIC,
+        note_topic,
         json.dumps({"tutor_session_id": session.id}, ensure_ascii=False),
     )
     try:
         note = LessonNote(
             user_id=user.id,
             lesson_id=lesson_row.id,
-            topic=TUTOR_TOPIC,
-            vocabulary="",
+            topic=note_topic,
+            vocabulary=vocabulary,
             grammar="",
-            speaking=summary.praise or f"Урок 0: уровень {summary.level}",
+            speaking=summary.praise or f"{note_topic}: уровень {summary.level}",
             mistakes=", ".join(problems[:5]),
             recommendation=summary.recommendation,
             created_at=now,
@@ -489,6 +653,16 @@ async def _apply_progress(
             await repo.finish_lesson(lesson_row.id)
         except Exception:
             logger.warning("Урок 0: не удалось закрыть lesson_sessions %s", lesson_row.id)
+
+    if new_words:
+        try:
+            added = await SRSService(repo).add_words(
+                user.id, new_words, lesson_id=lesson_row.id
+            )
+            if added:
+                logger.info("Урок: %s новых слов добавлено в словарь user=%s", added, user.id)
+        except Exception:
+            logger.exception("Урок: не удалось добавить слова в SRS user=%s", user.id)
 
     after_progress = await progress.get_progress(user.id, level=summary.level)
     xp = max(after_progress.xp - before, 0)
@@ -503,10 +677,11 @@ async def finish_session(
     settings: Settings = Depends(get_settings_dep),
     repo: Repository = Depends(get_repository),
 ) -> TutorFinishResponse:
-    """Итог урока 0: оценка уровня + мягкая обратная связь.
+    """Итог урока: оценка уровня + мягкая обратная связь.
 
     Гость получает только оценку (``registered=false``), прогресс не пишется.
-    Залогиненному обновляются интересы/уровень, создаётся заметка урока и XP.
+    Залогиненному обновляются интересы/уровень, создаётся заметка урока и XP;
+    в режиме ``lesson`` новые слова из состояния попадают в SRS.
     """
     user = await _user_or_none(repo, user_id)
     guest_token = None if user is not None else _guest_token(request, settings)

@@ -153,6 +153,8 @@ class Settings(BaseSettings):
     tutor_cookie_ttl_days: int = 30
     tutor_max_turns: int = 7
     tutor_min_turns: int = 4
+    # Персональный урок (mode=lesson) длиннее знакомства.
+    tutor_lesson_max_turns: int = 9
     tutor_guest_turns_per_day: int = 12
     # Минимальная длина пароля при регистрации.
     min_password_length: int = 8
