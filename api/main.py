@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.config import Settings, get_settings
 from core.email import create_email_sender
 from core.practice import PracticeService
-from providers import create_llm, create_stt, create_tts
+from providers import create_llm, create_pronunciation, create_stt, create_tts
 from storage import create_repository
 
 from .loadguard import ActionThrottle, AsyncQueueGuard, ClientWindowLimiter
@@ -85,6 +85,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except Exception as exc:
             logger.warning("STT не настроен, /api/voice недоступен: %s", exc)
             app.state.stt = None
+
+        # Оценка произношения: None = провайдер выключен (фолбэк по словам).
+        try:
+            app.state.pronunciation = create_pronunciation(settings)
+        except Exception as exc:
+            logger.warning("Оценка произношения не настроена, фолбэк по словам: %s", exc)
+            app.state.pronunciation = None
+        if app.state.pronunciation is not None:
+            logger.info("Оценка произношения: %s", settings.pronunciation_provider)
 
         # Защита от перегрузки: очередь LLM, пул STT, троттлинги.
         app.state.llm_guard = AsyncQueueGuard(

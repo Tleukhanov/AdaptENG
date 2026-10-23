@@ -46,6 +46,11 @@ def get_stt(request: Request):
     return getattr(request.app.state, "stt", None)
 
 
+def get_pronunciation(request: Request):
+    """Провайдер оценки произношения (None — выключен, оценка по словам)."""
+    return getattr(request.app.state, "pronunciation", None)
+
+
 def get_llm_guard(request: Request):
     """Очередь LLM-вызовов (семафор + лимит ожидания)."""
     return getattr(request.app.state, "llm_guard", None)

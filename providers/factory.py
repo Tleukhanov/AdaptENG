@@ -4,6 +4,7 @@ from bot.config import Settings
 
 from .base import LLMProvider, STTProvider, TTSProvider
 from .llm_openai import OpenAIChatProvider
+from .pronunciation import PronunciationProvider
 from .tts_edge import EdgeTTSProvider
 
 
@@ -67,6 +68,28 @@ def create_tts(settings: Settings) -> TTSProvider:
 
         return OpenAITTSProvider(api_key=settings.tts_api_key)
     raise ValueError(f"Неизвестный TTS_PROVIDER={provider!r}. Доступные: edge-tts, openai")
+
+
+def create_pronunciation(settings: Settings) -> PronunciationProvider | None:
+    """Оценка произношения: Azure при наличии ключа, иначе None (фолбэк по словам).
+
+    Выключенный или неизвестный провайдер — не ошибка: эндпоинт оценит фразу
+    по совпадению слов. Без ключа/региона Azure тоже считается выключенным.
+    """
+    provider = (settings.pronunciation_provider or "off").strip().lower()
+    if provider != "azure":
+        return None
+    api_key = (settings.azure_speech_key or "").strip()
+    region = (settings.azure_speech_region or "").strip()
+    if not api_key or not region:
+        return None
+    from .pronunciation import AzurePronunciationProvider
+
+    return AzurePronunciationProvider(
+        api_key=api_key,
+        region=region,
+        language=settings.azure_speech_language,
+    )
 
 
 def create_embedder(settings: Settings):

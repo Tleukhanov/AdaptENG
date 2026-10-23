@@ -61,6 +61,15 @@ class Settings(BaseSettings):
     tts_voice: str = "en-US-JennyNeural"
     tts_api_key: str = ""
 
+    # ---- Оценка произношения (Pronunciation Assessment) ----
+    # off = выключено: /api/voice/assess оценивает по совпадению слов (фолбэк).
+    # azure = Azure Speech REST (нужны ключ и регион).
+    pronunciation_provider: str = "off"
+    azure_speech_key: str = ""
+    azure_speech_region: str = ""
+    # Язык оценки по умолчанию (en-US для английского).
+    azure_speech_language: str = "en-US"
+
     database_path: str = "data/english_bot.db"
     # PostgreSQL (Heroku): заполнено -> хранилище на asyncpg вместо SQLite.
     # Схема (CREATE TABLE IF NOT EXISTS) применяется при каждом старте, данные

@@ -215,16 +215,29 @@ def check_audio_suffix(suffix: str) -> None:
         )
 
 
-async def process_audio(
+def remove_temp_audio(*paths: str) -> None:
+    """Удаляет временные файлы аудио, не падая на уже удалённых."""
+    for path in paths:
+        try:
+            if path and os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            logger.warning("Не удалось удалить временное аудио: %s", path)
+
+
+async def prepare_audio(
     audio: bytes,
     suffix: str = ".webm",
-    stt=None,
-    guard=None,
     max_bytes: int = DEFAULT_MAX_AUDIO_BYTES,
     max_duration_sec: int = 60,
     converter=None,
-) -> tuple[str, float]:
-    """Общий путь аудио → текст. Возвращает (транскрипт, длительность в сек)."""
+) -> tuple[str, str, float]:
+    """Байты аудио → временный wav 16 кГц моно.
+
+    Возвращает ``(raw_path, wav_path, duration)``. Файлы удаляет вызывающий
+    через :func:`remove_temp_audio` — так один и тот же wav можно отдать и
+    провайдеру оценки произношения, и фолбэку через STT.
+    """
     if not audio:
         raise HTTPException(status_code=400, detail=AUDIO_MISSING_ERROR)
     if max_bytes > 0 and len(audio) > max_bytes:
@@ -245,14 +258,33 @@ async def process_audio(
                 status_code=400,
                 detail=AUDIO_TOO_LONG_ERROR.format(sec=max_duration_sec),
             )
+    except Exception:
+        remove_temp_audio(raw_path, wav_path)
+        raise
+    return raw_path, wav_path, duration
+
+
+async def process_audio(
+    audio: bytes,
+    suffix: str = ".webm",
+    stt=None,
+    guard=None,
+    max_bytes: int = DEFAULT_MAX_AUDIO_BYTES,
+    max_duration_sec: int = 60,
+    converter=None,
+) -> tuple[str, float]:
+    """Общий путь аудио → текст. Возвращает (транскрипт, длительность в сек)."""
+    raw_path, wav_path, duration = await prepare_audio(
+        audio,
+        suffix=suffix,
+        max_bytes=max_bytes,
+        max_duration_sec=max_duration_sec,
+        converter=converter,
+    )
+    try:
         transcript = await transcribe(stt, wav_path, guard=guard)
     finally:
-        for path in (raw_path, wav_path):
-            try:
-                if os.path.exists(path):
-                    os.remove(path)
-            except OSError:
-                logger.warning("Не удалось удалить временное аудио: %s", path)
+        remove_temp_audio(raw_path, wav_path)
 
     if not transcript:
         raise HTTPException(status_code=400, detail=NO_SPEECH_ERROR)
