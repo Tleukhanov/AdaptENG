@@ -10,8 +10,8 @@ import {
   apiFetch,
   errorMessage,
   finishTutorSession,
-  sendTutorTurn,
   serverSttAvailable,
+  streamTutorTurn,
   startTutorSession,
   transcribeAudio,
 } from '@/lib/api';
@@ -67,6 +67,8 @@ type Bubble = {
   correction?: TutorCorrection | null;
   interests?: string[];
   failed?: boolean;
+  /** Реплика ещё стримится (показываем курсор). */
+  streaming?: boolean;
 };
 
 type AvatarState = 'idle' | 'thinking' | 'speaking';
@@ -577,23 +579,39 @@ export default function TutorSession({ mode, topic }: Props) {
     setAvatarState('thinking');
 
     try {
-      const data = await sendTutorTurn(sessionId, text);
+      // Стримим реплику: пузырь появляется сразу и наполняется по мере
+      // генерации — наставник «печатает», а не молчит 5–8 секунд.
+      const bubbleId = nextId();
+      let streamed = '';
+      setBubbles((prev) => [
+        ...prev,
+        { id: bubbleId, role: 'tutor', text: '', correction: null, interests: [], streaming: true },
+      ]);
+      const data = await streamTutorTurn(sessionId, text, (chunk) => {
+        streamed += chunk;
+        setBubbles((prev) =>
+          prev.map((item) => (item.id === bubbleId ? { ...item, text: streamed } : item)),
+        );
+      });
       setTurnIndex(data.turn_index);
       setMaxTurns(data.max_turns);
       setShouldFinish(Boolean(data.should_finish || data.turn.should_finish));
-      setBubbles((prev) => [
-        ...prev,
-        {
-          id: nextId(),
-          role: 'tutor',
-          text: data.turn.reply,
-          correction: data.turn.correction ?? null,
-          interests: data.turn.interests ?? [],
-        },
-      ]);
+      setBubbles((prev) =>
+        prev.map((item) =>
+          item.id === bubbleId
+            ? {
+                ...item,
+                text: data.turn.reply || item.text,
+                correction: data.turn.correction ?? null,
+                interests: data.turn.interests ?? [],
+                streaming: false,
+              }
+            : item,
+        ),
+      );
       sendingRef.current = false;
       setSending(false);
-      void speak(data.turn.reply);
+      void speak(data.turn.reply || streamed);
     } catch (error) {
       sendingRef.current = false;
       setSending(false);
@@ -934,6 +952,15 @@ export default function TutorSession({ mode, topic }: Props) {
               <div className="min-w-0 max-w-[85%] space-y-2">
                 <div className="whitespace-pre-wrap break-words rounded-3xl rounded-bl-lg border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-relaxed text-blue-50">
                   {bubble.text}
+                  {bubble.streaming ? (
+                    <span
+                      aria-hidden
+                      className="ml-1 inline-block h-4 w-[2px] animate-pulse bg-sky-300 align-middle"
+                    />
+                  ) : null}
+                  {bubble.streaming && !bubble.text ? (
+                    <span className="sr-only">{t('state.thinking')}</span>
+                  ) : null}
                 </div>
                 {bubble.correction ? (
                   <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 px-3.5 py-3">
