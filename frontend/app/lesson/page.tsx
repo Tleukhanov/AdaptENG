@@ -6,12 +6,14 @@ import { useLocale, useTranslations } from 'next-intl';
 import {
   ApiError,
   apiBlob,
+  assessPronunciation,
   errorMessage,
   finishLesson,
   serverSttAvailable,
   startLesson,
   transcribeAudio,
 } from '@/lib/api';
+import type { PronunciationAssessment } from '@/lib/api';
 import { useRecorder } from '@/lib/recorder';
 import { createSpeechRecognizer, isSpeechSupported } from '@/lib/speech';
 import { useRouter } from 'next/navigation';
@@ -20,6 +22,7 @@ import { apiDeckToLocal, sampleDeck } from '@/lib/deck';
 import type { ApiDeck, Deck, DeckStep, DialogueChoice, QuizItem, VocabCard } from '@/lib/deck';
 import type { Locale } from '@/lib/i18n';
 import AddToVocabButton, { VocabFlyTarget } from '@/app/vocab/AddToVocabButton';
+import PronunciationCard from '@/components/PronunciationCard';
 
 type Step = DeckStep;
 
@@ -84,6 +87,8 @@ export default function LessonPage() {
   const [dialogueTurns, setDialogueTurns] = useState(0);
   const [micError, setMicError] = useState<string | null>(null);
   const [voiceResult, setVoiceResult] = useState<{ transcript?: string; rating?: number; tip?: string } | null>(null);
+  const [pronunciation, setPronunciation] = useState<PronunciationAssessment | null>(null);
+  const [pronunciationNotice, setPronunciationNotice] = useState<string | null>(null);
   const [finish, setFinish] = useState<FinishResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -179,6 +184,8 @@ export default function LessonPage() {
     setDialogueLine(0);
     setDialogueTurns(0);
     setVoiceResult(null);
+    setPronunciation(null);
+    setPronunciationNotice(null);
     recorder.cancel();
     setMicError(null);
     setFinish(null);
@@ -340,6 +347,8 @@ export default function LessonPage() {
   async function startRecording() {
     setMicError(null);
     setVoiceResult(null);
+    setPronunciation(null);
+    setPronunciationNotice(null);
     // Серверного STT нет — сразу распознаём в браузере.
     if (!(await serverSttAvailable())) {
       if (isSpeechSupported()) {
@@ -373,6 +382,20 @@ export default function LessonPage() {
     if (!blob) {
       setMicError(t('dialogue.micUnavailable'));
       return;
+    }
+    // Сначала пробуем детальную оценку по эталону (последняя реплика партнёра).
+    try {
+      const assessment = await assessPronunciation(blob, lastPartnerLine);
+      setPronunciation(assessment);
+      setPronunciationNotice(null);
+      setMicError(null);
+      setVoiceResult({ transcript: assessment.transcript });
+      return;
+    } catch {
+      // Эндпоинта нет или сервис занят — ниже обычное распознавание,
+      // чтобы урок не останавливался.
+      setPronunciation(null);
+      setPronunciationNotice(t('voice.assessUnavailable'));
     }
     try {
       const res = await transcribeAudio(blob, {
@@ -742,7 +765,7 @@ export default function LessonPage() {
                 </div>
               )}
               {micError && <p className="mt-2 text-xs text-rose-300">{micError}</p>}
-              {voiceResult && (
+              {voiceResult && !pronunciation && (
                 <div className="mt-3 text-xs text-slate-300">
                   <p>
                     {t('dialogue.transcript') ?? 'Transcript'}: {voiceResult.transcript ?? '-'}
@@ -757,6 +780,13 @@ export default function LessonPage() {
                   )}
                 </div>
               )}
+              {pronunciation || pronunciationNotice ? (
+                <PronunciationCard
+                  assessment={pronunciation}
+                  notice={pronunciationNotice}
+                  className="mt-3"
+                />
+              ) : null}
             </div>
           </div>
         )}

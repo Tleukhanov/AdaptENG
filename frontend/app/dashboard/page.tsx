@@ -1,15 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { sampleCharacters } from '@/lib/characters';
 import type { Locale } from '@/lib/i18n';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, getAdminAnalytics } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/session';
 import VerifyEmailBanner from '@/components/VerifyEmailBanner';
+import NotificationSettings from '@/components/NotificationSettings';
 
 type MeResponse = {
   user: {
@@ -60,6 +61,9 @@ export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<MeResponse | null>(null);
+  /** Ссылка на админку: проверяем доступ один раз за визит (200 → показываем). */
+  const [isAdmin, setIsAdmin] = useState(false);
+  const adminCheckedRef = useRef(false);
   const router = useRouter();
   const { user, loading: sessionLoading } = useSession();
 
@@ -82,6 +86,30 @@ export default function DashboardPage() {
       } catch {
         if (active) {
           setStatus('error');
+        }
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [sessionLoading, user]);
+
+  useEffect(() => {
+    if (sessionLoading || !user || adminCheckedRef.current) {
+      return;
+    }
+    adminCheckedRef.current = true;
+    let active = true;
+    (async () => {
+      try {
+        await getAdminAnalytics(7);
+        if (active) {
+          setIsAdmin(true);
+        }
+      } catch {
+        // 403/404 — обычный ученик или метрики выключены: ссылку не показываем.
+        if (active) {
+          setIsAdmin(false);
         }
       }
     })();
@@ -123,12 +151,22 @@ export default function DashboardPage() {
       <div className="relative mx-auto max-w-5xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
-          <Link
-            href="/"
-            className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
-          >
-            {t('back')}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin ? (
+              <Link
+                href="/admin"
+                className="inline-flex min-h-[36px] items-center rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-sky-200 transition hover:bg-blue-500/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+              >
+                {t('admin')}
+              </Link>
+            ) : null}
+            <Link
+              href="/"
+              className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+            >
+              {t('back')}
+            </Link>
+          </div>
         </div>
 
         {status === 'loading' ? (
@@ -186,6 +224,8 @@ export default function DashboardPage() {
                 </Stat>
               </div>
             </div>
+
+            <NotificationSettings />
 
             <div className="grid gap-4 md:grid-cols-3">
               {cards.map((card) => {
