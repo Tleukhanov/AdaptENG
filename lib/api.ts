@@ -538,6 +538,7 @@ export type TutorTurn = {
   correction?: TutorCorrection | null;
   /** Приходят не во всех версиях бэкенда — поэтому опциональны. */
   interests?: string[];
+  new_words?: string[];
   level_signal?: string;
   should_finish?: boolean;
 };
@@ -599,6 +600,121 @@ export function sendTutorTurn(sessionId: number, text: string): Promise<TutorTur
     method: 'POST',
     body: { session_id: sessionId, text },
   });
+}
+
+
+export type TutorStreamMeta = {
+  kind?: string;
+  question?: string | null;
+  correction?: TutorTurn['correction'];
+  interests?: string[];
+  new_words?: string[];
+  level_signal?: string;
+  should_finish?: boolean;
+  turn_index: number;
+  max_turns: number;
+};
+
+/**
+ * Ответ наставника со стримингом (SSE).
+ *
+ * Бэкенд отдаёт событие `delta` с кусками текста и финальное `meta` со
+ * структурой (правка, интересы, новые слова, можно ли завершать урок).
+ * Если стриминг недоступен (старый бэкенд / прокси), мягко откатываемся на
+ * обычный `/api/tutor/turn`.
+ */
+export async function streamTutorTurn(
+  sessionId: number,
+  text: string,
+  onDelta: (chunk: string) => void,
+): Promise<TutorTurnResponse> {
+  const response = await fetch('/api/tutor/turn/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId, text }),
+    credentials: 'include',
+  });
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!response.ok || !contentType.includes('text/event-stream') || !response.body) {
+    // Фолбэк: обычный (не потоковый) ответ.
+    return sendTutorTurn(sessionId, text);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let meta: TutorStreamMeta | null = null;
+  let streamed = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    const blocks = buffer.split('\n\n');
+    buffer = blocks.pop() ?? '';
+    for (const block of blocks) {
+      const eventLine = block.split('\n').find((line) => line.startsWith('event:')) ?? '';
+      const dataLine = block
+        .split('\n')
+        .filter((line) => line.startsWith('data:'))
+        .map((line) => line.slice(5).trim())
+        .join('');
+      if (!dataLine) {
+        continue;
+      }
+      const event = eventLine.replace('event:', '').trim();
+      if (event === 'delta') {
+        try {
+          const payload = JSON.parse(dataLine) as { text?: string };
+          const chunk = payload.text ?? '';
+          if (chunk) {
+            streamed += chunk;
+            onDelta(chunk);
+          }
+        } catch {
+          // битый чанк — пропускаем, текст не теряем
+        }
+      } else if (event === 'meta') {
+        try {
+          meta = JSON.parse(dataLine) as TutorStreamMeta;
+        } catch {
+          meta = null;
+        }
+      } else if (event === 'error') {
+        let detail = 'request failed';
+        try {
+          const payload = JSON.parse(dataLine) as { detail?: string };
+          detail = payload.detail || detail;
+        } catch {
+          // без текста
+        }
+        throw new ApiError(detail, 502);
+      }
+    }
+  }
+
+  if (!meta) {
+    return sendTutorTurn(sessionId, text);
+  }
+
+  return {
+    turn: {
+      reply: streamed,
+      kind: meta.kind ?? 'ask',
+      question: meta.question ?? null,
+      correction: meta.correction ?? null,
+      interests: meta.interests ?? [],
+      new_words: meta.new_words ?? [],
+      level_signal: meta.level_signal ?? '',
+      should_finish: Boolean(meta.should_finish),
+    },
+    turn_index: meta.turn_index,
+    max_turns: meta.max_turns,
+    should_finish: Boolean(meta.should_finish),
+  };
 }
 
 export function finishTutorSession(sessionId: number): Promise<TutorFinishResponse> {
