@@ -136,6 +136,21 @@ async def _lesson_context(
     return weak_areas[:6], interests[:8]
 
 
+#: Курированные темы для уроков 1+: всегда по-английски и «расширяют кругозор».
+ENGLISH_LESSON_TOPICS = (
+    "Small talk at work",
+    "Coffee and food culture",
+    "Travelling and airports",
+    "Technology in daily life",
+    "Movies and series worth discussing",
+    "Healthy habits and sport",
+    "Money and shopping",
+    "City life: pros and cons",
+    "Learning new skills",
+    "Music that brings people together",
+)
+
+
 async def _pick_lesson_topic(
     repo: Repository,
     user_id: int | None,
@@ -158,10 +173,12 @@ async def _pick_lesson_topic(
                 if lesson.topic.strip():
                     return lesson.topic.strip()
 
-    if interests:
-        return interests[0]
-    if weak_areas:
-        return f"Practising {weak_areas[0]}"
+    # Интересы используем как источник примеров в промпте, а не как название
+    # темы: интерес может быть записан по-русски («шахматы»), а тема урока
+    # должна звучать по-английски. Поэтому берём тему из курированного списка.
+    if interests or weak_areas:
+        base = user_id if user_id is not None else len(interests) + len(weak_areas)
+        return ENGLISH_LESSON_TOPICS[base % len(ENGLISH_LESSON_TOPICS)]
     return DEFAULT_LESSON_TOPIC
 
 

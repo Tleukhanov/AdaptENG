@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 
+from api.routers.tutor import ENGLISH_LESSON_TOPICS
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -171,13 +173,14 @@ async def test_lesson_uses_weak_areas_and_interests_for_review(client: TestClien
 
     assert "Present Simple" in reply
     assert "review" in reply.lower()
-    assert "шахматы" in reply
+    assert "шахматы" in reply  # интерес используется как пример, не как тема
     assert data["turn"]["question"]
     assert client.app.state.llm.calls == 0
 
     repo = client.app.state.repo
     state = json.loads((await repo.get_tutor_session(data["session_id"])).state_json)
-    assert state["topic"] == "шахматы"  # тема из профиля
+    # тема — английская из курированного списка, а не сырой интерес
+    assert state["topic"] in ENGLISH_LESSON_TOPICS
     assert state["weak_areas"][0] == "Present Simple"
     assert "шахматы" in state["interests"]
 
@@ -192,7 +195,7 @@ async def test_lesson_picks_weak_area_from_tracking_when_profile_is_empty(client
 
     state = json.loads((await repo.get_tutor_session(data["session_id"])).state_json)
     assert "Past Simple" in state["weak_areas"]
-    assert state["topic"] == "Practising Past Simple"
+    assert state["topic"] in ENGLISH_LESSON_TOPICS
 
 
 async def test_lesson_uses_requested_topic(client: TestClient):
@@ -332,3 +335,33 @@ async def test_guest_lesson_finish_returns_summary_without_progress(client: Test
     assert (await cursor.fetchone())["cnt"] == 0
     cursor = await repo._conn.execute("SELECT COUNT(*) AS cnt FROM user_vocabulary")
     assert (await cursor.fetchone())["cnt"] == 0
+
+
+def test_pick_lesson_topic_uses_english_topic_not_raw_interest() -> None:
+    """Интерес по-русски не должен становиться названием темы урока."""
+    import asyncio
+
+    from api.routers.tutor import ENGLISH_LESSON_TOPICS, _pick_lesson_topic
+
+    class _Repo:
+        async def get_lesson_plan(self, user_id):
+            return None
+
+    topic = asyncio.run(
+        _pick_lesson_topic(_Repo(), 7, ["шахматы", "футбол"], ["Present Simple"], None)
+    )
+    assert topic in ENGLISH_LESSON_TOPICS
+    assert "шахмат" not in topic.lower()
+
+
+def test_pick_lesson_topic_prefers_explicit_request() -> None:
+    import asyncio
+
+    from api.routers.tutor import _pick_lesson_topic
+
+    class _Repo:
+        async def get_lesson_plan(self, user_id):
+            return None
+
+    topic = asyncio.run(_pick_lesson_topic(_Repo(), 1, ["chess"], [], "Travel stories"))
+    assert topic == "Travel stories"
