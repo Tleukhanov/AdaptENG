@@ -129,6 +129,11 @@ body {
   }
 }
 
+/* Тонкая полоска «Нет соединения» внизу экрана (PwaProvider). */
+body.is-offline {
+  padding-bottom: 26px;
+}
+
 /* ---- «Урок 0»: аватар наставника ---- */
 @keyframes tutor-float {
   0%,

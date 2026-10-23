@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { NextIntlClientProvider } from 'next-intl';
@@ -6,6 +6,7 @@ import { getTranslations } from 'next-intl/server';
 import { getLocale, getMessages } from '@/lib/i18n';
 import LocaleToggle from '@/components/LocaleToggle';
 import Logo from '@/components/Logo';
+import PwaProvider from '@/components/PwaProvider';
 import SessionNav from '@/components/SessionNav';
 import { SessionProvider } from '@/lib/session';
 import './globals.css';
@@ -13,6 +14,26 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'AdaptENG — AI English Tutor',
   description: 'Adaptive AI English tutor with personality characters.',
+  applicationName: 'AdaptENG',
+  // Устанавливаемое приложение: тёмная строка состояния на iOS.
+  appleWebApp: {
+    capable: true,
+    title: 'AdaptENG',
+    statusBarStyle: 'black-translucent',
+  },
+  icons: {
+    // app/icon.svg остаётся фавиконом; явный icons.apple добавляем для iOS.
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#0b1220',
+  colorScheme: 'dark',
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -49,6 +70,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               </div>
             </header>
             {children}
+            <PwaProvider />
           </SessionProvider>
         </NextIntlClientProvider>
       </body>
