@@ -61,6 +61,11 @@ def get_action_throttle(request: Request):
     return getattr(request.app.state, "action_throttle", None)
 
 
+def get_email_sender(request: Request):
+    """Отправитель писем (SMTP или dev-режим), собранный в lifespan."""
+    return request.app.state.email_sender
+
+
 def client_key(request: Request) -> str:
     """Ключ клиента для лимита запросов: IP клиента (за заголовками прокси).
 
@@ -173,6 +178,7 @@ async def build_user_public(
         "username": user.username or "",
         "first_name": user.first_name or "",
         "email": user.email or "",
+        "email_verified": bool(getattr(user, "email_verified_at", None)),
         "level": user.level,
         "character": char_id,
         "interests": interests,

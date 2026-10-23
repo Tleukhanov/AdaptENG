@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import Settings, get_settings
+from core.email import create_email_sender
 from core.practice import PracticeService
 from providers import create_llm, create_stt, create_tts
 from storage import create_repository
@@ -53,6 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         await repo.connect()
         app.state.repo = repo
+        app.state.email_sender = create_email_sender(settings)
         app.state.llm = None
         app.state.practice = None
         app.state.tts = None

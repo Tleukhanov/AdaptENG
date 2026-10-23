@@ -8,6 +8,8 @@
 * ``create_access_token`` / ``decode_access_token`` — JWT HS256. Внутри токена
   теперь внутренний ``users.id``, а не Telegram ID: идентичность больше не
   привязана к Telegram.
+* ``create_verify_token`` / ``decode_verify_token`` — отдельный JWT для ссылки
+  подтверждения email (``purpose=verify``), сессией не является.
 * Куки сессии: HttpOnly + SameSite=Lax + Secure (в проде). Фронт шлёт их
   автоматически (same-origin прокси), поэтому токен не лежит в localStorage.
 * Гостевые куки ``adapteng_guest`` (онбординг) и ``adapteng_tutor`` (токен
@@ -90,9 +92,38 @@ def create_access_token(settings: Settings, user_id: int) -> str:
 
 
 def decode_access_token(settings: Settings, token: str) -> int | None:
-    """Возвращает ``users.id`` по токену или ``None`` при любой ошибке."""
+    """Возвращает ``users.id`` по токену или ``None`` при любой ошибке.
+
+    Токены с явным ``purpose`` (например, подтверждение email) сессией не
+    являются: иначе ссылка из письма работала бы как вход в аккаунт.
+    """
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        if payload.get("purpose", "access") != "access":
+            return None
+        return int(payload["sub"])
+    except (jwt.PyJWTError, KeyError, TypeError, ValueError):
+        return None
+
+
+def create_verify_token(settings: Settings, user_id: int) -> str:
+    """JWT для ссылки подтверждения email (живёт ``email_verify_ttl_hours``)."""
+    now = int(time.time())
+    payload = {
+        "sub": str(user_id),
+        "purpose": "verify",
+        "iat": now,
+        "exp": now + settings.email_verify_ttl_hours * 3_600,
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+
+def decode_verify_token(settings: Settings, token: str) -> int | None:
+    """``users.id`` из токена подтверждения или ``None`` (битый/протухший/чужой)."""
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        if payload.get("purpose") != "verify":
+            return None
         return int(payload["sub"])
     except (jwt.PyJWTError, KeyError, TypeError, ValueError):
         return None

@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS users (
     unlimited INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     email TEXT,
-    password_hash TEXT
+    password_hash TEXT,
+    email_verified_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages (

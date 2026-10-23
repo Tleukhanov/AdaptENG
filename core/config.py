@@ -162,6 +162,15 @@ class Settings(BaseSettings):
     admin_emails: str = ""
     # Разрешённые origins для CORS api (через запятую), напр. https://adapteng.com,http://localhost:3000
     api_cors_origins: str = ""
+    # ---- Email (подтверждение адреса) ----
+    # Пусто -> dev-режим: письмо не отправляется, ссылка пишется в лог.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_starttls: int = 1
+    email_from: str = "AdaptENG <no-reply@adapteng.com>"
+    email_verify_ttl_hours: int = 24
     # 1 = демо-режим api: /api/auth/tg принимает любое TG-выражение без проверки
     # hash (только локальная отладка фронта, НИКОГДА в проде).
     api_insecure_auth: int = 0

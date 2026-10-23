@@ -50,12 +50,30 @@ class LoginRequest(BaseModel):
         return value.strip().lower()
 
 
+class VerifyTokenRequest(BaseModel):
+    """Токен из ссылки подтверждения email."""
+
+    token: str = Field(min_length=1, max_length=4096)
+
+
+class VerifyRequestResponse(BaseModel):
+    ok: bool = True
+    sent: bool = False
+    already_verified: bool = False
+
+
+class VerifyResponse(BaseModel):
+    ok: bool = True
+    email_verified: bool = True
+
+
 class UserPublic(BaseModel):
     id: int
     tg_id: int | None = None
     username: str = ""
     first_name: str = ""
     email: str = ""
+    email_verified: bool = False
     level: str | None = None
     character: str = ""
     interests: list[str] = Field(default_factory=list)

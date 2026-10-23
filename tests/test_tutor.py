@@ -460,7 +460,8 @@ async def test_migration_v3_creates_tutor_sessions_on_old_schema(tmp_path):
     await conn.commit()
 
     applied = await apply_migrations(_SQLiteMigrationDB(conn))
-    assert applied == [3]
+    # v3 создаёт tutor_sessions, v4 добавляет users.email_verified_at.
+    assert applied == [3, 4]
 
     cursor = await conn.execute("PRAGMA table_info(tutor_sessions)")
     columns = {row["name"] for row in await cursor.fetchall()}

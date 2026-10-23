@@ -166,14 +166,17 @@ class PostgresRepository(Repository):
             level=row["level"],
             is_unlimited=bool(row["unlimited"]),
             email=row["email"] if "email" in row.keys() else None,
+            email_verified_at=(
+                row["email_verified_at"] if "email_verified_at" in row.keys() else None
+            ),
         )
 
     async def get_user(self, user_id: int) -> UserRow | None:
         async with self._acquire() as conn:
             row = await conn.fetchrow(
                 _adopt(
-                    "SELECT id, tg_id, username, first_name, level, unlimited, email "
-                    "FROM users WHERE id = ?"
+                    "SELECT id, tg_id, username, first_name, level, unlimited, email, "
+                    "email_verified_at FROM users WHERE id = ?"
                 ),
                 user_id,
             )
@@ -184,8 +187,8 @@ class PostgresRepository(Repository):
     async def get_user_by_email(self, email: str) -> UserRow | None:
         async with self._acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT id, tg_id, username, first_name, level, unlimited, email "
-                "FROM users WHERE email = $1",
+                "SELECT id, tg_id, username, first_name, level, unlimited, email, "
+                "email_verified_at FROM users WHERE email = $1",
                 email,
             )
         return self._user_from_row(row) if row else None
@@ -193,8 +196,8 @@ class PostgresRepository(Repository):
     async def get_user_by_tg_id(self, tg_id: int) -> UserRow | None:
         async with self._acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT id, tg_id, username, first_name, level, unlimited, email "
-                "FROM users WHERE tg_id = $1",
+                "SELECT id, tg_id, username, first_name, level, unlimited, email, "
+                "email_verified_at FROM users WHERE tg_id = $1",
                 tg_id,
             )
         return self._user_from_row(row) if row else None
@@ -241,6 +244,14 @@ class PostgresRepository(Repository):
         async with self._acquire() as conn:
             await conn.execute(
                 "UPDATE users SET password_hash = $1 WHERE id = $2", password_hash, user_id
+            )
+
+    async def set_email_verified(self, user_id: int, at: str) -> None:
+        async with self._acquire() as conn:
+            await conn.execute(
+                _adopt("UPDATE users SET email_verified_at = ? WHERE id = ?"),
+                at,
+                user_id,
             )
 
     async def link_telegram(self, user_id: int, tg_id: int) -> None:

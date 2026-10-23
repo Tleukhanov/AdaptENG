@@ -147,7 +147,8 @@ class SQLiteRepository(Repository):
     async def get_user(self, user_id: int) -> UserRow | None:
         conn = self._require_conn()
         cursor = await conn.execute(
-            "SELECT id, tg_id, username, first_name, level, unlimited, email FROM users WHERE id = ?",
+            "SELECT id, tg_id, username, first_name, level, unlimited, email, email_verified_at "
+            "FROM users WHERE id = ?",
             (user_id,),
         )
         row = await cursor.fetchone()
@@ -161,6 +162,7 @@ class SQLiteRepository(Repository):
             level=row["level"],
             is_unlimited=bool(row["unlimited"]),
             email=row["email"],
+            email_verified_at=row["email_verified_at"],
         )
 
     # ---------- email-аккаунты (web-вход без Telegram) ----------
@@ -168,7 +170,7 @@ class SQLiteRepository(Repository):
     async def get_user_by_email(self, email: str) -> UserRow | None:
         conn = self._require_conn()
         cursor = await conn.execute(
-            "SELECT id, tg_id, username, first_name, level, unlimited, email "
+            "SELECT id, tg_id, username, first_name, level, unlimited, email, email_verified_at "
             "FROM users WHERE email = ?",
             (email,),
         )
@@ -183,12 +185,14 @@ class SQLiteRepository(Repository):
             level=row["level"],
             is_unlimited=bool(row["unlimited"]),
             email=row["email"],
+            email_verified_at=row["email_verified_at"],
         )
 
     async def get_user_by_tg_id(self, tg_id: int) -> UserRow | None:
         conn = self._require_conn()
         cursor = await conn.execute(
-            "SELECT id, tg_id, username, first_name, level, unlimited, email FROM users WHERE tg_id = ?",
+            "SELECT id, tg_id, username, first_name, level, unlimited, email, email_verified_at "
+            "FROM users WHERE tg_id = ?",
             (tg_id,),
         )
         row = await cursor.fetchone()
@@ -202,6 +206,7 @@ class SQLiteRepository(Repository):
             level=row["level"],
             is_unlimited=bool(row["unlimited"]),
             email=row["email"],
+            email_verified_at=row["email_verified_at"],
         )
 
     async def create_email_user(
@@ -244,6 +249,13 @@ class SQLiteRepository(Repository):
         conn = self._require_conn()
         await conn.execute(
             "UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id)
+        )
+        await conn.commit()
+
+    async def set_email_verified(self, user_id: int, at: str) -> None:
+        conn = self._require_conn()
+        await conn.execute(
+            "UPDATE users SET email_verified_at = ? WHERE id = ?", (at, user_id)
         )
         await conn.commit()
 

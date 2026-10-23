@@ -146,6 +146,13 @@ async def _m003_tutor_sessions(db: MigrationDB) -> None:
     )
 
 
+async def _m004_users_email_verified_at(db: MigrationDB) -> None:
+    """users: email_verified_at — мягкое подтверждение email (NULL = не подтверждён)."""
+    names = {name for name, _ in await db.columns("users")}
+    if "email_verified_at" not in names:
+        await db.execute(["ALTER TABLE users ADD COLUMN email_verified_at TEXT"])
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(version=1, name="users_email_password", run=_m001_users_email_password),
     Migration(
@@ -154,6 +161,11 @@ MIGRATIONS: tuple[Migration, ...] = (
         run=_m002_user_profiles_minutes_self_level,
     ),
     Migration(version=3, name="tutor_sessions", run=_m003_tutor_sessions),
+    Migration(
+        version=4,
+        name="users_email_verified_at",
+        run=_m004_users_email_verified_at,
+    ),
 )
 
 MIGRATIONS_TABLE = """

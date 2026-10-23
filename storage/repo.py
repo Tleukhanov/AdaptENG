@@ -15,6 +15,7 @@ class UserRow:
     level: str | None = None  # CEFR: A1 | A2 | B1 | B2 | C1 | None
     is_unlimited: bool = False  # промокодом снят дневной лимит LLM
     email: str | None = None  # web-вход (без Telegram)
+    email_verified_at: str | None = None  # ISO-время подтверждения email
 
 
 @dataclass
@@ -323,6 +324,9 @@ class Repository(ABC):
 
     @abstractmethod
     async def set_password_hash(self, user_id: int, password_hash: str) -> None: ...
+
+    @abstractmethod
+    async def set_email_verified(self, user_id: int, at: str) -> None: ...
 
     @abstractmethod
     async def link_telegram(self, user_id: int, tg_id: int) -> None: ...
