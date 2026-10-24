@@ -25,6 +25,7 @@ export default function VerifyEmailBanner() {
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [devLink, setDevLink] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -55,8 +56,13 @@ export default function VerifyEmailBanner() {
     setBusy(true);
     setError('');
     try {
-      await apiFetch('/api/auth/verify/request', { method: 'POST' });
-      setSent(true);
+      const data = await apiFetch<{ sent?: boolean; dev_link?: string }>(
+        '/api/auth/verify/request',
+        { method: 'POST' },
+      );
+      setSent(Boolean(data.sent));
+      // SMTP не настроен: бэкенд возвращает ссылку, чтобы подтвердить без почты.
+      setDevLink(data.sent ? '' : data.dev_link ?? '');
     } catch (err) {
       if (err instanceof ApiError && err.status === 429) {
         setError(t('tooOften'));
@@ -72,10 +78,21 @@ export default function VerifyEmailBanner() {
     <div className="rounded-2xl border border-sky-300/25 bg-sky-400/10 px-4 py-3 text-sm text-sky-50">
       <p className="font-medium">{t('bannerTitle')}</p>
       <p className="mt-1 text-sky-100/80">
-        {sent ? t('bannerSent', { email }) : t('bannerText', { email })}
+        {sent
+          ? t('bannerSent', { email })
+          : devLink
+            ? t('bannerDev', { email })
+            : t('bannerText', { email })}
       </p>
       {error ? <p className="mt-1 text-rose-200">{error}</p> : null}
-      {!sent ? (
+      {devLink ? (
+        <a
+          href={devLink}
+          className="mt-2 inline-flex min-h-[36px] items-center rounded-lg bg-sky-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-400"
+        >
+          {t('confirmNow')}
+        </a>
+      ) : !sent ? (
         <button
           type="button"
           onClick={send}
