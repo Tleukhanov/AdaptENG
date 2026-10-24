@@ -60,6 +60,10 @@ class VerifyRequestResponse(BaseModel):
     ok: bool = True
     sent: bool = False
     already_verified: bool = False
+    # Только когда письмо реально не отправлено (SMTP не настроен): ссылка
+    # возвращается запросившему пользователю, чтобы флоу можно было пройти.
+    # При настроенном SMTP поле всегда пустое.
+    dev_link: str = ""
 
 
 class VerifyResponse(BaseModel):

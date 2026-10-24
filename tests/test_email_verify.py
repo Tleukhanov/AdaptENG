@@ -85,7 +85,12 @@ def test_verify_request_dev_mode_and_rate_limit(client: TestClient, caplog):
     with caplog.at_level(logging.INFO):
         first = client.post("/api/auth/verify/request")
     assert first.status_code == 200
-    assert first.json() == {"ok": True, "sent": False, "already_verified": False}
+    first_body = first.json()
+    assert first_body["ok"] is True
+    assert first_body["sent"] is False
+    assert first_body["already_verified"] is False
+    # SMTP не настроен — бэкенд отдаёт ссылку, чтобы флоу можно было пройти
+    assert first_body["dev_link"]
 
     # dev-режим: ссылка для этого пользователя попала в лог.
     link_messages = [
@@ -110,7 +115,11 @@ def test_verify_request_after_confirmation_is_already_verified(client: TestClien
 
     response = client.post("/api/auth/verify/request")
     assert response.status_code == 200
-    assert response.json() == {"ok": True, "sent": False, "already_verified": True}
+    body = response.json()
+    assert body["ok"] is True
+    assert body["sent"] is False
+    assert body["already_verified"] is True
+    assert body["dev_link"] == ""
 
 
 def test_valid_token_verifies_email_and_me(client: TestClient):
@@ -303,3 +312,15 @@ async def test_repository_reads_and_sets_email_verified_at(tmp_path):
         assert by_email.email_verified_at == "2026-01-01T00:00:00+00:00"
     finally:
         await repo.close()
+
+
+def test_verify_request_returns_dev_link_without_smtp(client: TestClient):
+    """Без SMTP письмо не уходит, но ссылка возвращается — флоу проходим."""
+    _register(client, "devlink@example.com")
+    response = client.post("/api/auth/verify/request")
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["sent"] is False
+    # без WEBAPP_PUBLIC_URL ссылка относительная — браузер всё равно её откроет
+    assert data["dev_link"].startswith(("/", "http"))
+    assert "token=" in data["dev_link"]

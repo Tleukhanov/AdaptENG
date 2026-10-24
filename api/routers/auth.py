@@ -119,12 +119,16 @@ async def _send_verification(
     user: UserRow,
     *,
     count_rate_limit: bool,
-) -> bool:
-    """Собирает ссылку и отправляет письмо. Ошибки отправки не пробрасываются."""
+) -> tuple[bool, str]:
+    """Собирает ссылку и отправляет письмо. Ошибки отправки не пробрасываются.
+
+    Возвращает ``(sent, link)`` — ссылка нужна в dev-режиме (SMTP не настроен),
+    чтобы пользователь мог подтвердить email без почты.
+    """
     token = create_verify_token(settings, user.id)
     link = verification_link(settings, token)
     if not user.email:
-        return False
+        return False, ""
     try:
         sent = await sender.send_verification(user.email, link)
     except Exception:  # noqa: BLE001 - письмо не должно ломать регистрацию/запрос
@@ -138,7 +142,7 @@ async def _send_verification(
         "email_verify_requested",
         {"sent": sent, "resend": count_rate_limit},
     )
-    return sent
+    return sent, link
 
 
 async def _confirm_email(
@@ -259,10 +263,10 @@ async def request_email_verification(
             },
         )
 
-    sent = await _send_verification(
+    sent, link = await _send_verification(
         repo, email_sender, settings, user, count_rate_limit=True
     )
-    return VerifyRequestResponse(ok=True, sent=sent)
+    return VerifyRequestResponse(ok=True, sent=sent, dev_link="" if sent else link)
 
 
 @router.post("/verify", response_model=VerifyResponse)
