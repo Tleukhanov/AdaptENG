@@ -9,8 +9,6 @@ import type { Locale } from '@/lib/i18n';
 import { apiFetch, getAdminAnalytics } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/session';
-import VerifyEmailBanner from '@/components/VerifyEmailBanner';
-import NotificationSettings from '@/components/NotificationSettings';
 
 type MeResponse = {
   user: {
@@ -138,7 +136,6 @@ export default function DashboardPage() {
   return (
     <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 py-10 text-slate-100 sm:py-12">
       
-      <VerifyEmailBanner />
 <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(37,99,235,0.28),transparent_70%)]"
@@ -224,8 +221,6 @@ export default function DashboardPage() {
                 </Stat>
               </div>
             </div>
-
-            <NotificationSettings />
 
             <div className="grid gap-4 md:grid-cols-3">
               {cards.map((card) => {
