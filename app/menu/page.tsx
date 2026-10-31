@@ -12,7 +12,6 @@ import {
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/session';
 import type { Locale } from '@/lib/i18n';
-import VerifyEmailBanner from '@/components/VerifyEmailBanner';
 
 type Topic = { id: string; ru: string; en: string; emoji: string };
 
@@ -83,7 +82,6 @@ export default function MenuPage() {
   return (
     <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 py-10 text-slate-100 sm:py-12">
       
-      <VerifyEmailBanner />
 <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(37,99,235,0.28),transparent_70%)]"
@@ -124,6 +122,20 @@ export default function MenuPage() {
             💎 {t('quota')}: <span className="text-sky-300">{quota ?? '∞'}</span>
           </span>
         </div>
+
+        {(progress?.due_words ?? 0) > 0 ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-400/25 bg-sky-400/10 px-4 py-3 text-sm text-sky-50">
+            <p className="font-medium">
+              📖 {t('inApp.dueWords', { count: progress?.due_words ?? 0 })}
+            </p>
+            <Link
+              href="/vocab"
+              className="inline-flex min-h-[36px] items-center rounded-lg bg-sky-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-400"
+            >
+              {t('inApp.reviewNow')}
+            </Link>
+          </div>
+        ) : null}
 
         <Link
           href="/lesson/0"

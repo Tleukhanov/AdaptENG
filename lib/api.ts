@@ -860,22 +860,7 @@ export function getAdminAnalytics(days = 30): Promise<AdminAnalytics> {
 
 // ---------- напоминания на почту ----------
 
-export type NotificationSettings = {
-  email_reminders: boolean;
-};
 
-export function getNotificationSettings(): Promise<NotificationSettings> {
-  return apiFetch<NotificationSettings>('/api/me/notifications');
-}
-
-export function updateNotificationSettings(
-  payload: NotificationSettings,
-): Promise<NotificationSettings> {
-  return apiFetch<NotificationSettings>('/api/me/notifications', {
-    method: 'PUT',
-    body: payload satisfies NotificationSettings,
-  });
-}
 
 // ---------- оценка произношения ----------
 //
