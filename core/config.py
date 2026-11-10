@@ -193,6 +193,14 @@ class Settings(BaseSettings):
     # hash (только локальная отладка фронта, НИКОГДА в проде).
     api_insecure_auth: int = 0
 
+    # ---- Telegram Stars оплата подписки ----
+    # 1 = включить оплату подписки через Telegram Stars (звёзды) вместо/вместе с Kaspi.
+    stars_payment_enabled: int = 0
+    # Тарифы подписки в Stars: "дней:звёзды,дней:звёзды" через запятую.
+    # Если пусто — используются тарифы из subscription_plans, но цена пересчитывается
+    # из тенге в звёзды (1 звезда ≈ 2 тенге по курсу Telegram). Пусто = Stars выключены.
+    stars_subscription_plans: str = ""
+
     @property
     def webapp_enabled(self) -> bool:
         """Mini App включён, если задан публичный URL."""
@@ -282,3 +290,24 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+    @property
+    def stars_payment_enabled(self) -> bool:
+        """Telegram Stars оплата подписки включена."""
+        return bool(self.stars_payment_enabled)
+
+    @property
+    def resolved_stars_subscription_plan_list(self) -> list[tuple[int, int]]:
+        """Варианты подписки в Stars: [(дней, звёзд), ...].
+        Если пусто — Stars-платежи выключены."""
+        plans: list[tuple[int, int]] = []
+        for part in self.stars_subscription_plans.split(","):
+            item = part.strip()
+            if not item or ":" not in item:
+                continue
+            days_text, stars_text = item.split(":", 1)
+            try:
+                plans.append((int(days_text), int(stars_text)))
+            except ValueError:
+                continue
+        return plans
+

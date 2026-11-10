@@ -6,7 +6,7 @@ import logging
 
 from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, Message
 
 from core.analytics import track_event
 
@@ -44,6 +44,12 @@ def premium_keyboard(plans: list[tuple[int, int]], coupon=None) -> InlineKeyboar
                     )
                 ]
             )
+    # Stars-кнопки (если включены)
+    stars_plans = settings.stars_subscription_plan_list  # type: ignore[name-defined]
+    if stars_plans:
+        rows.append(
+            [InlineKeyboardButton(text="⭐ Оплатить звёздами Telegram", callback_data="stars:menu")]
+        )
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -120,3 +126,57 @@ async def cb_premium_buy(callback: CallbackQuery, repo: Repository, settings: Se
     )
     await callback.message.answer(text, reply_markup=keyboard)
     logger.info("premium buy: user=%s days=%s final=%s", user.id, days, final)
+
+
+@router.callback_query(F.data.startswith("stars:pay:"))
+async def cb_stars_pay(callback: CallbackQuery, repo: Repository, settings: Settings) -> None:
+    """Купить подписку через Telegram Stars."""
+    await callback.answer()
+
+    if not settings.stars_payment_enabled:
+        await callback.message.answer(
+            "❌ Оплата через Stars пока недоступна. Попробуйте Kaspi QR через /premium."
+        )
+        return
+
+    days_text = callback.data.removeprefix("stars:pay:")
+    try:
+        days = int(days_text)
+    except ValueError:
+        await callback.message.answer("❌ Некорректный тариф.")
+        return
+
+    plans = settings.resolved_stars_subscription_plan_list
+    plan = next((p for p in plans if p[0] == days), None)
+    if plan is None:
+        await callback.answer("Не найден тариф")
+        return
+
+    user = await repo.get_or_create_user(
+        callback.from_user.id,
+        username=callback.from_user.username,
+        first_name=callback.from_user.first_name,
+    )
+
+    price_stars = plan[1]
+    payload = f"stars:{days}d:{user.id}"
+
+    try:
+        await callback.message.bot.send_invoice(
+            chat_id=callback.from_user.id,
+            title=f"AdaptENG — подписка на {days} дней",
+            description=f"Английский с AI-наставником: подписка на {days} дней",
+            payload=payload,
+            provider_token="",  # пусто для Telegram Stars
+            currency="XTR",  # Telegram Stars
+            prices=[LabeledPrice(label=f"Подписка {days} дн.", amount=price_stars)],
+            start_parameter="stars_subscription",
+        )
+    except Exception:
+        logger.exception("Stars-инвойс не отправлен: user=%s days=%s", user.id, days)
+        await callback.message.answer(
+            "❌ Не удалось выставить счёт. Попробуйте позже или напишите @Napaleonwww"
+        )
+        return
+
+    logger.info("Stars-инвойс отправлен: user=%s days=%s stars=%s", user.id, days, price_stars)

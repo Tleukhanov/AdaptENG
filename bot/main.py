@@ -44,6 +44,7 @@ from .handlers.leaderboard import router as leaderboard_router
 from .handlers.promo import router as promo_router
 from .handlers.wheel import router as wheel_router
 from .handlers.premium import router as premium_router
+from .handlers.stars import router as stars_router
 from .handlers.kaspi import router as kaspi_router
 from .handlers.admin import router as admin_router
 from .lessons import router as lessons_router
@@ -261,6 +262,7 @@ async def main() -> None:
     dp.include_router(promo_router)
     dp.include_router(wheel_router)
     dp.include_router(premium_router)
+    dp.include_router(stars_router)
     dp.include_router(kaspi_router)
     dp.include_router(admin_router)
     dp.include_router(text.router)
