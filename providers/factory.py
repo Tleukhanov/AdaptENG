@@ -30,8 +30,10 @@ def create_llm(settings: Settings) -> LLMProvider:
     )
 
 
-def create_stt(settings: Settings) -> STTProvider:
+def create_stt(settings: Settings) -> STTProvider | None:
     provider = settings.stt_provider.lower()
+    if provider in ("off", "none", "disabled", ""):
+        return None
     if provider == "faster-whisper":
         from .stt_faster_whisper import FasterWhisperProvider
 
