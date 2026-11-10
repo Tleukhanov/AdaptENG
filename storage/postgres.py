@@ -294,6 +294,42 @@ class PostgresRepository(Repository):
         async with self._acquire() as conn:
             return await conn.fetchval("SELECT level FROM users WHERE id = $1", user_id)
 
+    async def set_blocked(self, user_id: int, value: bool) -> None:
+        async with self._acquire() as conn:
+            await conn.execute("UPDATE users SET blocked = $1 WHERE id = $2", 1 if value else 0, user_id)
+            await conn.commit()
+
+    async def admin_list_users(self, limit: int, offset: int, search: str | None = None) -> list[UserRow]:
+        async with self._acquire() as conn:
+            params = ()
+            sql = "SELECT id, tg_id, username, first_name, level, unlimited, email, email_verified_at, reminders_enabled, created_at, blocked FROM users"
+            if search:
+                like = f"%{search}%"
+                sql += " WHERE username LIKE $1 OR first_name LIKE $2 OR email LIKE $3"
+                params = (like, like, like)
+            sql += " ORDER BY id DESC LIMIT $3 OFFSET $4"
+            params = (*params, int(limit), int(offset))
+            cursor = await conn.execute(_adopt(sql), *params)
+            return [self._user_from_row(row) for row in await cursor.fetchall()]
+
+    async def admin_count_users(self, search: str | None = None) -> int:
+        async with self._acquire() as conn:
+            sql = "SELECT COUNT(*) FROM users"
+            params: tuple = ()
+            if search:
+                like = f"%{search}%"
+                sql += " WHERE username LIKE $1 OR first_name LIKE $2 OR email LIKE $3"
+                params = (like, like, like)
+            cursor = await conn.execute(_adopt(sql), *params)
+            return cursor.fetchone()[0]
+
+    async def get_all_subscriptions(self) -> list[Subscription]:
+        async with self._acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT id, user_id, plan_days, granted_at, expires_at FROM subscriptions ORDER BY id DESC"
+            )
+            return [Subscription(id=row["id"], user_id=row["user_id"], plan_days=row["plan_days"], granted_at=row["granted_at"], expires_at=row["expires_at"]) for row in rows]
+
     # ---------- квота LLM ----------
 
     async def get_unlimited_status(self, user_id: int) -> bool:

@@ -22,6 +22,9 @@ from storage import create_repository
 from .loadguard import ActionThrottle, AsyncQueueGuard, ClientWindowLimiter
 from .ratelimit import RateLimitMiddleware
 from .routers import (
+    admin,
+
+    admin,
     analytics,
     auth,
     characters,
@@ -188,6 +191,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(voice.router)
     app.include_router(progress.router)
     app.include_router(analytics.router)
+    app.include_router(admin.router)
     app.include_router(diagnostic.router)
     app.include_router(tutor.router)
     app.include_router(vocab.router)

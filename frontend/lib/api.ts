@@ -930,3 +930,103 @@ export async function assessPronunciation(
   }
   return (await response.json()) as PronunciationAssessment;
 }
+
+// ---------- Админ-панель: пользователи ----------
+
+export type AdminUserListItem = {
+  id: number;
+  tg_id?: number | null;
+  username?: string | null;
+  first_name?: string | null;
+  email: string;
+  level?: string | null;
+  character?: string;
+  interests: string[];
+  quota_left?: number | null;
+  quota_total?: number | null;
+  llm_daily_limit: int;
+  is_unlimited: boolean;
+  blocked: boolean;
+  created_at: string | null;
+  subscription_status: 'active' | 'expired' | 'none';
+  subscription_expires_at?: string | null;
+};
+
+export type AdminUserListResponse = {
+  users: AdminUserListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type AdminSubscriptionStatus = 'active' | 'expired' | 'none';
+
+export type UserDetailResponse = {
+  user: AdminUserListItem;
+  stats: {
+    total_turns: number;
+    correct: number;
+    errors: number;
+    top_categories: [string, number][];
+  };
+  subscription: {
+    plan_days: number;
+    granted_at: string;
+    expires_at: string;
+    is_active: boolean;
+  } | null;
+  recent_activity: Array<{
+    type: string;
+    title: string;
+    created_at: string;
+  }>;
+};
+
+export type SubscriptionGrantRequest = {
+  plan_days: number;
+};
+
+export type BlockToggleRequest = {
+  blocked: boolean;
+};
+
+export async function getAdminUsers({
+  limit = 50,
+  offset = 0,
+  search,
+  subscription,
+}: {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  subscription?: 'active' | 'expired' | 'none';
+}): Promise<AdminUserListResponse> {
+  const qs = new URLSearchParams();
+  qs.set('limit', String(limit));
+  qs.set('offset', String(offset));
+  if (search) qs.set('search', search);
+  if (subscription) qs.set('subscription', subscription);
+  return apiFetch<AdminUserListResponse>(`/api/admin/users?${qs}`);
+}
+
+export async function getAdminUser(userId: number): Promise<UserDetailResponse> {
+  return apiFetch<UserDetailResponse>(`/api/admin/users/${userId}`);
+}
+
+export async function grantSubscription(userId: number, planDays: number): Promise<{ ok: boolean; expires_at: string; plan_days: number }> {
+  return apiFetch(`/api/admin/users/${user_id}/subscription`, {
+    method: 'PUT',
+    body: { plan_days: planDays },
+  });
+}
+
+export async function toggleBlock(userId: number, blocked: boolean): Promise<{ ok: boolean; blocked: boolean }> {
+  return apiFetch(`/api/admin/users/${user_id}/block`, {
+    method: 'PUT',
+    body: { blocked },
+  });
+}
+
+export async function deleteUser(userId: number): Promise<{ ok: boolean }> {
+  return apiFetch(`/api/admin/users/${user_id}`, { method: 'DELETE' });
+}

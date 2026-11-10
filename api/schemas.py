@@ -626,3 +626,120 @@ class TutorFinishResponse(BaseModel):
 class ApiError(BaseModel):
     ok: bool = False
     error: str
+
+# ---------- Админ-панель: управление пользователями ----------
+
+
+class UserListItem(BaseModel):
+    """Одна строка в таблице пользователей админ-панели."""
+
+    id: int
+    tg_id: int | None = None
+    username: str | None = None
+    first_name: str | None = None
+    email: str = ""
+    level: str | None = None
+    character: str = ""
+    interests: list[str] = Field(default_factory=list)
+    quota_left: int | None = None
+    quota_total: int | None = None
+    llm_daily_limit: int = 0
+    is_unlimited: bool = False
+    blocked: bool = False
+    created_at: str = ""
+    last_activity: str | None = None
+    subscription_status: str = "none"   # active | expired | none
+    subscription_expires_at: str | None = None
+
+
+class UserListResponse(BaseModel):
+    users: list[UserListItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class UserDetailResponse(BaseModel):
+    """Детальная страница пользователя в админ-панели."""
+
+    user: UserListItem
+    stats: dict[str, Any]
+    subscription: dict[str, Any] | None = None
+    recent_activity: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class SubscriptionGrantRequest(BaseModel):
+    """Выдать/продлить подписку пользователю."""
+
+    plan_days: int = Field(gt=0, le=365)
+
+
+class BlockToggleRequest(BaseModel):
+    """Заблокировать/разблокировать пользователя."""
+
+    blocked: bool
+
+
+class UserBlockResponse(BaseModel):
+    ok: bool = True
+    blocked: bool
+
+
+
+# ---------- Админ-панель: управление пользователями ----------
+
+
+class UserListItem(BaseModel):
+    """Одна строка в таблице пользователей админ-панели."""
+
+    id: int
+    tg_id: int | None = None
+    username: str | None = None
+    first_name: str | None = None
+    email: str = ""
+    level: str | None = None
+    character: str = ""
+    interests: list[str] = Field(default_factory=list)
+    quota_left: int | None = None
+    quota_total: int | None = None
+    llm_daily_limit: int = 0
+    is_unlimited: bool = False
+    blocked: bool = False
+    created_at: str = ""
+    last_activity: str | None = None
+    subscription_status: str = "none"   # active | expired | none
+    subscription_expires_at: str | None = None
+
+
+class UserListResponse(BaseModel):
+    users: list[UserListItem]
+    total: int
+    limit: int
+    offset: int
+
+
+class UserDetailResponse(BaseModel):
+    """Детальная страница пользователя в админ-панели."""
+
+    user: UserListItem
+    stats: dict[str, Any]
+    subscription: dict[str, Any] | None = None
+    recent_activity: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class SubscriptionGrantRequest(BaseModel):
+    """Выдать/продлить подписку пользователю."""
+
+    plan_days: int = Field(gt=0, le=365)
+
+
+class BlockToggleRequest(BaseModel):
+    """Заблокировать/разблокировать пользователя."""
+
+    blocked: bool
+
+
+class UserBlockResponse(BaseModel):
+    ok: bool = True
+    blocked: bool
+

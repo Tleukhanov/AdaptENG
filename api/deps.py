@@ -141,6 +141,30 @@ async def current_user(repo: Repository, user_id: int):
     return user
 
 
+async def require_admin(
+    user: UserRow = Depends(current_user),
+    settings: Settings = Depends(get_settings_dep),
+) -> UserRow:
+    """Проверяет, что пользователь является администратором.
+
+    Администратором считается пользователь с tg_id из ADMIN_TG_ID
+    или email из ADMIN_EMAILS.
+    """
+    admin_id = int(getattr(settings, "admin_tg_id", 0) or 0)
+    admin_emails = {
+        item.strip().lower()
+        for item in (getattr(settings, "admin_emails", "") or "").split(",")
+        if item.strip()
+    }
+    if admin_id <= 0 and not admin_emails:
+        raise HTTPException(status_code=404, detail="Административный доступ выключен")
+    if user.tg_id and admin_id and user.tg_id == admin_id:
+        return user
+    if user.email and user.email.lower() in admin_emails:
+        return user
+    raise HTTPException(status_code=403, detail="Нужен доступ администратора")
+
+
 def resolve_locale(request: Request) -> str:
     """Локаль ответа api: явный ``?lang=`` или ``Accept-Language``, по умолчанию ru."""
     lang = request.query_params.get("lang")

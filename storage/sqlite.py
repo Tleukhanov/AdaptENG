@@ -296,6 +296,11 @@ class SQLiteRepository(Repository):
         await conn.execute("UPDATE users SET unlimited = ? WHERE id = ?", (1 if value else 0, user_id))
         await conn.commit()
 
+    async def set_blocked(self, user_id: int, value: bool) -> None:
+        conn = self._require_conn()
+        await conn.execute("UPDATE users SET blocked = ? WHERE id = ?", (1 if value else 0, user_id))
+        await conn.commit()
+
     async def get_llm_usage(self, user_id: int, day: str) -> int:
         conn = self._require_conn()
         cursor = await conn.execute(
@@ -1731,6 +1736,32 @@ class SQLiteRepository(Repository):
             "email_verified_at, reminders_enabled, created_at FROM users"
         )
         return [_user_from_row(row) for row in await cursor.fetchall()]
+
+    async def admin_list_users(self, limit: int, offset: int, search: str | None = None) -> list[UserRow]:
+        conn = self._require_conn()
+        params: tuple = ()
+        sql = (
+            "SELECT id, tg_id, username, first_name, level, unlimited, email, email_verified_at, reminders_enabled, created_at, blocked FROM users"
+        )
+        if search:
+            like = f"%{search}%"
+            sql += " WHERE username LIKE ? OR first_name LIKE ? OR email LIKE ?"
+            params = (like, like, like)
+        sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+        params = (*params, int(limit), int(offset))
+        cursor = await conn.execute(sql, params)
+        return [_user_from_row(row) for row in await cursor.fetchall()]
+
+    async def admin_count_users(self, search: str | None = None) -> int:
+        conn = self._require_conn()
+        sql = "SELECT COUNT(*) FROM users"
+        params: tuple = ()
+        if search:
+            like = f"%{search}%"
+            sql += " WHERE username LIKE ? OR first_name LIKE ? OR email LIKE ?"
+            params = (like, like, like)
+        cursor = await conn.execute(sql, params)
+        return cursor.fetchone()[0]
 
     # ---------- лидерборд ----------
 

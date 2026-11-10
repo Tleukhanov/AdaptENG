@@ -19,6 +19,7 @@ class UserRow:
     # Согласие на ежедневные email-напоминания (users.reminders_enabled).
     reminders_enabled: bool = True
     created_at: str = ""  # ISO-время регистрации (нужно напоминаниям)
+    blocked: bool = False  # админская блокировка аккаунта (вход запрещён)
 
 
 @dataclass
