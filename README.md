@@ -310,3 +310,8 @@ p95 генерации урока 5.8 с.
 Сделано с ❤️ и большим количеством кофе.
 
 </div>
+
+---
+
+**Build. Learn. Understand.**
+© Ералы Тлеуханов · [tleukhanov.me](https://tleukhanov.me)
