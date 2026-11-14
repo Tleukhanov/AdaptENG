@@ -167,6 +167,13 @@ async def _m005_users_reminders_enabled(db: MigrationDB) -> None:
         )
 
 
+async def _m006_users_blocked(db: MigrationDB) -> None:
+    """users: blocked — админская блокировка аккаунта (вход запрещён)."""
+    names = {name for name, _ in await db.columns("users")}
+    if "blocked" not in names:
+        await db.execute(["ALTER TABLE users ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0"])
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(version=1, name="users_email_password", run=_m001_users_email_password),
     Migration(
@@ -184,6 +191,11 @@ MIGRATIONS: tuple[Migration, ...] = (
         version=5,
         name="users_reminders_enabled",
         run=_m005_users_reminders_enabled,
+    ),
+    Migration(
+        version=6,
+        name="users_blocked",
+        run=_m006_users_blocked,
     ),
 )
 

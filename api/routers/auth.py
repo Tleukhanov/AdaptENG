@@ -321,6 +321,8 @@ async def login(
         _register_failure(email)
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
     _clear_failures(email)
+    if user.blocked:
+        raise HTTPException(status_code=403, detail="Аккаунт заблокирован администратором")
 
     profile = await repo.get_profile(user.id)
     public = await build_user_public(repo, user, profile, settings)
@@ -362,6 +364,8 @@ async def auth_tg(
     first_name = verified.get("first_name") or None
 
     user = await repo.get_or_create_user(tg_id, username=username, first_name=first_name)
+    if user.blocked:
+        raise HTTPException(status_code=403, detail="Аккаунт заблокирован администратором")
     profile = await repo.get_profile(user.id)
     public = await build_user_public(repo, user, profile, settings)
 

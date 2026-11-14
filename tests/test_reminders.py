@@ -345,19 +345,21 @@ async def test_migration_v5_adds_reminders_enabled_on_old_schema(tmp_path):
     await conn.commit()
 
     applied = await apply_migrations(_SQLiteMigrationDB(conn))
-    assert applied == [5]
+    assert applied == [5, 6]
 
     cursor = await conn.execute("PRAGMA table_info(users)")
     columns = {row["name"] for row in await cursor.fetchall()}
     assert "reminders_enabled" in columns
+    assert "blocked" in columns
 
     # Существующая строка получает дефолт 1 и не теряется.
     cursor = await conn.execute(
-        "SELECT email, reminders_enabled FROM users WHERE id = 1"
+        "SELECT email, reminders_enabled, blocked FROM users WHERE id = 1"
     )
     row = await cursor.fetchone()
     assert row["email"] == "old@example.com"
     assert row["reminders_enabled"] == 1
+    assert row["blocked"] == 0
 
     cursor = await conn.execute("SELECT name FROM schema_migrations WHERE version = 5")
     row = await cursor.fetchone()

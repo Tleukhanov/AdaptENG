@@ -67,6 +67,7 @@ def _user_from_row(row) -> UserRow:
             bool(row["reminders_enabled"]) if "reminders_enabled" in keys else True
         ),
         created_at=row["created_at"] if "created_at" in keys else "",
+        blocked=bool(row["blocked"]) if "blocked" in keys else False,
     )
 
 
@@ -95,6 +96,10 @@ class SQLiteRepository(Repository):
             await self._conn.execute("ALTER TABLE users ADD COLUMN level TEXT")
         if "unlimited" not in columns:
             await self._conn.execute("ALTER TABLE users ADD COLUMN unlimited INTEGER NOT NULL DEFAULT 0")
+        if "blocked" not in columns:
+            await self._conn.execute(
+                "ALTER TABLE users ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0"
+            )
 
         cursor = await self._conn.execute("PRAGMA table_info(messages)")
         columns = {row["name"] for row in await cursor.fetchall()}
@@ -160,7 +165,7 @@ class SQLiteRepository(Repository):
         conn = self._require_conn()
         cursor = await conn.execute(
             "SELECT id, tg_id, username, first_name, level, unlimited, email, "
-            "email_verified_at, reminders_enabled, created_at "
+            "email_verified_at, reminders_enabled, created_at, blocked "
             "FROM users WHERE id = ?",
             (user_id,),
         )
@@ -175,7 +180,7 @@ class SQLiteRepository(Repository):
         conn = self._require_conn()
         cursor = await conn.execute(
             "SELECT id, tg_id, username, first_name, level, unlimited, email, "
-            "email_verified_at, reminders_enabled, created_at "
+            "email_verified_at, reminders_enabled, created_at, blocked "
             "FROM users WHERE email = ?",
             (email,),
         )
@@ -188,7 +193,7 @@ class SQLiteRepository(Repository):
         conn = self._require_conn()
         cursor = await conn.execute(
             "SELECT id, tg_id, username, first_name, level, unlimited, email, "
-            "email_verified_at, reminders_enabled, created_at "
+            "email_verified_at, reminders_enabled, created_at, blocked "
             "FROM users WHERE tg_id = ?",
             (tg_id,),
         )
@@ -1761,7 +1766,8 @@ class SQLiteRepository(Repository):
             sql += " WHERE username LIKE ? OR first_name LIKE ? OR email LIKE ?"
             params = (like, like, like)
         cursor = await conn.execute(sql, params)
-        return cursor.fetchone()[0]
+        row = await cursor.fetchone()
+        return int(row[0]) if row else 0
 
     # ---------- лидерборд ----------
 

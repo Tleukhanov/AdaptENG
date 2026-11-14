@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT,
     password_hash TEXT,
     email_verified_at TEXT,
-    reminders_enabled INTEGER NOT NULL DEFAULT 1
+    reminders_enabled INTEGER NOT NULL DEFAULT 1,
+    blocked INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS messages (

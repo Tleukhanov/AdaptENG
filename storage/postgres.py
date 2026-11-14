@@ -174,6 +174,7 @@ class PostgresRepository(Repository):
                 bool(row["reminders_enabled"]) if "reminders_enabled" in keys else True
             ),
             created_at=row["created_at"] if "created_at" in keys else "",
+            blocked=bool(row["blocked"]) if "blocked" in keys else False,
         )
 
     async def get_user(self, user_id: int) -> UserRow | None:
@@ -181,7 +182,7 @@ class PostgresRepository(Repository):
             row = await conn.fetchrow(
                 _adopt(
                     "SELECT id, tg_id, username, first_name, level, unlimited, email, "
-                    "email_verified_at, reminders_enabled, created_at "
+                    "email_verified_at, reminders_enabled, created_at, blocked "
                     "FROM users WHERE id = ?"
                 ),
                 user_id,
@@ -194,7 +195,7 @@ class PostgresRepository(Repository):
         async with self._acquire() as conn:
             row = await conn.fetchrow(
                 "SELECT id, tg_id, username, first_name, level, unlimited, email, "
-                "email_verified_at, reminders_enabled, created_at "
+                "email_verified_at, reminders_enabled, created_at, blocked "
                 "FROM users WHERE email = $1",
                 email,
             )
@@ -204,7 +205,7 @@ class PostgresRepository(Repository):
         async with self._acquire() as conn:
             row = await conn.fetchrow(
                 "SELECT id, tg_id, username, first_name, level, unlimited, email, "
-                "email_verified_at, reminders_enabled, created_at "
+                "email_verified_at, reminders_enabled, created_at, blocked "
                 "FROM users WHERE tg_id = $1",
                 tg_id,
             )
@@ -301,34 +302,30 @@ class PostgresRepository(Repository):
 
     async def admin_list_users(self, limit: int, offset: int, search: str | None = None) -> list[UserRow]:
         async with self._acquire() as conn:
-            params = ()
-            sql = "SELECT id, tg_id, username, first_name, level, unlimited, email, email_verified_at, reminders_enabled, created_at, blocked FROM users"
+            params: list = []
+            sql = (
+                "SELECT id, tg_id, username, first_name, level, unlimited, email, "
+                "email_verified_at, reminders_enabled, created_at, blocked FROM users"
+            )
             if search:
                 like = f"%{search}%"
-                sql += " WHERE username LIKE $1 OR first_name LIKE $2 OR email LIKE $3"
-                params = (like, like, like)
-            sql += " ORDER BY id DESC LIMIT $3 OFFSET $4"
-            params = (*params, int(limit), int(offset))
-            cursor = await conn.execute(_adopt(sql), *params)
-            return [self._user_from_row(row) for row in await cursor.fetchall()]
+                sql += " WHERE username ILIKE ? OR first_name ILIKE ? OR email ILIKE ?"
+                params.extend([like, like, like])
+            sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+            params.extend([int(limit), int(offset)])
+            rows = await conn.fetch(_adopt(sql), *params)
+            return [self._user_from_row(row) for row in rows]
 
     async def admin_count_users(self, search: str | None = None) -> int:
         async with self._acquire() as conn:
             sql = "SELECT COUNT(*) FROM users"
-            params: tuple = ()
+            params: list = []
             if search:
                 like = f"%{search}%"
-                sql += " WHERE username LIKE $1 OR first_name LIKE $2 OR email LIKE $3"
-                params = (like, like, like)
-            cursor = await conn.execute(_adopt(sql), *params)
-            return cursor.fetchone()[0]
-
-    async def get_all_subscriptions(self) -> list[Subscription]:
-        async with self._acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT id, user_id, plan_days, granted_at, expires_at FROM subscriptions ORDER BY id DESC"
-            )
-            return [Subscription(id=row["id"], user_id=row["user_id"], plan_days=row["plan_days"], granted_at=row["granted_at"], expires_at=row["expires_at"]) for row in rows]
+                sql += " WHERE username ILIKE ? OR first_name ILIKE ? OR email ILIKE ?"
+                params.extend([like, like, like])
+            value = await conn.fetchval(_adopt(sql), *params)
+            return int(value or 0)
 
     # ---------- квота LLM ----------
 

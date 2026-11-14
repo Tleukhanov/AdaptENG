@@ -461,8 +461,8 @@ async def test_migration_v3_creates_tutor_sessions_on_old_schema(tmp_path):
 
     applied = await apply_migrations(_SQLiteMigrationDB(conn))
     # v3 создаёт tutor_sessions, v4 добавляет users.email_verified_at,
-    # v5 — users.reminders_enabled.
-    assert applied == [3, 4, 5]
+    # v5 — users.reminders_enabled, v6 — users.blocked.
+    assert applied == [3, 4, 5, 6]
 
     cursor = await conn.execute("PRAGMA table_info(tutor_sessions)")
     columns = {row["name"] for row in await cursor.fetchall()}
