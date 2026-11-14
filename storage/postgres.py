@@ -298,7 +298,6 @@ class PostgresRepository(Repository):
     async def set_blocked(self, user_id: int, value: bool) -> None:
         async with self._acquire() as conn:
             await conn.execute("UPDATE users SET blocked = $1 WHERE id = $2", 1 if value else 0, user_id)
-            await conn.commit()
 
     async def admin_list_users(self, limit: int, offset: int, search: str | None = None) -> list[UserRow]:
         async with self._acquire() as conn:
