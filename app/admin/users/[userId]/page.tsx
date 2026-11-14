@@ -1,432 +1,394 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { getAdminUser, grantSubscription, toggleBlock, deleteUser, type AdminUserDetail } from '@/lib/api';
+import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import {
+  ApiError,
+  deleteUser,
+  getAdminUser,
+  grantSubscription,
+  toggleBlock,
+  type UserDetailResponse,
+} from '@/lib/api';
 import { useSession } from '@/lib/session';
 
+const PRIMARY =
+  'inline-flex items-center justify-center rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50';
 const GHOST =
-  'inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-slate-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40';
+  'inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50';
+const DANGER =
+  'inline-flex items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50';
 
-export default function AdminUserPage() {
-  const t = useTranslations('admin.users');
-  const router = useRouter();
-  const { user } = useSession();
+type Status = 'loading' | 'ready' | 'notfound' | 'denied' | 'error' | 'unauth';
 
-  const [userData, setUserData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [blocking, setBlocking] = useState(false);
-  const [granting, setGranting] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const loadUser = useCallback(async () => {
-    if (sessionLoading) return;
-    setLoading(true);
-    try {
-      const data = await getAdminUser(userId);
-      setUserData(data);
-    } catch (err) {
-      console.error('Failed to load user', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, sessionLoading]);
-
-  useEffect(() => {
-    loadUser();
-  }, [loadUser, userId]);
-
-  const handleGrant = async (days: number) => {
-    setGranting(true);
-    try {
-      await grantSubscription(userId, days);
-      void loadUser();
-    } catch (err) {
-      console.error('Failed to grant subscription', err);
-    } finally {
-      setGranting(false);
-    }
-  };
-
-  const handleBlock = async (blocked: boolean) => {
-    setBlocking(true);
-    try {
-      await toggleBlock(userId, blocked);
-      void loadUser();
-    } catch (err) {
-      console.error('Failed to toggle block', err);
-    } finally {
-      setBlocking(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm(t('admin.users.confirmDelete'))) return;
-    setDeleting(true);
-    try {
-      await deleteUser(userId);
-      router.push('/admin/users');
-    } catch (err) {
-      console.error('Failed to delete user', err);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  if (sessionLoading) return null;
-  if (!user) {
-    router.replace('/login');
-    return null;
-  }
-
-  const u = userData?.user;
-  const stats = userData?.stats;
-  const sub = userData?.subscription;
-  const recentActivity = userData?.recentActivity || [];
-
-  if (!u || loading) {
-    return (
-      <main className="mx-auto max-w-7xl px-4 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{t('admin.users.title')}</h1>
-            <Link href="/admin/users" className={GHOST}>
-              {t('admin.back')}
-            </Link>
-          </div>
-        </div>
-        <div className="mt-8 flex justify-center items-center min-h-[200px]">
-          <p className="text-sm text-slate-400">{t('admin.users.loading')}</p>
-        </div>
-      </div>
-    </main>
-  );
+function formatDate(value?: string | null): string {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
-const formatDate = (dateString?: string | null) => {
-  if (!dateString) return '—';
-  try {
-    return new Date(dateString).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return dateString;
-  }
-};
-
-export default function AdminUserPage() {
-  const t = useTranslations('admin.users');
-  const router = useRouter();
-  const { user } = useSession();
-
-  const [userData, setUserData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [blocking, setBlocking] = useState(false);
-  const [granting, setGranting] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const loadUser = useCallback(async () => {
-    if (sessionLoading) return;
-    setLoading(true);
-    try {
-      const data = await getAdminUser(userId);
-      setUserData(data);
-    } catch (err) {
-      console.error('Failed to load user', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, sessionLoading]);
-
-  useEffect(() => {
-    loadUser();
-  }, [loadUser, userId]);
-
-  const handleGrant = async (days: number) => {
-    setGranting(true);
-    try {
-      await grantSubscription(userId, days);
-      void loadUser();
-    } catch (err) {
-      console.error('Failed to grant subscription', err);
-    } finally {
-      setGranting(false);
-    }
-  };
-
-  const handleBlock = async (blocked: boolean) => {
-    setBlocking(true);
-    try {
-      await toggleBlock(userId, blocked);
-      void loadUser();
-    } catch (err) {
-      console.error('Failed to toggle block', err);
-    } finally {
-      setBlocking(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm(t('admin.users.confirmDelete'))) return;
-    setDeleting(true);
-    try {
-      await deleteUser(userId);
-      router.push('/admin/users');
-    } catch (err) {
-      console.error('Failed to delete user', err);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  if (sessionLoading) return null;
-  if (!user) {
-    router.replace('/login');
-    return null;
-  }
-
-  const u = userData?.user;
-  const stats = userData?.stats;
-  const sub = userData?.subscription;
-  const recentActivity = userData?.recentActivity || [];
-
-  if (!u || loading) {
-    return (
-      <main className="mx-auto max-w-7xl px-4 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{t('admin.users.title')}</h1>
-            <Link href="/admin/users" className={GHOST}>
-              {t('admin.back')}
-            </Link>
-          </div>
-        </div>
-        <div className="mt-8 flex justify-center items-center min-h-[200px]">
-          <p className="text-sm text-slate-400">{t('admin.users.loading')}</p>
-        </div>
-      </div>
-    </main>
-  );
+function formatDateTime(value?: string | null): string {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
-export default function AdminUserPage() {
-  const t = useTranslations('admin.users');
-  const router = useRouter();
-  const { user } = useSession();
-
-  const [userData, setUserData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [blocking, setBlocking] = useState(false);
-  const [granting, setGranting] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const loadUser = useCallback(async () => {
-    if (sessionLoading) return;
-    setLoading(true);
-    try {
-      const data = await getAdminUser(userId);
-      setUserData(data);
-    } catch (err) {
-      console.error('Failed to load user', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, sessionLoading]);
-
-  useEffect(() => {
-    loadUser();
-  }, [loadUser, userId]);
-
-  const handleGrant = async (days: number) => {
-    setGranting(true);
-    try {
-      await grantSubscription(userId, days);
-      void loadUser();
-    } catch (err) {
-      console.error('Failed to grant subscription', err);
-    } finally {
-      setGranting(false);
-    }
-  };
-
-  const handleBlock = async (blocked: boolean) => {
-    setBlocking(true);
-    try {
-      await toggleBlock(userId, blocked);
-      void loadUser();
-    } catch (err) {
-      console.error('Failed to toggle block', err);
-    } finally {
-      setBlocking(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm(t('admin.users.confirmDelete'))) return;
-    setDeleting(true);
-    try {
-      await deleteUser(userId);
-      router.push('/admin/users');
-    } catch (err) {
-      console.error('Failed to delete user', err);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  if (sessionLoading) return null;
-  if (!user) {
-    router.replace('/login');
-    return null;
-  }
-
-  const u = userData?.user;
-  const stats = userData?.stats;
-  const sub = userData?.subscription;
-  const recentActivity = userData?.recentActivity || [];
-
+function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">{t('admin.users.title')}</h1>
-          <Link href="/admin/users" className={GHOST}>
-            {t('admin.back')}
+    <div className="panel-muted p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-2 text-sm text-slate-200">{value}</p>
+    </div>
+  );
+}
+
+export default function AdminUserPage() {
+  const t = useTranslations('admin');
+  const router = useRouter();
+  const params = useParams<{ userId: string }>();
+  const userId = Number.parseInt(String(params?.userId ?? ''), 10);
+  const { user, loading: sessionLoading } = useSession();
+
+  const [status, setStatus] = useState<Status>('loading');
+  const [data, setData] = useState<UserDetailResponse | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [grantDays, setGrantDays] = useState('7');
+
+  useEffect(() => {
+    if (sessionLoading) return;
+    if (!user) {
+      setStatus('unauth');
+      router.replace('/login');
+      return;
+    }
+    if (!Number.isFinite(userId) || userId <= 0) {
+      setStatus('notfound');
+      return;
+    }
+    let active = true;
+    setStatus('loading');
+    setError('');
+    (async () => {
+      try {
+        const result = await getAdminUser(userId);
+        if (!active) return;
+        setData(result);
+        setStatus('ready');
+      } catch (err) {
+        if (!active) return;
+        if (err instanceof ApiError && err.status === 401) {
+          setStatus('unauth');
+          router.replace('/login');
+          return;
+        }
+        if (err instanceof ApiError && err.status === 403) {
+          setStatus('denied');
+          return;
+        }
+        if (err instanceof ApiError && err.status === 404) {
+          setStatus('notfound');
+          return;
+        }
+        setError(err instanceof ApiError ? err.message : String(err));
+        setStatus('error');
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [reloadKey, router, sessionLoading, userId, user]);
+
+  const reload = () => setReloadKey((key) => key + 1);
+
+  const handleGrant = async (daysOverride?: number) => {
+    const days = daysOverride ?? Number.parseInt(grantDays, 10);
+    if (!Number.isFinite(days) || days <= 0) {
+      setError(t('users.grant.invalid'));
+      return;
+    }
+    setBusy(true);
+    try {
+      await grantSubscription(userId, days);
+      reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleToggleBlock = async () => {
+    if (!data) return;
+    setBusy(true);
+    try {
+      await toggleBlock(userId, !data.user.blocked);
+      reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(t('users.confirm.delete'))) return;
+    setBusy(true);
+    try {
+      await deleteUser(userId);
+      router.push('/admin/users');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (status === 'unauth') {
+    return (
+      <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] px-4 py-10">
+        <div className="mx-auto max-w-md text-center">
+          <h1 className="text-2xl font-bold text-white">{t('needLogin')}</h1>
+          <Link href="/login" className={`mt-6 ${PRIMARY}`}>
+            {t('toLogin')}
           </Link>
         </div>
-        <div className="mt-2 text-sm text-slate-400">
-          {u.email} ({u.tg_id ? 'TG: ' + u.tg_id : 'без Telegram'})
-        </div>
-      </div>
+      </main>
+    );
+  }
 
-      <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="p-4 rounded-xl border border-white/10 bg-white/5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            {t('admin.users.column.level')}
-          </p>
-          <p className="mt-2 text-sm text-slate-200">{u.level || '—'}</p>
+  if (status === 'denied' || status === 'notfound' || status === 'error') {
+    return (
+      <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] px-4 py-10">
+        <div className="panel mx-auto max-w-md p-8 text-center">
+          <h1 className="text-xl font-bold text-white">
+            {status === 'denied'
+              ? t('deniedTitle')
+              : status === 'notfound'
+                ? t('users.detail.not_found')
+                : t('error')}
+          </h1>
+          {status === 'error' && error ? (
+            <p className="mt-2 text-sm text-red-200">{error}</p>
+          ) : null}
+          <Link href="/admin/users" className={`mt-6 ${PRIMARY}`}>
+            {t('users.back')}
+          </Link>
         </div>
-        <div className="p-4 rounded-xl border border-white/10 bg-white/5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            {t('admin.users.column.interests')}
-          </p>
-          <p className="mt-2 text-sm text-slate-200">
-            {u.interests?.join(', ') || '—'}
-          </p>
-        </div>
-        <div className="p-4 rounded-xl border border-white/10 bg-white/5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            {t('admin.users.column.quota')}
-          </p>
-          <p className="mt-2 text-sm text-slate-200">
-            {u.quota_left ?? '—'}{u.quota_total ? ' / ' + u.quota_total : ''}
-          </p>
-        </div>
-        <div className="p-4 rounded-xl border border-white/10 bg-white/5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            {t('admin.users.column.created')}
-          </p>
-          <p className="mt-2 text-sm text-slate-200">{formatDate(u.createdAt)}</p>
-        </div>
-      </div>
+      </main>
+    );
+  }
 
-      <div className="mt-6 grid gap-6 sm:grid-cols-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            {t('admin.users.column.totalTurns')}
-          </p>
-          <p className="mt-2 text-sm text-slate-200">{stats?.total_turns ?? 0}</p>
+  if (status === 'loading' || !data) {
+    return (
+      <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] px-4 py-10">
+        <div className="mx-auto max-w-5xl">
+          <p className="text-sm text-slate-400">{t('users.loading')}</p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            {t('admin.users.column.correct')}
-          </p>
-          <p className="mt-2 text-sm text-slate-200">{stats?.correct ?? 0}</p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            {t('admin.users.column.errors')}
-          </p>
-          <p className="mt-2 text-sm text-slate-200">{stats?.errors ?? 0}</p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            {t('admin.users.column.weak')}
-          </p>
-          <p className="mt-2 text-sm text-slate-200">{stats?.weak_areas?.length ?? 0}</p>
-        </div>
-      </div>
+      </main>
+    );
+  }
 
-      <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+  const u = data.user;
+  const stats = data.stats;
+  const sub = data.subscription;
+  const name = u.first_name?.trim() || u.username?.trim() || u.email || `#${u.id}`;
+
+  return (
+    <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] px-4 py-10">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">{t('admin.users.subscription')}</h1>
-            <p className="mt-1 text-sm text-slate-400">{t('admin.users.subscriptionLabel')}</p>
-          </div>
-          <div className="flex gap-2">
-            {sub ? (
-              <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-500">
-                {t('admin.users.subscription.active')} &nbsp;•&nbsp; {formatDate(sub.expires_at)}
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {t('users.detail.id', { id: u.id })}
+            </p>
+            <h1 className="mt-1 text-3xl font-bold text-white">{name}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-400">
+              {u.email ? <span>{u.email}</span> : null}
+              <span>·</span>
+              <span>
+                {u.tg_id ? `TG ${u.tg_id}` : t('users.no_telegram')}
               </span>
-            ) : (
-              <span className="inline-flex rounded-full px-3 py-1 text-xs font-semibold text-white bg-slate-500/20">
-                {t('admin.users.subscription.none')}
+              <span>·</span>
+              <span
+                className={
+                  u.blocked
+                    ? 'rounded-full border border-red-400/30 bg-red-500/10 px-2 py-0.5 text-[11px] text-red-300'
+                    : 'rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-300'
+                }
+              >
+                {u.blocked ? t('users.status.blocked') : t('users.status_active')}
               </span>
-            )}
+            </div>
           </div>
+          <Link href="/admin/users" className={GHOST}>
+            {t('users.back')}
+          </Link>
         </div>
-        {sub ? (
-          <div className="mt-4 flex flex-wrap gap-4">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                {t('admin.users.subscription.plan')}
-              </p>
-              <p className="mt-2 text-sm text-slate-200">{sub.planDays ?? '—'} {t('admin.users.subscription.days')}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                {t('admin.users.subscription.started')}
-              </p>
-              <p className="mt-2 text-sm text-slate-200">{formatDate(sub.granted_at)}</p>
-            </div>
+
+        {error ? (
+          <div role="alert" className="panel mt-4 border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
+            {error}
           </div>
         ) : null}
-        <div className="mt-6">
-          <button
-            onClick={() => handleGrant(7)}
-            disabled={granting}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {granting ? t('admin.users.granting') : t('admin.users.grant7')}
-          </button>
-          <button
-            onClick={() => handleGrant(30)}
-            disabled={granting}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-500/20 px-5 py-3 text-sm font-semibold text-slate-200 shadow-lg shadow-blue-950/40 transition hover:bg-blue-500/30 disabled:opacity-50"
-          >
-            {t('admin.users.grant30')}
-          </button>
-        </div>
-        <div className="mt-6 flex flex-wrap items-start gap-3">
-          <button
-            onClick={() => handleBlock(!u.blocked)}
-            disabled={blocking}
-            className={`flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm font-semibold transition disabled:opacity-50 ${
-              u.blocked
-                ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
-                : 'bg-slate-500/20 text-slate-500 hover:bg-slate-500/30'
-            }`}
-          >
-            {u.blocked ? t('admin.users.action.unblock') : t('admin.users.action.block')}
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm font-semibold text-red-500 transition hover:bg-red-500/30 disabled:opacity-50"
-          >
-            {t('admin.users.action.delete')}
-          </button>
-        </div>
+
+        <section className="mt-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+            {t('users.detail.info')}
+          </h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <InfoCard label={t('users.column.email')} value={u.email || '—'} />
+            <InfoCard label={t('users.column.tg')} value={u.tg_id ? String(u.tg_id) : '—'} />
+            <InfoCard label={t('users.column.level')} value={u.level || '—'} />
+            <InfoCard label={t('users.column.created')} value={formatDate(u.created_at)} />
+            <InfoCard
+              label={t('users.detail.email_verified')}
+              value={u.email_verified_at ? formatDate(u.email_verified_at) : t('users.no')}
+            />
+            <InfoCard
+              label={t('users.detail.reminders')}
+              value={u.reminders_enabled ? t('users.yes') : t('users.no')}
+            />
+            <InfoCard
+              label={t('users.detail.limit')}
+              value={u.is_unlimited ? t('users.unlimited') : t('users.limited')}
+            />
+            <InfoCard
+              label={t('users.column.subscription')}
+              value={
+                u.subscription_status === 'none'
+                  ? t('users.subscription.none')
+                  : t(`users.subscription.${u.subscription_status}`, {
+                      date: formatDate(u.subscription_expires_at),
+                    })
+              }
+            />
+          </div>
+        </section>
+
+        <section className="mt-6 grid gap-4 lg:grid-cols-2">
+          <div className="panel p-6">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+              {t('users.detail.stats')}
+            </h2>
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <div>
+                <p className="text-2xl font-bold text-sky-300">{stats.total_turns}</p>
+                <p className="mt-1 text-xs text-slate-400">{t('users.stat.total_turns')}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-300">{stats.correct}</p>
+                <p className="mt-1 text-xs text-slate-400">{t('users.stat.correct')}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-red-300">{stats.errors}</p>
+                <p className="mt-1 text-xs text-slate-400">{t('users.stat.errors')}</p>
+              </div>
+            </div>
+            <p className="mt-6 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              {t('users.detail.top_categories')}
+            </p>
+            {stats.top_categories.length > 0 ? (
+              <ul className="mt-2 space-y-1 text-sm text-slate-300">
+                {stats.top_categories.map(([category, count]) => (
+                  <li key={category} className="flex justify-between gap-3">
+                    <span>{category}</span>
+                    <span className="text-slate-400">{count}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500">{t('users.detail.no_stats')}</p>
+            )}
+          </div>
+
+          <div className="panel p-6">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+              {t('users.column.subscription')}
+            </h2>
+            {sub ? (
+              <dl className="mt-4 space-y-2 text-sm text-slate-300">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-slate-400">{t('users.detail.plan_days')}</dt>
+                  <dd>{sub.plan_days}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-slate-400">{t('users.detail.granted_at')}</dt>
+                  <dd>{formatDateTime(sub.granted_at)}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-slate-400">{t('users.detail.expires_at')}</dt>
+                  <dd>{formatDateTime(sub.expires_at)}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">{t('users.subscription.none')}</p>
+            )}
+
+            <div className="mt-6 flex flex-wrap items-end gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                {t('users.modal.days')}
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={grantDays}
+                  onChange={(event) => setGrantDays(event.target.value)}
+                  className="mt-2 w-28 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-sky-400/50 focus:outline-none"
+                />
+              </label>
+              <button type="button" onClick={() => void handleGrant()} disabled={busy} className={PRIMARY}>
+                {t('users.btn.grant')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGrantDays('7');
+                  void handleGrant(7);
+                }}
+                disabled={busy}
+                className={GHOST}
+              >
+                {t('users.grant.days', { days: 7 })}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGrantDays('30');
+                  void handleGrant(30);
+                }}
+                disabled={busy}
+                className={GHOST}
+              >
+                {t('users.grant.days', { days: 30 })}
+              </button>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              <button type="button" onClick={handleToggleBlock} disabled={busy} className={GHOST}>
+                {u.blocked ? t('users.btn.unblock') : t('users.btn.block')}
+              </button>
+              <button type="button" onClick={handleDelete} disabled={busy} className={DANGER}>
+                {t('users.btn.delete')}
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   );
