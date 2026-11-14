@@ -170,11 +170,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     webhook_url = build_webhook_url(
                         public_root, app.state.webhook_path
                     )
-                    await bot_runtime.bot.set_webhook(
-                        webhook_url,
-                        secret_token=bot_runtime.secret_token,
-                        drop_pending_updates=True,
-                    )
+
+                    # Telegram лимитирует setWebhook (обычно 1 вызов/сек). При
+                    # частых релизах получаем 429 — повторяем с задержкой.
+                    import asyncio
+
+                    from aiogram.exceptions import TelegramRetryAfter
+
+                    for attempt in range(5):
+                        try:
+                            await bot_runtime.bot.set_webhook(
+                                webhook_url,
+                                secret_token=bot_runtime.secret_token,
+                                drop_pending_updates=True,
+                            )
+                            break
+                        except TelegramRetryAfter as exc:
+                            retry_after = float(getattr(exc, "retry_after", 1) or 1)
+                            if attempt == 4:
+                                raise
+                            logger.warning(
+                                "set_webhook: flood control, повтор через %.1f с (попытка %d/5)",
+                                retry_after,
+                                attempt + 1,
+                            )
+                            await asyncio.sleep(retry_after + 0.5)
                     app.state.bot_runtime = bot_runtime
                     app.state.webhook_secret = bot_runtime.secret_token
                     logger.info("Telegram webhook set: %s", webhook_url)
