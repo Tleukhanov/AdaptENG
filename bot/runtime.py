@@ -1,0 +1,230 @@
+"""Сборка рантайма Telegram-бота: Bot, Dispatcher, сервисы и планировщик.
+
+Одну и ту же сборку используют две точки входа:
+
+* ``python -m bot.main`` — локальный polling или aiohttp-webhook;
+* ``api.main`` (FastAPI) — в проде webhook Telegram обслуживает процесс
+  веб-сервера, чтобы на одном dyno жили и REST API, и бот.
+"""
+
+from __future__ import annotations
+
+import logging
+import secrets
+from dataclasses import dataclass, field
+from typing import Any
+
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand, ErrorEvent
+
+from core.diagnostic import DiagnosticService
+from core.lesson_notes import LessonNoteService
+from core.lesson_plan import LessonPlanService
+from core.lessons import LessonService
+from core.practice import PracticeService
+from core.profile import ProfileService
+from core.rag import RAGGrammarTutor
+from core.scheduler import setup_scheduler
+from core.srs import SRSService
+from providers import create_embedder, create_llm, create_stt, create_tts
+from storage.repo import Repository
+
+from .config import Settings
+from .diagnostic import router as diagnostic_router
+from .flow import router as practice_router
+from .handlers import menu, profile, start, text, voice
+from .handlers.achievements import router as achievements_router
+from .handlers.admin import router as admin_router
+from .handlers.character import router as character_router
+from .handlers.interests import router as interests_router
+from .handlers.kaspi import router as kaspi_router
+from .handlers.leaderboard import router as leaderboard_router
+from .handlers.onboarding import router as onboarding_router
+from .handlers.premium import router as premium_router
+from .handlers.promo import router as promo_router
+from .handlers.progress import router as progress_router
+from .handlers.review import router as review_router
+from .handlers.stars import router as stars_router
+from .handlers.tutor import router as tutor_router
+from .handlers.wheel import router as wheel_router
+from .lessons import router as lessons_router
+from .quota import QuotaGuard
+from .rate_limit import LLMThrottle
+
+logger = logging.getLogger(__name__)
+
+COMMANDS = [
+    BotCommand(command="start", description="Начать практику"),
+    BotCommand(command="lesson", description="Структурированный урок"),
+    BotCommand(command="app", description="📱 Урок в Mini App"),
+    BotCommand(command="character", description="🎭 Выбрать персонажа"),
+    BotCommand(command="interests", description="🎯 Мои интересы"),
+    BotCommand(command="diagnostic", description="🎯 Определить уровень"),
+    BotCommand(command="review", description="📚 Повторить слова"),
+    BotCommand(command="tutor", description="🎓 Спросить грамматику (RAG)"),
+    BotCommand(command="stats", description="Моя статистика"),
+    BotCommand(command="progress", description="📊 Мой прогресс"),
+    BotCommand(command="achievements", description="🎮 Достижения"),
+    BotCommand(command="leaderboard", description="🏅 Рейтинг"),
+    BotCommand(command="reset", description="🔄 Сбросить состояние"),
+    BotCommand(command="profile", description="🧠 Мой профиль"),
+    BotCommand(command="promo", description="🎟 Промокод на безлимит"),
+    BotCommand(command="wheel", description="🎡 Колесо удачи"),
+    BotCommand(command="premium", description="💳 Подписка (Kaspi QR)"),
+    BotCommand(command="admin", description="⚙️ Админ"),
+    BotCommand(command="help", description="Помощь"),
+]
+
+
+@dataclass
+class BotRuntime:
+    """Готовый к работе бот: dispatcher, зависимости и планировщик напоминаний."""
+
+    bot: Bot
+    dp: Dispatcher
+    deps: dict[str, Any] = field(default_factory=dict)
+    scheduler: Any = None
+    secret_token: str = ""
+
+    async def close(self) -> None:
+        """Останавливает планировщик и закрывает HTTP-сессию бота."""
+        if self.scheduler is not None and getattr(self.scheduler, "running", False):
+            self.scheduler.shutdown(wait=False)
+        await self.bot.session.close()
+
+
+async def build_runtime(
+    settings: Settings,
+    repo: Repository,
+    *,
+    start_scheduler: bool = True,
+    initialize: bool = True,
+) -> BotRuntime:
+    """Собирает Bot/Dispatcher и регистрирует все роутеры.
+
+    ``initialize=False`` пропускает сетевые вызовы Telegram (set_my_commands):
+    используется в тестах и при старте API, где падение сети не должно
+    блокировать HTTP-сервер.
+    """
+    llm = create_llm(settings)
+    stt = create_stt(settings)
+    tts = create_tts(settings)
+    practice = PracticeService(llm, max_history=settings.max_context_messages)
+    lessons = LessonService(llm)
+    diagnostic = DiagnosticService(llm)
+    profile_service = ProfileService(llm)
+    note_service = LessonNoteService(llm)
+    plan_service = LessonPlanService(llm)
+    srs_service = SRSService(repo)
+    rag_tutor = RAGGrammarTutor(
+        chat=llm,
+        embedder=create_embedder(settings),
+        threshold=settings.rag_threshold,
+    )
+
+    bot = Bot(
+        settings.telegram_bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
+    dp = Dispatcher(storage=MemoryStorage())
+    quota = QuotaGuard(repo, settings.llm_daily_limit)
+
+    dp["repo"] = repo
+    dp["practice"] = practice
+    dp["lesson_service"] = lessons
+    dp["diagnostic_service"] = diagnostic
+    dp["profile_service"] = profile_service
+    dp["note_service"] = note_service
+    dp["plan_service"] = plan_service
+    dp["srs"] = srs_service
+    dp["tutor"] = rag_tutor
+    dp["stt"] = stt
+    dp["tts"] = tts
+    dp["settings"] = settings
+    dp["quota"] = quota
+
+    dp.message.outer_middleware(LLMThrottle())
+
+    dp.include_router(onboarding_router)
+    dp.include_router(start.router)
+    dp.include_router(menu.router)
+    dp.include_router(character_router)
+    dp.include_router(interests_router)
+    dp.include_router(progress_router)
+    dp.include_router(achievements_router)
+    dp.include_router(leaderboard_router)
+    dp.include_router(profile.router)
+    dp.include_router(practice_router)
+    dp.include_router(lessons_router)
+    dp.include_router(diagnostic_router)
+    dp.include_router(review_router)
+    dp.include_router(tutor_router)
+    dp.include_router(promo_router)
+    dp.include_router(wheel_router)
+    dp.include_router(premium_router)
+    dp.include_router(stars_router)
+    dp.include_router(kaspi_router)
+    dp.include_router(admin_router)
+    dp.include_router(text.router)
+    dp.include_router(voice.router)
+
+    @dp.error()
+    async def global_error_handler(event: ErrorEvent) -> None:
+        logger.exception("Unhandled error: %s", event.exception)
+        try:
+            if hasattr(event.update, "message") and event.update.message:
+                await event.update.message.answer(
+                    "⚠️ Произошла ошибка. Попробуй ещё раз или нажми /start."
+                )
+            elif hasattr(event.update, "callback_query") and event.update.callback_query:
+                await event.update.callback_query.message.answer(
+                    "⚠️ Произошла ошибка. Попробуй ещё раз или нажми /start."
+                )
+        except Exception:
+            pass
+
+    if initialize:
+        try:
+            await bot.set_my_commands(COMMANDS)
+        except Exception:
+            logger.exception("Не удалось обновить команды бота — продолжаем без них")
+
+    scheduler = None
+    if start_scheduler:
+        scheduler = setup_scheduler(bot, repo, interval_hours=24)
+        scheduler.start()
+        logger.info("Scheduler started: reminders every %d hours", 24)
+
+    deps = {
+        "repo": repo,
+        "llm": llm,
+        "tts": tts,
+        "stt": stt,
+        "quota": quota,
+        "srs": srs_service,
+        "plan_service": plan_service,
+        "note_service": note_service,
+    }
+    return BotRuntime(
+        bot=bot,
+        dp=dp,
+        deps=deps,
+        scheduler=scheduler,
+        secret_token=secrets.token_urlsafe(24).rstrip("="),
+    )
+
+
+def resolve_webhook_path(configured: str) -> str:
+    """Секретный путь webhook: заданный (нормализован до '/...') или случайный."""
+    path = configured.strip()
+    if path:
+        return path if path.startswith("/") else "/" + path
+    return "/webhook/" + secrets.token_urlsafe(15)
+
+
+def build_webhook_url(public_root: str, path: str) -> str:
+    """Склеивает публичный корень и путь webhook в один URL."""
+    return public_root.rstrip("/") + (path if path.startswith("/") else "/" + path)

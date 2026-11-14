@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import Settings, get_settings
@@ -22,8 +22,6 @@ from storage import create_repository
 from .loadguard import ActionThrottle, AsyncQueueGuard, ClientWindowLimiter
 from .ratelimit import RateLimitMiddleware
 from .routers import (
-    admin,
-
     admin,
     analytics,
     auth,
@@ -151,9 +149,50 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "Email reminders scheduler started (hour=%s UTC)",
                 settings.reminder_hour_utc,
             )
+
+        # Telegram-бот в том же процессе: на Heroku-роутер отдаёт HTTP только
+        # web-процессу, поэтому webhook бота обслуживает FastAPI, а не aiohttp
+        # (иначе REST API не поднят вовсе). Ошибка инициализации бота не должна
+        # ронять HTTP-сервер — API продолжит работать, бот вернётся после рестарта.
+        bot_runtime = None
+        if settings.webhook_enabled and settings.telegram_bot_token.strip():
+            public_root = settings.public_webapp_url
+            if not public_root:
+                logger.error(
+                    "USE_WEBHOOK=1, но WEBAPP_PUBLIC_URL/WEBAPP_URL пуст — "
+                    "webhook Telegram не зарегистрирован"
+                )
+            else:
+                try:
+                    from bot.runtime import build_runtime, build_webhook_url
+
+                    bot_runtime = await build_runtime(settings, repo)
+                    webhook_url = build_webhook_url(
+                        public_root, app.state.webhook_path
+                    )
+                    await bot_runtime.bot.set_webhook(
+                        webhook_url,
+                        secret_token=bot_runtime.secret_token,
+                        drop_pending_updates=True,
+                    )
+                    app.state.bot_runtime = bot_runtime
+                    app.state.webhook_secret = bot_runtime.secret_token
+                    logger.info("Telegram webhook set: %s", webhook_url)
+                except Exception:
+                    logger.exception(
+                        "Не удалось запустить бота в API-процессе — API продолжит без него"
+                    )
+                    if bot_runtime is not None:
+                        await bot_runtime.close()
+                        bot_runtime = None
+                    app.state.bot_runtime = None
+                    app.state.webhook_secret = ""
+
         try:
             yield
         finally:
+            if bot_runtime is not None:
+                await bot_runtime.close()
             if reminder_scheduler is not None and reminder_scheduler.running:
                 reminder_scheduler.shutdown(wait=False)
             await repo.close()
@@ -165,6 +204,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = settings
+    app.state.bot_runtime = None
+    app.state.webhook_secret = ""
+    app.state.webhook_path = ""
+
+    # Webhook Telegram обслуживает этот же процесс, когда USE_WEBHOOK=1.
+    # Путь фиксируется при сборке приложения: при пустом WEBHOOK_PATH он
+    # случайный, и регистрация в Telegram должна использовать ровно его.
+    if settings.webhook_enabled:
+        from bot.runtime import resolve_webhook_path
+
+        app.state.webhook_path = resolve_webhook_path(settings.webhook_path)
+
+        @app.post(app.state.webhook_path, include_in_schema=False)
+        async def telegram_webhook(request: Request) -> dict[str, bool]:
+            runtime = getattr(app.state, "bot_runtime", None)
+            secret = getattr(app.state, "webhook_secret", "")
+            if runtime is None or not secret:
+                raise HTTPException(status_code=503, detail="Bot runtime не запущен")
+            header = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+            if header != secret:
+                raise HTTPException(status_code=403, detail="Неверный secret webhook")
+            payload = await request.json()
+
+            from aiogram.types import Update
+
+            update = Update.model_validate(payload, context={"bot": runtime.bot})
+            await runtime.dp.feed_webhook_update(runtime.bot, update)
+            return {"ok": True}
 
     origins = settings.cors_origins_list or [
         "http://localhost:3000",

@@ -30,7 +30,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # ВАЖНО: self.app — это следующий middleware в стеке, а не FastAPI.
         # Приложение доступно как request.app.
         limiter = getattr(request.app.state, "client_limiter", None) or _NULL_LIMITER
-        if path in _EXEMPT_PATHS or limiter.limit <= 0:
+        webhook_path = getattr(request.app.state, "webhook_path", "")
+        # Webhook Telegram не лимитируем по IP: апдейты всех учеников приходят
+        # с адресов Telegram, и общий лимит ронял бы часть сообщений.
+        if (
+            path in _EXEMPT_PATHS
+            or (webhook_path and path == webhook_path)
+            or limiter.limit <= 0
+        ):
             return await call_next(request)
 
         key = client_key(request)
