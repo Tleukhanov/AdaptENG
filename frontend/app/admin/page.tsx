@@ -15,10 +15,10 @@ type Period = (typeof PERIODS)[number];
 type Status = 'loading' | 'ready' | 'denied' | 'error' | 'unauth';
 
 const PRIMARY =
-  'inline-flex min-h-[44px] items-center justify-center rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
+  'inline-flex min-h-[44px] items-center justify-center rounded-xl bg-accent-600 px-5 text-sm font-semibold text-paper-50 shadow-lg shadow-accent-950/40 transition hover:bg-accent-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
 
 const GHOST =
-  'inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40';
+  'inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-300 transition hover:text-paper-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/40';
 
 function clampPercent(value: number | undefined | null): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -44,9 +44,9 @@ function cohortName(row: AdminCohortRow): string {
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="panel p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-2 text-3xl font-bold leading-none text-sky-300">{value}</p>
-      {hint ? <p className="mt-2 text-xs leading-relaxed text-slate-400">{hint}</p> : null}
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-paper-300">{label}</p>
+      <p className="mt-2 text-3xl font-bold leading-none text-accent-500">{value}</p>
+      {hint ? <p className="mt-2 text-xs leading-relaxed text-paper-300">{hint}</p> : null}
     </div>
   );
 }
@@ -109,7 +109,7 @@ export default function AdminPage() {
     return (
       <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] px-4 py-10">
         <div className="mx-auto max-w-md text-center">
-          <h1 className="text-2xl font-bold text-white">{t('needLogin')}</h1>
+          <h1 className="text-2xl font-bold text-paper-50">{t('needLogin')}</h1>
           <Link href="/login" className={`mt-6 ${PRIMARY}`}>
             {t('toLogin')}
           </Link>
@@ -144,8 +144,8 @@ export default function AdminPage() {
       <div className="relative mx-auto max-w-6xl">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-300">
+            <h1 className="text-3xl font-bold text-paper-50">{t('title')}</h1>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-paper-200">
               {t('subtitle')}
             </p>
           </div>
@@ -168,10 +168,10 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => setDays(period)}
                   aria-pressed={active}
-                  className={`inline-flex min-h-[36px] items-center rounded-lg px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                  className={`inline-flex min-h-[36px] items-center rounded-lg px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 ${
                     active
-                      ? 'bg-blue-600 text-white shadow shadow-blue-950/40'
-                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      ? 'bg-accent-600 text-paper-50 shadow shadow-accent-950/40'
+                      : 'text-paper-200 hover:bg-white/10 hover:text-paper-50'
                   }`}
                 >
                   {t('period.days', { days: period })}
@@ -180,7 +180,7 @@ export default function AdminPage() {
             })}
           </div>
           {status === 'ready' && funnel ? (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-paper-300">
               {t('since', { date: funnel.since, days: funnel.days })}
             </p>
           ) : null}
@@ -190,7 +190,7 @@ export default function AdminPage() {
           <div
             role="status"
             aria-live="polite"
-            className="panel mt-6 p-8 text-center text-sm text-slate-300"
+            className="panel mt-6 p-8 text-center text-sm text-paper-200"
           >
             {t('loading')}
           </div>
@@ -204,8 +204,8 @@ export default function AdminPage() {
             <p aria-hidden="true" className="text-3xl">
               🔒
             </p>
-            <h2 className="mt-3 text-xl font-semibold text-white">{t('deniedTitle')}</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-300">
+            <h2 className="mt-3 text-xl font-semibold text-paper-50">{t('deniedTitle')}</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-paper-200">
               {t('deniedHint')}
             </p>
             <Link href="/dashboard" className={`mt-6 ${PRIMARY}`}>
@@ -255,10 +255,10 @@ export default function AdminPage() {
             </div>
 
             <section aria-labelledby="admin-funnel-title" className="panel p-5 sm:p-6">
-              <h2 id="admin-funnel-title" className="text-base font-semibold text-white">
+              <h2 id="admin-funnel-title" className="text-base font-semibold text-paper-50">
                 {t('funnel.title')}
               </h2>
-              <p className="mt-1 text-xs leading-relaxed text-slate-400">
+              <p className="mt-1 text-xs leading-relaxed text-paper-300">
                 {t('funnel.hint')}
               </p>
               <ol className="mt-5 space-y-4">
@@ -267,9 +267,9 @@ export default function AdminPage() {
                   return (
                     <li key={step.key}>
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="text-sm font-medium text-slate-200">{step.label}</span>
-                        <span className="text-xs text-slate-400">
-                          <span className="text-sm font-semibold text-sky-300">
+                        <span className="text-sm font-medium text-paper-200">{step.label}</span>
+                        <span className="text-xs text-paper-300">
+                          <span className="text-sm font-semibold text-accent-500">
                             {formatCount(step.value, formatter)}
                           </span>{' '}
                           · {formatPercent(share)}
@@ -280,7 +280,7 @@ export default function AdminPage() {
                         className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-white/10"
                       >
                         <span
-                          className="block h-full rounded-full bg-gradient-to-r from-blue-600 via-blue-500 to-sky-400 transition-[width] duration-500"
+                          className="block h-full rounded-full bg-gradient-to-r from-accent-600 via-blue-500 to-sky-400 transition-[width] duration-500"
                           style={{ width: `${clampPercent(share)}%` }}
                         />
                       </div>
@@ -298,13 +298,13 @@ export default function AdminPage() {
                   ] as const
                 ).map((item) => (
                   <div key={item.key} className="panel-muted p-3.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-paper-300">
                       {t(`retention.${item.key}`)}
                     </p>
-                    <p className="mt-1 text-lg font-bold text-sky-300">
+                    <p className="mt-1 text-lg font-bold text-accent-500">
                       {formatPercent(item.point.percent)}
                     </p>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-paper-300">
                       {t('retention.cohortSize', { cohort: item.point.cohort })}
                     </p>
                   </div>
@@ -314,16 +314,16 @@ export default function AdminPage() {
 
             <section aria-labelledby="admin-cohorts-title" className="panel p-5 sm:p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="admin-cohorts-title" className="text-base font-semibold text-white">
+                <h2 id="admin-cohorts-title" className="text-base font-semibold text-paper-50">
                   {t('cohorts.title')}
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-paper-300">
                   {t('cohorts.hint', { count: data?.cohort_size ?? 0 })}
                 </p>
               </div>
 
               {(data?.cohorts?.length ?? 0) === 0 ? (
-                <p role="status" className="mt-4 text-sm text-slate-400">
+                <p role="status" className="mt-4 text-sm text-paper-300">
                   {t('cohorts.empty')}
                 </p>
               ) : (
@@ -331,7 +331,7 @@ export default function AdminPage() {
                   <table className="w-full min-w-[760px] border-collapse text-left text-sm">
                     <caption className="sr-only">{t('cohorts.title')}</caption>
                     <thead>
-                      <tr className="border-b border-white/10 text-[11px] uppercase tracking-wide text-slate-400">
+                      <tr className="border-b border-white/10 text-[11px] uppercase tracking-wide text-paper-300">
                         <th scope="col" className="py-2 pr-3 font-semibold">
                           {t('cohorts.user')}
                         </th>
@@ -369,30 +369,30 @@ export default function AdminPage() {
                         >
                           <th
                             scope="row"
-                            className="max-w-[180px] truncate py-2.5 pr-3 text-left font-medium text-slate-200"
+                            className="max-w-[180px] truncate py-2.5 pr-3 text-left font-medium text-paper-200"
                           >
                             {cohortName(row)}
                           </th>
-                          <td className="px-3 py-2.5 text-slate-400">{row.level ?? '—'}</td>
-                          <td className="px-3 py-2.5 text-right text-slate-300">
+                          <td className="px-3 py-2.5 text-paper-300">{row.level ?? '—'}</td>
+                          <td className="px-3 py-2.5 text-right text-paper-200">
                             {formatCount(row.turns, formatter)}
                           </td>
-                          <td className="px-3 py-2.5 text-right text-slate-300">
+                          <td className="px-3 py-2.5 text-right text-paper-200">
                             {formatPercent(row.accuracy)}
                           </td>
-                          <td className="px-3 py-2.5 text-right text-slate-300">
+                          <td className="px-3 py-2.5 text-right text-paper-200">
                             {formatCount(row.lessons, formatter)}
                           </td>
-                          <td className="px-3 py-2.5 text-right text-slate-300">
+                          <td className="px-3 py-2.5 text-right text-paper-200">
                             {formatCount(row.words, formatter)}
                           </td>
-                          <td className="px-3 py-2.5 text-right text-slate-300">
+                          <td className="px-3 py-2.5 text-right text-paper-200">
                             {formatCount(row.streak_days, formatter)}
                           </td>
-                          <td className="px-3 py-2.5 text-right text-slate-300">
+                          <td className="px-3 py-2.5 text-right text-paper-200">
                             {formatPercent(row.accuracy_7d)}
                           </td>
-                          <td className="py-2.5 pl-3 text-right text-slate-300">
+                          <td className="py-2.5 pl-3 text-right text-paper-200">
                             {formatPercent(row.retention_30)}
                           </td>
                         </tr>

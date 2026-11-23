@@ -1,21 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  /* Синяя палитра продукта: холодный свет, без фиолетово-розовых градиентов. */
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-accent-500: #0ea5e9;
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  /* Editorial paper palette: warm cream base, ink text, terracotta accent. */
+  --color-paper-50: #faf6ee;
+  --color-paper-100: #f4efe6;
+  --color-paper-200: #ebe3d6;
+  --color-paper-300: #ddd2bf;
+  --color-ink-900: #1a1612;
+  --color-ink-700: #3a332b;
+  --color-ink-500: #6b6257;
+  --color-ink-300: #a89f92;
+  --color-accent-700: #9a3412;
+  --color-accent-600: #c2410c;
+  --color-accent-500: #ea580c;
+  --color-accent-100: #ffedd5;
+  --color-accent-50: #fff7ed;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: var(--font-display), "Iowan Old Style", "Palatino", "Times New Roman", serif;
 }
 
 :root {
-  --adapteng-accent-gradient: linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #38bdf8 100%);
-  --adapteng-font-stack: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --adapteng-accent: #c2410c;
+  --adapteng-accent-soft: #ea580c;
+  --adapteng-paper: #f4efe6;
+  --adapteng-ink: #1a1612;
+  --adapteng-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0 0.06 0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
 html {
@@ -23,92 +32,112 @@ html {
 }
 
 body {
-  font-family: var(--adapteng-font-stack);
+  font-family: var(--font-body), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   min-height: 100vh;
-  color: #0f172a;
-  background-color: #f8fafc;
-  background-image: radial-gradient(
-      1200px 600px at 8% -12%,
-      rgba(37, 99, 235, 0.14),
-      transparent 60%
-    ),
-    radial-gradient(1000px 500px at 100% 0%, rgba(56, 189, 248, 0.12), transparent 55%);
+  color: var(--adapteng-ink);
+  background-color: var(--adapteng-paper);
+  background-image:
+    var(--adapteng-grain),
+    radial-gradient(1100px 520px at 0% -10%, rgba(194, 65, 12, 0.08), transparent 60%),
+    radial-gradient(900px 460px at 100% 0%, rgba(234, 88, 12, 0.05), transparent 55%);
+  background-attachment: fixed;
 }
 
 .adapteng-gradient {
-  background-image: var(--adapteng-accent-gradient);
+  background-image: linear-gradient(135deg, #9a3412 0%, #c2410c 50%, #ea580c 100%);
 }
 
 .adapteng-text-gradient {
-  background-image: var(--adapteng-accent-gradient);
+  background-image: linear-gradient(135deg, #9a3412 0%, #c2410c 50%, #ea580c 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
+.font-display {
+  font-family: var(--font-display), "Iowan Old Style", "Palatino", "Times New Roman", serif;
+}
+
 /*
- * Тёмные поверхности продукта: страницы онбординга, входа и карточки
- * персонажей. Держим их в одном синем ключе, чтобы не расползались
- * оттенки фона и рамок. Утилиты лежат в слое components, поэтому
- * Tailwind-классы (`rounded-2xl`, `p-8`, `bg-blue-500/10`) их перекрывают.
+ * Тёмные поверхности продукта (страницы входа, чата, урока, админки).
+ * Новая палитра: глубокий ink с тёплым подтоном, без синего glassmorphism.
  */
 @layer components {
-  /* Фон страницы: глубокий синий градиент без фиолетового. */
   .page-dark {
-    background-image: linear-gradient(160deg, #0b1220 0%, #111c33 100%);
-    color: #e2e8f0;
+    background-image: linear-gradient(160deg, #14110f 0%, #1c1713 100%);
+    color: #f4efe6;
   }
 
-  /* Основная панель страницы. */
+  /* Основная панель: бумага/чернила, без стекла. */
   .panel {
-    border: 1px solid rgb(255 255 255 / 0.1);
-    border-radius: 1.5rem;
-    background-color: rgb(255 255 255 / 0.05);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-    box-shadow: 0 30px 70px -45px rgb(2 6 23 / 0.95);
+    border: 1px solid rgb(26 22 18 / 0.12);
+    border-radius: 1.25rem;
+    background-color: #faf6ee;
+    box-shadow: 0 24px 60px -40px rgb(26 22 18 / 0.25);
   }
 
-  /* Вложенная панель: тише по контрасту, без тени. */
+  /* Тёмная панель для page-dark. */
+  .page-dark .panel,
+  .page-dark .panel-muted {
+    border-color: rgb(244 239 230 / 0.1);
+    background-color: rgb(244 239 230 / 0.04);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 30px 70px -45px rgb(0 0 0 / 0.6);
+  }
+
   .panel-muted {
-    border: 1px solid rgb(255 255 255 / 0.08);
-    border-radius: 1rem;
-    background-color: rgb(255 255 255 / 0.03);
+    border: 1px solid rgb(26 22 18 / 0.08);
+    border-radius: 0.875rem;
+    background-color: rgb(26 22 18 / 0.03);
   }
 
-  /* Мягкое синее свечение вокруг акцентной панели. */
   .glow-soft {
     box-shadow:
-      0 0 0 1px rgb(56 189 248 / 0.12),
-      0 28px 80px -40px rgb(37 99 235 / 0.7);
+      0 0 0 1px rgb(194 65 12 / 0.18),
+      0 24px 60px -30px rgb(194 65 12 / 0.35);
   }
 
-  /* Поле ввода на тёмной поверхности (input / textarea). */
   .field {
     width: 100%;
     min-height: 44px;
-    border: 1px solid rgb(255 255 255 / 0.12);
-    border-radius: 1rem;
-    background-color: rgb(255 255 255 / 0.05);
+    border: 1px solid rgb(26 22 18 / 0.16);
+    border-radius: 0.75rem;
+    background-color: #faf6ee;
     padding: 0.625rem 1rem;
-    color: #f1f5f9;
-    font-size: 0.875rem;
+    color: var(--adapteng-ink);
+    font-size: 0.9375rem;
     line-height: 1.5rem;
     outline: none;
     transition:
-      border-color 0.2s ease,
-      box-shadow 0.2s ease,
-      background-color 0.2s ease;
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      background-color 0.18s ease;
   }
 
   .field::placeholder {
-    color: #64748b;
+    color: #a89f92;
   }
 
   .field:focus {
-    border-color: rgb(96 165 250 / 0.9);
-    background-color: rgb(255 255 255 / 0.07);
-    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.25);
+    border-color: var(--adapteng-accent);
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgb(194 65 12 / 0.18);
+  }
+
+  .page-dark .field {
+    border-color: rgb(244 239 230 / 0.14);
+    background-color: rgb(244 239 230 / 0.05);
+    color: #f4efe6;
+  }
+
+  .page-dark .field::placeholder {
+    color: #a89f92;
+  }
+
+  .page-dark .field:focus {
+    border-color: var(--adapteng-accent-soft);
+    background-color: rgb(244 239 230 / 0.08);
+    box-shadow: 0 0 0 3px rgb(234 88 12 / 0.22);
   }
 }
 
@@ -129,7 +158,6 @@ body {
   }
 }
 
-/* Тонкая полоска «Нет соединения» внизу экрана (PwaProvider). */
 body.is-offline {
   padding-bottom: 26px;
 }
@@ -161,13 +189,13 @@ body.is-offline {
   0%,
   100% {
     box-shadow:
-      0 0 0 0 rgba(96, 165, 250, 0.35),
-      0 18px 45px -20px rgba(59, 130, 246, 0.8);
+      0 0 0 0 rgba(194, 65, 12, 0.35),
+      0 18px 45px -20px rgba(194, 65, 12, 0.6);
   }
   50% {
     box-shadow:
-      0 0 0 10px rgba(96, 165, 250, 0),
-      0 22px 55px -16px rgba(59, 130, 246, 0.95);
+      0 0 0 10px rgba(194, 65, 12, 0),
+      0 22px 55px -16px rgba(194, 65, 12, 0.75);
   }
 }
 
@@ -196,18 +224,4 @@ body.is-offline {
 
 .tutor-avatar--thinking {
   animation: tutor-glow 1.7s ease-in-out infinite;
-}
-
-.tutor-avatar--speaking {
-  animation: tutor-talk 0.7s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tutor-avatar,
-  .tutor-avatar--idle,
-  .tutor-avatar--thinking,
-  .tutor-avatar--speaking,
-  .tutor-avatar__face {
-    animation: none !important;
-  }
 }

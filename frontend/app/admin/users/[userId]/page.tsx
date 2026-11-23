@@ -15,9 +15,9 @@ import {
 import { useSession } from '@/lib/session';
 
 const PRIMARY =
-  'inline-flex items-center justify-center rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center rounded-lg bg-accent-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50';
 const GHOST =
-  'inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-paper-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50';
 const DANGER =
   'inline-flex items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50';
 
@@ -50,8 +50,8 @@ function formatDateTime(value?: string | null): string {
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="panel-muted p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-2 text-sm text-slate-200">{value}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-paper-300">{label}</p>
+      <p className="mt-2 text-sm text-paper-200">{value}</p>
     </div>
   );
 }
@@ -163,7 +163,7 @@ export default function AdminUserPage() {
     return (
       <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] px-4 py-10">
         <div className="mx-auto max-w-md text-center">
-          <h1 className="text-2xl font-bold text-white">{t('needLogin')}</h1>
+          <h1 className="text-2xl font-bold text-paper-50">{t('needLogin')}</h1>
           <Link href="/login" className={`mt-6 ${PRIMARY}`}>
             {t('toLogin')}
           </Link>
@@ -176,7 +176,7 @@ export default function AdminUserPage() {
     return (
       <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] px-4 py-10">
         <div className="panel mx-auto max-w-md p-8 text-center">
-          <h1 className="text-xl font-bold text-white">
+          <h1 className="text-xl font-bold text-paper-50">
             {status === 'denied'
               ? t('deniedTitle')
               : status === 'notfound'
@@ -198,7 +198,7 @@ export default function AdminUserPage() {
     return (
       <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] px-4 py-10">
         <div className="mx-auto max-w-5xl">
-          <p className="text-sm text-slate-400">{t('users.loading')}</p>
+          <p className="text-sm text-paper-300">{t('users.loading')}</p>
         </div>
       </main>
     );
@@ -214,11 +214,11 @@ export default function AdminUserPage() {
       <div className="mx-auto max-w-5xl">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-paper-300">
               {t('users.detail.id', { id: u.id })}
             </p>
-            <h1 className="mt-1 text-3xl font-bold text-white">{name}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-400">
+            <h1 className="mt-1 text-3xl font-bold text-paper-50">{name}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-paper-300">
               {u.email ? <span>{u.email}</span> : null}
               <span>·</span>
               <span>
@@ -248,7 +248,7 @@ export default function AdminUserPage() {
         ) : null}
 
         <section className="mt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-paper-300">
             {t('users.detail.info')}
           </h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -283,65 +283,65 @@ export default function AdminUserPage() {
 
         <section className="mt-6 grid gap-4 lg:grid-cols-2">
           <div className="panel p-6">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-paper-300">
               {t('users.detail.stats')}
             </h2>
             <div className="mt-4 grid grid-cols-3 gap-3">
               <div>
-                <p className="text-2xl font-bold text-sky-300">{stats.total_turns}</p>
-                <p className="mt-1 text-xs text-slate-400">{t('users.stat.total_turns')}</p>
+                <p className="text-2xl font-bold text-accent-500">{stats.total_turns}</p>
+                <p className="mt-1 text-xs text-paper-300">{t('users.stat.total_turns')}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-emerald-300">{stats.correct}</p>
-                <p className="mt-1 text-xs text-slate-400">{t('users.stat.correct')}</p>
+                <p className="mt-1 text-xs text-paper-300">{t('users.stat.correct')}</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-red-300">{stats.errors}</p>
-                <p className="mt-1 text-xs text-slate-400">{t('users.stat.errors')}</p>
+                <p className="mt-1 text-xs text-paper-300">{t('users.stat.errors')}</p>
               </div>
             </div>
-            <p className="mt-6 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <p className="mt-6 text-[11px] font-semibold uppercase tracking-wide text-paper-300">
               {t('users.detail.top_categories')}
             </p>
             {stats.top_categories.length > 0 ? (
-              <ul className="mt-2 space-y-1 text-sm text-slate-300">
+              <ul className="mt-2 space-y-1 text-sm text-paper-200">
                 {stats.top_categories.map(([category, count]) => (
                   <li key={category} className="flex justify-between gap-3">
                     <span>{category}</span>
-                    <span className="text-slate-400">{count}</span>
+                    <span className="text-paper-300">{count}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-sm text-slate-500">{t('users.detail.no_stats')}</p>
+              <p className="mt-2 text-sm text-paper-300">{t('users.detail.no_stats')}</p>
             )}
           </div>
 
           <div className="panel p-6">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-paper-300">
               {t('users.column.subscription')}
             </h2>
             {sub ? (
-              <dl className="mt-4 space-y-2 text-sm text-slate-300">
+              <dl className="mt-4 space-y-2 text-sm text-paper-200">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-400">{t('users.detail.plan_days')}</dt>
+                  <dt className="text-paper-300">{t('users.detail.plan_days')}</dt>
                   <dd>{sub.plan_days}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-400">{t('users.detail.granted_at')}</dt>
+                  <dt className="text-paper-300">{t('users.detail.granted_at')}</dt>
                   <dd>{formatDateTime(sub.granted_at)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-400">{t('users.detail.expires_at')}</dt>
+                  <dt className="text-paper-300">{t('users.detail.expires_at')}</dt>
                   <dd>{formatDateTime(sub.expires_at)}</dd>
                 </div>
               </dl>
             ) : (
-              <p className="mt-4 text-sm text-slate-500">{t('users.subscription.none')}</p>
+              <p className="mt-4 text-sm text-paper-300">{t('users.subscription.none')}</p>
             )}
 
             <div className="mt-6 flex flex-wrap items-end gap-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <label className="text-xs font-semibold uppercase tracking-wide text-paper-300">
                 {t('users.modal.days')}
                 <input
                   type="number"
@@ -349,7 +349,7 @@ export default function AdminUserPage() {
                   max={365}
                   value={grantDays}
                   onChange={(event) => setGrantDays(event.target.value)}
-                  className="mt-2 w-28 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-sky-400/50 focus:outline-none"
+                  className="mt-2 w-28 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-paper-50 focus:border-sky-400/50 focus:outline-none"
                 />
               </label>
               <button type="button" onClick={() => void handleGrant()} disabled={busy} className={PRIMARY}>

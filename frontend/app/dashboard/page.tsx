@@ -46,9 +46,9 @@ function Stat({
   children?: ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-[0_20px_50px_-32px_rgba(2,6,23,0.9)] backdrop-blur">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      {value ? <p className="mt-2 text-lg font-bold text-sky-300">{value}</p> : null}
+    <div className="rounded-2xl border border-ink-900/10 bg-paper-50 p-5 shadow-[0_20px_50px_-32px_rgba(26,22,18,0.18)]">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-500">{label}</p>
+      {value ? <p className="mt-2 font-display text-2xl font-semibold text-ink-900">{value}</p> : null}
       {children}
     </div>
   );
@@ -59,7 +59,6 @@ export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const [status, setStatus] = useState<Status>('loading');
   const [data, setData] = useState<MeResponse | null>(null);
-  /** Ссылка на админку: проверяем доступ один раз за визит (200 → показываем). */
   const [isAdmin, setIsAdmin] = useState(false);
   const adminCheckedRef = useRef(false);
   const router = useRouter();
@@ -105,7 +104,6 @@ export default function DashboardPage() {
           setIsAdmin(true);
         }
       } catch {
-        // 403/404 — обычный ученик или метрики выключены: ссылку не показываем.
         if (active) {
           setIsAdmin(false);
         }
@@ -134,32 +132,29 @@ export default function DashboardPage() {
   ];
 
   return (
-    <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 py-10 text-slate-100 sm:py-12">
-      
-<div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(37,99,235,0.28),transparent_70%)]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-sky-500/10 blur-3xl"
-      />
-
-      <div className="relative mx-auto max-w-5xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+    <main className="relative isolate min-h-[calc(100dvh-4rem)] bg-paper-100 px-4 py-10 sm:py-12">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-900/10 pb-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink-500">
+              {t('title')}
+            </p>
+            <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-ink-900">
+              {t('welcome')}
+            </h1>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             {isAdmin ? (
               <Link
                 href="/admin"
-                className="inline-flex min-h-[36px] items-center rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-sky-200 transition hover:bg-blue-500/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+                className="inline-flex min-h-[36px] items-center rounded-full border border-ink-900/10 bg-paper-50 px-4 py-2 text-sm font-semibold text-ink-900 transition hover:border-accent-600 hover:text-accent-600"
               >
                 {t('admin')}
               </Link>
             ) : null}
             <Link
               href="/"
-              className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+              className="inline-flex min-h-[36px] items-center rounded-full px-3 py-2 text-sm font-semibold text-ink-500 transition hover:text-accent-600"
             >
               {t('back')}
             </Link>
@@ -167,25 +162,25 @@ export default function DashboardPage() {
         </div>
 
         {status === 'loading' ? (
-          <p className="mt-10 text-slate-300">{t('loading')}</p>
+          <p className="mt-10 text-ink-500">{t('loading')}</p>
         ) : null}
 
         {status === 'error' ? (
           <div
             role="alert"
-            className="mt-10 rounded-3xl border border-red-400/30 bg-red-500/10 p-6 text-red-200"
+            className="mt-10 rounded-2xl border border-accent-600/30 bg-accent-50 p-6 text-accent-700"
           >
             {t('error')}
           </div>
         ) : null}
 
         {status === 'unauth' ? (
-          <div className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur">
-            <h2 className="text-xl font-semibold text-white">{t('needLogin')}</h2>
-            <p className="mt-2 text-slate-300">{t('needLoginHint')}</p>
+          <div className="mt-10 rounded-2xl border border-ink-900/10 bg-paper-50 p-8 text-center">
+            <h2 className="font-display text-2xl font-semibold text-ink-900">{t('needLogin')}</h2>
+            <p className="mt-2 text-ink-500">{t('needLoginHint')}</p>
             <Link
               href="/"
-              className="mt-6 inline-block rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+              className="mt-6 inline-block rounded-full bg-ink-900 px-6 py-3 text-sm font-semibold text-paper-50 transition hover:bg-accent-600"
             >
               {t('goHome')}
             </Link>
@@ -193,9 +188,11 @@ export default function DashboardPage() {
         ) : null}
 
         {status === 'ready' && data ? (
-          <div className="mt-8 space-y-8">
+          <div className="mt-10 space-y-10">
             <div>
-              <h2 className="text-xl font-semibold text-white">{t('welcome')}</h2>
+              <h2 className="font-display text-xl font-semibold text-ink-900">
+                {t('welcome')}
+              </h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Stat label={t('level')} value={String(data.user.level)} />
                 <Stat label={t('character')} value={characterName} />
@@ -209,14 +206,14 @@ export default function DashboardPage() {
                       {interests.map((interest) => (
                         <span
                           key={interest}
-                          className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-medium text-sky-200"
+                          className="rounded-full border border-accent-600/30 bg-accent-50 px-3 py-1 text-xs font-medium text-accent-700"
                         >
                           {interest}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="mt-2 text-sm text-slate-400">{t('noInterests')}</p>
+                    <p className="mt-2 text-sm text-ink-500">{t('noInterests')}</p>
                   )}
                 </Stat>
               </div>
@@ -227,28 +224,28 @@ export default function DashboardPage() {
                 const content = (
                   <>
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-semibold text-white">{card.title}</h3>
+                      <h3 className="font-display text-lg font-semibold text-ink-900">{card.title}</h3>
                       {card.href ? null : (
-                        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-400">
+                        <span className="rounded-full border border-ink-900/10 bg-paper-200 px-2.5 py-1 text-xs font-medium text-ink-500">
                           {t('soon')}
                         </span>
                       )}
                     </div>
-                    <p className="mt-2 text-sm text-slate-300">{card.description}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-ink-500">{card.description}</p>
                   </>
                 );
                 return card.href ? (
                   <Link
                     key={card.title}
                     href={card.href}
-                    className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_50px_-32px_rgba(2,6,23,0.9)] backdrop-blur transition hover:-translate-y-1 hover:border-blue-400/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+                    className="group rounded-2xl border border-ink-900/10 bg-paper-50 p-6 shadow-[0_20px_50px_-32px_rgba(26,22,18,0.18)] transition hover:-translate-y-1 hover:border-accent-600/40 hover:shadow-[0_24px_60px_-30px_rgba(194,65,12,0.18)]"
                   >
                     {content}
                   </Link>
                 ) : (
                   <div
                     key={card.title}
-                    className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_50px_-32px_rgba(2,6,23,0.9)] backdrop-blur"
+                    className="rounded-2xl border border-ink-900/10 bg-paper-50 p-6 shadow-[0_20px_50px_-32px_rgba(26,22,18,0.18)]"
                   >
                     {content}
                   </div>

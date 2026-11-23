@@ -19,9 +19,9 @@ import { useSession } from '@/lib/session';
 const PAGE_SIZE = 20;
 
 const PRIMARY =
-  'inline-flex items-center justify-center rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center rounded-lg bg-accent-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50';
 const GHOST =
-  'inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-paper-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50';
 const DANGER =
   'inline-flex items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50';
 
@@ -170,7 +170,7 @@ export default function AdminUsersPage() {
     return (
       <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] px-4 py-10">
         <div className="mx-auto max-w-md text-center">
-          <h1 className="text-2xl font-bold text-white">{t('needLogin')}</h1>
+          <h1 className="text-2xl font-bold text-paper-50">{t('needLogin')}</h1>
           <Link href="/login" className={`mt-6 ${PRIMARY}`}>
             {t('toLogin')}
           </Link>
@@ -183,8 +183,8 @@ export default function AdminUsersPage() {
     return (
       <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] px-4 py-10">
         <div className="panel mx-auto max-w-md p-8 text-center">
-          <h1 className="text-xl font-bold text-white">{t('deniedTitle')}</h1>
-          <p className="mt-2 text-sm text-slate-300">{t('deniedHint')}</p>
+          <h1 className="text-xl font-bold text-paper-50">{t('deniedTitle')}</h1>
+          <p className="mt-2 text-sm text-paper-200">{t('deniedHint')}</p>
           <Link href="/dashboard" className={`mt-6 ${PRIMARY}`}>
             {t('toDashboard')}
           </Link>
@@ -202,8 +202,8 @@ export default function AdminUsersPage() {
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">{t('users.title')}</h1>
-            <p className="mt-2 text-sm text-slate-400">{t('users.subtitle')}</p>
+            <h1 className="text-3xl font-bold text-paper-50">{t('users.title')}</h1>
+            <p className="mt-2 text-sm text-paper-300">{t('users.subtitle')}</p>
           </div>
           <Link href="/admin" className={GHOST}>
             {t('users.back')}
@@ -216,7 +216,7 @@ export default function AdminUsersPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={t('users.search')}
-            className="min-w-[240px] flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-sky-400/50 focus:outline-none"
+            className="min-w-[240px] flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-paper-50 placeholder:text-paper-300 focus:border-sky-400/50 focus:outline-none"
           />
           <div className="flex flex-wrap gap-2">
             {FILTERS.map((item) => (
@@ -242,7 +242,7 @@ export default function AdminUsersPage() {
         ) : null}
 
         {status === 'loading' ? (
-          <p className="mt-8 text-sm text-slate-400">{t('users.loading')}</p>
+          <p className="mt-8 text-sm text-paper-300">{t('users.loading')}</p>
         ) : null}
 
         {status === 'error' ? (
@@ -255,13 +255,13 @@ export default function AdminUsersPage() {
         ) : null}
 
         {status === 'ready' && users.length === 0 ? (
-          <p className="mt-8 text-sm text-slate-400">{t('users.empty')}</p>
+          <p className="mt-8 text-sm text-paper-300">{t('users.empty')}</p>
         ) : null}
 
         {status === 'ready' && users.length > 0 ? (
           <div className="panel mt-6 overflow-x-auto">
             <table className="w-full min-w-[860px] text-left text-sm">
-              <thead className="border-b border-white/10 text-[11px] uppercase tracking-wide text-slate-400">
+              <thead className="border-b border-white/10 text-[11px] uppercase tracking-wide text-paper-300">
                 <tr>
                   <th className="px-4 py-3 font-semibold">{t('users.column.name')}</th>
                   <th className="px-4 py-3 font-semibold">{t('users.column.email')}</th>
@@ -278,7 +278,7 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/users/${item.id}`}
-                        className="font-semibold text-white hover:text-sky-300"
+                        className="font-semibold text-paper-50 hover:text-accent-500"
                       >
                         {displayName(item)}
                       </Link>
@@ -293,15 +293,15 @@ export default function AdminUsersPage() {
                           {item.blocked ? t('users.status.blocked') : t('users.status_active')}
                         </span>
                         {item.is_unlimited ? (
-                          <span className="rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 text-sky-300">
+                          <span className="rounded-full border border-sky-400/30 bg-accent-500/10 px-2 py-0.5 text-accent-500">
                             {t('users.unlimited')}
                           </span>
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-300">{item.email || '—'}</td>
-                    <td className="px-4 py-3 text-slate-400">{item.tg_id ?? '—'}</td>
-                    <td className="px-4 py-3 text-slate-300">{item.level || '—'}</td>
+                    <td className="px-4 py-3 text-paper-200">{item.email || '—'}</td>
+                    <td className="px-4 py-3 text-paper-300">{item.tg_id ?? '—'}</td>
+                    <td className="px-4 py-3 text-paper-200">{item.level || '—'}</td>
                     <td className="px-4 py-3">
                       <span
                         className={
@@ -309,7 +309,7 @@ export default function AdminUsersPage() {
                             ? 'text-emerald-300'
                             : item.subscription_status === 'expired'
                               ? 'text-red-300'
-                              : 'text-slate-400'
+                              : 'text-paper-300'
                         }
                       >
                         {item.subscription_status === 'none'
@@ -319,7 +319,7 @@ export default function AdminUsersPage() {
                             })}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-400">{formatDate(item.created_at)}</td>
+                    <td className="px-4 py-3 text-paper-300">{formatDate(item.created_at)}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap justify-end gap-2">
                         <button
@@ -360,7 +360,7 @@ export default function AdminUsersPage() {
 
         {status === 'ready' && total > 0 ? (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-paper-300">
               {t('users.count', { total })}
               {' · '}
               {t('users.page', { page: page + 1, pages })}
@@ -390,9 +390,9 @@ export default function AdminUsersPage() {
       {grantTarget ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4">
           <div className="panel w-full max-w-sm p-6">
-            <h2 className="text-lg font-bold text-white">{t('users.modal.title')}</h2>
-            <p className="mt-1 text-sm text-slate-400">{displayName(grantTarget)}</p>
-            <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <h2 className="text-lg font-bold text-paper-50">{t('users.modal.title')}</h2>
+            <p className="mt-1 text-sm text-paper-300">{displayName(grantTarget)}</p>
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-paper-300">
               {t('users.modal.days')}
               <input
                 type="number"
@@ -400,7 +400,7 @@ export default function AdminUsersPage() {
                 max={365}
                 value={grantDays}
                 onChange={(event) => setGrantDays(event.target.value)}
-                className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-sky-400/50 focus:outline-none"
+                className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-paper-50 focus:border-sky-400/50 focus:outline-none"
               />
             </label>
             <div className="mt-6 flex justify-end gap-2">

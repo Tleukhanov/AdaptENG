@@ -6,7 +6,6 @@ import type { Character, Locale } from '@/lib/characters';
 import CharacterCard from '@/components/CharacterCard';
 
 async function loadCharacters(locale: Locale): Promise<Character[]> {
-  // Персонажи идут через тот же домен (/api/* проксирует Next.js).
   try {
     const response = await fetch(`/api/characters?lang=${locale}`, {
       cache: 'no-store',
@@ -28,81 +27,104 @@ export default async function LandingPage() {
   const preview = characters[0] ?? sampleCharacters(locale)[0];
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)]">
-      <div className="mx-auto max-w-6xl px-4">
-        <section className="grid items-center gap-10 py-16 md:grid-cols-2 md:py-24">
-          <div>
-            <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-sky-300 backdrop-blur">
-              {t('hero.badge')}
-            </span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-tight text-white md:text-5xl">
+    <main className="min-h-screen bg-paper-100">
+      {/* Masthead */}
+      <section className="border-b border-ink-900/10">
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.22em] text-ink-500">
+            <span>Vol. 01 · {t('hero.badge')}</span>
+            <span className="hidden sm:inline">AdaptENG · AI English Tutor</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Hero */}
+      <section className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+        <div className="grid items-end gap-12 md:grid-cols-12">
+          <div className="md:col-span-7">
+            <p className="font-display text-sm italic text-accent-600">
+              — a personal tutor that adapts to you
+            </p>
+            <h1 className="mt-4 font-display text-5xl font-semibold leading-[0.95] tracking-tight text-ink-900 md:text-7xl">
               {t('hero.title')}
             </h1>
-            <p className="mt-5 max-w-xl text-lg text-slate-300">{t('hero.subtitle')}</p>
-            <div className="mt-8 flex max-w-sm flex-col gap-3">
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-700">
+              {t('hero.subtitle')}
+            </p>
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
               <Link
                 href="/welcome"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition hover:from-blue-500 hover:to-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-ink-900 px-8 py-3 text-sm font-semibold text-paper-50 transition hover:bg-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-paper-100"
               >
                 {t('welcome.landingCta')}
               </Link>
-              <p className="text-xs leading-relaxed text-slate-400">{t('welcome.landingHint')}</p>
+              <p className="max-w-xs text-xs leading-relaxed text-ink-500">
+                {t('welcome.landingHint')}
+              </p>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-blue-950/40 backdrop-blur">
-            <div className="flex items-center gap-3">
-              <div className="adapteng-gradient flex h-12 w-12 items-center justify-center rounded-2xl text-2xl">
-                {preview.emoji}
-              </div>
-              <div>
-                <p className="font-semibold text-white">{preview.name}</p>
-                <p className="text-sm text-slate-400">{preview.tagline}</p>
+          <aside className="md:col-span-5">
+            <div className="relative">
+              <div className="absolute -inset-3 -z-10 rotate-1 rounded-3xl bg-accent-100" />
+              <div className="rounded-3xl border border-ink-900/10 bg-paper-50 p-6 shadow-[0_30px_80px_-40px_rgba(26,22,18,0.35)]">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-600 text-2xl text-paper-50">
+                    {preview.emoji}
+                  </div>
+                  <div>
+                    <p className="font-display text-xl font-semibold text-ink-900">
+                      {preview.name}
+                    </p>
+                    <p className="text-sm text-ink-500">{preview.tagline}</p>
+                  </div>
+                </div>
+                <p className="mt-5 text-sm leading-relaxed text-ink-700">
+                  {preview.description}
+                </p>
+                <div className="mt-6 border-t border-ink-900/10 pt-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-500">
+                    {t('hero.howTitle')}
+                  </p>
+                  <ol className="mt-3 space-y-3 text-sm text-ink-700">
+                    <li className="flex gap-3">
+                      <span className="font-display text-lg font-semibold text-accent-600">01</span>
+                      <span>{t('hero.how1')}</span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="font-display text-lg font-semibold text-accent-600">02</span>
+                      <span>{t('hero.how2')}</span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="font-display text-lg font-semibold text-accent-600">03</span>
+                      <span>{t('hero.how3')}</span>
+                    </li>
+                  </ol>
+                </div>
               </div>
             </div>
-            <p className="mt-4 text-sm text-slate-300">{preview.description}</p>
-            <div className="mt-6 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm font-semibold text-white">{t('hero.howTitle')}</p>
-              <ol className="space-y-2 text-sm text-slate-300">
-                <li className="flex gap-2">
-                  <span className="font-semibold text-sky-300">1</span>
-                  <span>{t('hero.how1')}</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="font-semibold text-sky-300">2</span>
-                  <span>{t('hero.how2')}</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="font-semibold text-sky-300">3</span>
-                  <span>{t('hero.how3')}</span>
-                </li>
-              </ol>
-            </div>
-          </div>
-        </section>
+          </aside>
+        </div>
+      </section>
 
-        <section id="characters" className="scroll-mt-20 py-12">
-          <h2 className="text-3xl font-bold text-white">{t('characters.title')}</h2>
-          <p className="mt-2 max-w-2xl text-slate-300">{t('characters.subtitle')}</p>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {characters.map((character) => (
-              <CharacterCard key={character.id} character={character} />
+      {/* Character strip */}
+      <section className="border-t border-ink-900/10 bg-paper-200/40">
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <div className="flex items-end justify-between gap-6">
+            <h2 className="font-display text-3xl font-semibold text-ink-900">
+              {t('hero.charactersTitle')}
+            </h2>
+            <p className="hidden max-w-sm text-sm text-ink-500 sm:block">
+              {t('hero.charactersSubtitle')}
+            </p>
+          </div>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {characters.slice(0, 4).map((c) => (
+              <CharacterCard key={c.id} character={c} />
             ))}
           </div>
-        </section>
-
-        <footer className="border-t border-white/10 py-10 text-center text-sm text-slate-400">
-          <p>{t('footer.tagline')}</p>
-          <p className="mt-3">
-            <Link
-              href="/login"
-              className="text-xs text-slate-500 underline-offset-2 transition hover:text-slate-300 hover:underline"
-            >
-              {t('footer.existingAccount')}
-            </Link>
-          </p>
-        </footer>
-      </div>
+        </div>
+      </section>
     </main>
   );
 }

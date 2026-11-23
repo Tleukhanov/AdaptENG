@@ -8,8 +8,7 @@ import type { Character } from '@/lib/characters';
 import { apiFetch } from '@/lib/api';
 import { useSession } from '@/lib/session';
 
-/** Палитра-заглушка: только синий/небесный, без фиолетово-розовых пар. */
-const FALLBACK_PALETTE = ['#2563eb', '#38bdf8'];
+const FALLBACK_PALETTE = ['#9a3412', '#c2410c'];
 
 export default function CharacterCard({
   character,
@@ -67,10 +66,10 @@ export default function CharacterCard({
   }
 
   return (
-    <article className="group relative flex flex-col rounded-3xl border border-white/10 bg-[linear-gradient(160deg,#0f1c33_0%,#0b1220_100%)] p-5 shadow-[0_30px_60px_-40px_rgba(2,6,23,0.9)] transition hover:-translate-y-1 hover:border-blue-400/30 hover:shadow-[0_30px_70px_-35px_rgba(37,99,235,0.55)]">
+    <article className="group relative flex flex-col rounded-2xl border border-ink-900/10 bg-paper-50 p-5 shadow-[0_24px_60px_-40px_rgba(26,22,18,0.3)] transition hover:-translate-y-1 hover:border-accent-600/40 hover:shadow-[0_30px_70px_-35px_rgba(194,65,12,0.25)]">
       {selected ? (
         <span
-          className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white ring-2 ring-blue-400/40"
+          className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-accent-600 text-xs font-bold text-paper-50"
           aria-hidden="true"
         >
           ✓
@@ -82,11 +81,11 @@ export default function CharacterCard({
           <img
             src={character.avatar}
             alt={name}
-            className="h-14 w-14 rounded-2xl object-cover ring-1 ring-white/10"
+            className="h-14 w-14 rounded-xl object-cover ring-1 ring-ink-900/10"
           />
         ) : (
           <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl text-white ring-1 ring-white/10"
+            className="flex h-14 w-14 items-center justify-center rounded-xl text-2xl text-paper-50 ring-1 ring-ink-900/10"
             style={{
               backgroundImage: `linear-gradient(135deg, ${palette[0]}, ${palette[1]})`,
             }}
@@ -95,24 +94,26 @@ export default function CharacterCard({
           </div>
         )}
         <div>
-          <h3 className="font-semibold text-white">{name}</h3>
-          <p className="text-sm text-slate-400">{tagline}</p>
+          <h3 className="font-display text-lg font-semibold text-ink-900">{name}</h3>
+          <p className="text-sm text-ink-500">{tagline}</p>
         </div>
       </div>
 
-      <p className="mt-4 line-clamp-3 flex-1 text-sm text-slate-300">{description}</p>
+      <p className="mt-4 line-clamp-3 flex-1 text-sm leading-relaxed text-ink-700">
+        {description}
+      </p>
 
       <Link
         href="/chat"
         onClick={handleSelect}
         aria-busy={busy}
-        className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+        className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-full bg-ink-900 px-4 py-2.5 text-sm font-semibold text-paper-50 transition hover:bg-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-paper-100"
       >
         {t('select')}
       </Link>
 
       {toast ? (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-white/10 bg-[#0f1c33] px-4 py-3 text-sm text-slate-100 shadow-xl">
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-ink-900/10 bg-paper-50 px-4 py-3 text-sm text-ink-900 shadow-xl">
           {toast}
         </div>
       ) : null}
