@@ -107,7 +107,7 @@ function Avatar({
 
   return (
     <span
-      className={`flex ${box} shrink-0 items-center justify-center rounded-2xl text-white`}
+      className={`flex ${box} shrink-0 items-center justify-center rounded-2xl text-paper-50`}
       style={{ backgroundImage: `linear-gradient(135deg, ${palette[0]}, ${palette[1]})` }}
     >
       {character.emoji}
@@ -400,7 +400,7 @@ export default function ChatPage() {
 
   if (status === 'error') {
     return (
-      <main className="relative isolate flex min-h-[calc(100dvh-4rem)] items-center justify-center overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 text-white">
+      <main className="relative isolate flex min-h-[calc(100dvh-4rem)] items-center justify-center overflow-hidden page-dark px-4 text-paper-50">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_50%_-12%,rgba(37,99,235,0.28),transparent_72%)]"
@@ -414,7 +414,7 @@ export default function ChatPage() {
           </div>
           <Link
             href="/"
-            className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+            className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-accent-600 px-5 py-3 text-sm font-semibold text-paper-50 shadow-lg shadow-accent-950/40 transition hover:bg-accent-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
           >
             {t('back')}
           </Link>
@@ -424,14 +424,14 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="relative isolate flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] text-white">
+    <main className="relative isolate flex h-[calc(100dvh-4rem)] flex-col overflow-hidden page-dark text-paper-50">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(37,99,235,0.28),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(194,65,12,0.18),transparent_70%)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-32 right-[-15%] h-[380px] w-[380px] rounded-full bg-blue-500/10 blur-3xl"
+        className="pointer-events-none absolute -bottom-32 right-[-15%] h-[380px] w-[380px] rounded-full bg-accent-500/10 blur-3xl"
       />
 
       <div className="relative mx-auto flex h-full w-full max-w-3xl flex-col px-4">
@@ -440,7 +440,7 @@ export default function ChatPage() {
             <Link
               href="/"
               aria-label={t('back')}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-paper-200 transition hover:bg-white/10 hover:text-paper-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/40"
             >
               <BackIcon />
             </Link>
@@ -448,14 +448,14 @@ export default function ChatPage() {
               <>
                 <Avatar character={character} />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">{character.name}</p>
-                  <p className="truncate text-xs text-slate-400">
+                  <p className="truncate text-sm font-semibold text-paper-50">{character.name}</p>
+                  <p className="truncate text-xs text-paper-300">
                     {character.tagline ?? t('subtitle')}
                   </p>
                 </div>
               </>
             ) : (
-              <p className="text-sm font-semibold text-white">{t('title')}</p>
+              <p className="text-sm font-semibold text-paper-50">{t('title')}</p>
             )}
           </div>
         </header>
@@ -469,7 +469,7 @@ export default function ChatPage() {
           {messages.map((message) =>
             message.role === 'user' ? (
               <div key={message.id} className="flex flex-col items-end">
-                <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-blue-600 px-4 py-2.5 text-sm text-white shadow-lg shadow-blue-950/40">
+                <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-accent-600 px-4 py-2.5 text-sm text-paper-50 shadow-lg shadow-accent-950/40">
                   {message.text}
                 </div>
                 {message.correctedText ? (
@@ -491,7 +491,7 @@ export default function ChatPage() {
             ) : (
               <div key={message.id} className="flex items-start gap-2">
                 {character ? <Avatar character={character} size="sm" /> : null}
-                <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-bl-md border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-200 backdrop-blur">
+                <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-2xl rounded-bl-md border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-paper-200 backdrop-blur">
                   {message.text}
                 </div>
               </div>
@@ -539,8 +539,8 @@ export default function ChatPage() {
                       onClick={() => selectMentor(item)}
                       className={
                         active
-                          ? 'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/20 px-3.5 text-xs font-medium text-blue-50'
-                          : 'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white'
+                          ? 'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-accent-400/40 bg-accent-500/20 px-3.5 text-xs font-medium text-blue-50'
+                          : 'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-medium text-paper-200 transition hover:border-white/20 hover:bg-white/10 hover:text-paper-50'
                       }
                     >
                       <span>{item.emoji}</span>
@@ -557,7 +557,7 @@ export default function ChatPage() {
               value={input}
               onChange={(event) => setInput(event.target.value)}
               placeholder={t('placeholder')}
-              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400/60 focus:ring-2 focus:ring-blue-400/40"
+              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-paper-100 outline-none transition placeholder:text-paper-300 focus:border-accent-400/60 focus:ring-2 focus:ring-accent-400/40"
             />
             <button
               type="button"
@@ -566,10 +566,10 @@ export default function ChatPage() {
               aria-label={t('mic')}
               title={t('mic')}
               aria-pressed={recorder.recording}
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40 disabled:cursor-not-allowed disabled:opacity-60 ${
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/40 disabled:cursor-not-allowed disabled:opacity-60 ${
                 recorder.recording
                   ? 'border-rose-400/50 bg-rose-400/15 text-rose-300'
-                  : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                  : 'border-white/10 bg-white/5 text-paper-200 hover:bg-white/10 hover:text-paper-50'
               }`}
             >
               <MicIcon />
@@ -577,7 +577,7 @@ export default function ChatPage() {
             <button
               type="submit"
               disabled={sending || input.trim().length === 0}
-              className="shrink-0 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40"
+              className="shrink-0 rounded-xl bg-accent-600 px-5 py-3 text-sm font-semibold text-paper-50 shadow-lg shadow-accent-950/40 transition hover:bg-accent-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {t('send')}
             </button>
@@ -586,7 +586,7 @@ export default function ChatPage() {
       </div>
 
       {toast ? (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900/95 px-4 py-3 text-sm text-white shadow-xl ring-1 ring-white/10">
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900/95 px-4 py-3 text-sm text-paper-50 shadow-xl ring-1 ring-white/10">
           {toast}
         </div>
       ) : null}

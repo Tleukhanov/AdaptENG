@@ -72,7 +72,7 @@ const LEVEL_LABEL: Record<string, string> = {
 };
 
 const FOCUS_RING =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -244,23 +244,23 @@ export default function OnboardingPage() {
   function chip(active: boolean) {
     return `flex min-h-[52px] items-center justify-center rounded-2xl border px-4 py-3 text-sm font-semibold transition ${FOCUS_RING} ${
       active
-        ? 'border-blue-400/60 bg-blue-500/15 text-sky-100 shadow-[0_0_0_1px_rgba(96,165,250,0.3),0_18px_40px_-24px_rgba(37,99,235,0.9)]'
-        : 'border-white/10 bg-white/[0.04] text-slate-200 hover:border-white/25 hover:bg-white/[0.08] hover:text-white'
+        ? 'border-accent-400/60 bg-accent-500/15 text-sky-100 shadow-[0_0_0_1px_rgba(96,165,250,0.3),0_18px_40px_-24px_rgba(37,99,235,0.9)]'
+        : 'border-white/10 bg-white/[0.04] text-paper-200 hover:border-white/25 hover:bg-white/[0.08] hover:text-paper-50'
     }`;
   }
 
   function primaryButton(disabled = false) {
-    return `inline-flex min-h-[48px] items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 ${FOCUS_RING} disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-slate-400 disabled:shadow-none`;
+    return `inline-flex min-h-[48px] items-center justify-center rounded-xl bg-accent-600 px-6 py-3 text-sm font-semibold text-paper-50 shadow-lg shadow-accent-950/40 transition hover:bg-accent-500 ${FOCUS_RING} disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-paper-300 disabled:shadow-none`;
   }
 
   function backButtonClass() {
-    return `inline-flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white ${FOCUS_RING}`;
+    return `inline-flex min-h-[44px] items-center rounded-xl px-3 text-sm font-semibold text-paper-200 transition hover:bg-white/5 hover:text-paper-50 ${FOCUS_RING}`;
   }
 
   if (loading) {
     return (
       <main className="page-dark flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
-        <p role="status" className="text-sm font-medium text-slate-400">
+        <p role="status" className="text-sm font-medium text-paper-300">
           ...
         </p>
       </main>
@@ -275,12 +275,12 @@ export default function OnboardingPage() {
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-blue-500/10 blur-3xl"
+        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-accent-500/10 blur-3xl"
       />
 
       <div className="relative mx-auto w-full max-w-2xl">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-500">
             {t('step', { current: stepNumber, total: STAGES.length })}
           </p>
           <div
@@ -291,7 +291,7 @@ export default function OnboardingPage() {
             className="h-1.5 w-32 overflow-hidden rounded-full bg-white/10"
           >
             <div
-              className="h-full rounded-full bg-gradient-to-r from-blue-500 to-sky-400 transition-all"
+              className="h-full rounded-full bg-gradient-to-r from-blue-500 to-accent-500 transition-all"
               style={{ width: `${(stepNumber / STAGES.length) * 100}%` }}
             />
           </div>
@@ -308,8 +308,8 @@ export default function OnboardingPage() {
 
         {stage === 'q1' && (
           <section className="panel mt-6 p-6">
-            <h1 className="text-2xl font-bold text-white">{t('goalTitle')}</h1>
-            <p className="mt-2 text-sm text-slate-300">{t('goalHint')}</p>
+            <h1 className="text-2xl font-bold text-paper-50">{t('goalTitle')}</h1>
+            <p className="mt-2 text-sm text-paper-200">{t('goalHint')}</p>
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               {GOALS.map((item) => (
                 <button
@@ -354,8 +354,8 @@ export default function OnboardingPage() {
 
         {stage === 'q2' && (
           <section className="panel mt-6 p-6">
-            <h1 className="text-2xl font-bold text-white">{t('hoursTitle')}</h1>
-            <p className="mt-2 text-sm text-slate-300">{t('hoursHint')}</p>
+            <h1 className="text-2xl font-bold text-paper-50">{t('hoursTitle')}</h1>
+            <p className="mt-2 text-sm text-paper-200">{t('hoursHint')}</p>
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               {HOURS.map((item) => (
                 <button
@@ -387,8 +387,8 @@ export default function OnboardingPage() {
 
         {stage === 'q3' && (
           <section className="panel mt-6 p-6">
-            <h1 className="text-2xl font-bold text-white">{t('levelTitle')}</h1>
-            <p className="mt-2 text-sm text-slate-300">{t('levelHint')}</p>
+            <h1 className="text-2xl font-bold text-paper-50">{t('levelTitle')}</h1>
+            <p className="mt-2 text-sm text-paper-200">{t('levelHint')}</p>
             <div className="mt-5 grid grid-cols-3 gap-2">
               {LEVELS.map((item) => (
                 <button
@@ -401,7 +401,7 @@ export default function OnboardingPage() {
                   <span className="text-base font-bold">{item}</span>
                   <span
                     className={`text-xs font-normal ${
-                      level === item ? 'text-sky-200' : 'text-slate-400'
+                      level === item ? 'text-accent-400' : 'text-paper-300'
                     }`}
                   >
                     {ru ? LEVEL_LABEL[item] : item}
@@ -412,7 +412,7 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={() => setStage('test-intro')}
-              className={`mt-3 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-dashed border-blue-400/40 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-sky-200 transition hover:border-blue-300/60 hover:bg-blue-500/15 hover:text-white ${FOCUS_RING}`}
+              className={`mt-3 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-dashed border-accent-400/40 bg-accent-500/10 px-4 py-3 text-sm font-semibold text-accent-400 transition hover:border-blue-300/60 hover:bg-accent-500/15 hover:text-paper-50 ${FOCUS_RING}`}
             >
               {t('levelTest')}
             </button>
@@ -434,9 +434,9 @@ export default function OnboardingPage() {
 
         {stage === 'test-intro' && (
           <section className="panel mt-6 p-6">
-            <h1 className="text-2xl font-bold text-white">{t('testTitle')}</h1>
-            <p className="mt-2 text-sm text-slate-300">{t('testIntro')}</p>
-            <ul className="mt-4 space-y-2 text-sm text-slate-300">
+            <h1 className="text-2xl font-bold text-paper-50">{t('testTitle')}</h1>
+            <p className="mt-2 text-sm text-paper-200">{t('testIntro')}</p>
+            <ul className="mt-4 space-y-2 text-sm text-paper-200">
               <li>· {t('testPoint1')}</li>
               <li>· {t('testPoint2')}</li>
               <li>· {t('testPoint3')}</li>
@@ -459,10 +459,10 @@ export default function OnboardingPage() {
 
         {stage === 'test-answer' && (
           <section className="panel mt-6 p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-500">
               {t('taskOf', { current: taskIndex + 1, total: tasks.length })}
             </p>
-            <h1 className="mt-3 text-xl font-bold text-white">{tasks[taskIndex]?.text}</h1>
+            <h1 className="mt-3 text-xl font-bold text-paper-50">{tasks[taskIndex]?.text}</h1>
             <textarea
               value={answer}
               onChange={(event) => setAnswer(event.target.value)}
@@ -488,13 +488,13 @@ export default function OnboardingPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
               {t('resultTitle')}
             </p>
-            <h1 className="mt-2 text-4xl font-bold text-white">{result.level}</h1>
-            <p className="mt-3 text-sm text-slate-200">{result.explanation_ru}</p>
+            <h1 className="mt-2 text-4xl font-bold text-paper-50">{result.level}</h1>
+            <p className="mt-3 text-sm text-paper-200">{result.explanation_ru}</p>
             {result.recommendation ? (
-              <p className="mt-2 text-sm font-semibold text-slate-100">{result.recommendation}</p>
+              <p className="mt-2 text-sm font-semibold text-paper-100">{result.recommendation}</p>
             ) : null}
             {result.weaknesses.length > 0 ? (
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-paper-300">
                 {t('resultWeak')}: {result.weaknesses.join(', ')}
               </p>
             ) : null}
@@ -508,8 +508,8 @@ export default function OnboardingPage() {
 
         {stage === 'q4' && (
           <section className="panel mt-6 p-6">
-            <h1 className="text-2xl font-bold text-white">{t('interestsTitle')}</h1>
-            <p className="mt-2 text-sm text-slate-300">{t('interestsHint')}</p>
+            <h1 className="text-2xl font-bold text-paper-50">{t('interestsTitle')}</h1>
+            <p className="mt-2 text-sm text-paper-200">{t('interestsHint')}</p>
             <div className="mt-5 flex flex-wrap gap-2">
               {INTERESTS.map((item) => (
                 <button
@@ -542,8 +542,8 @@ export default function OnboardingPage() {
 
         {stage === 'q5' && (
           <section className="panel mt-6 p-6">
-            <h1 className="text-2xl font-bold text-white">{t('formatTitle')}</h1>
-            <p className="mt-2 text-sm text-slate-300">{t('formatHint')}</p>
+            <h1 className="text-2xl font-bold text-paper-50">{t('formatTitle')}</h1>
+            <p className="mt-2 text-sm text-paper-200">{t('formatHint')}</p>
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               {FORMATS.map((item) => (
                 <button
@@ -575,23 +575,23 @@ export default function OnboardingPage() {
 
         {stage === 'summary' && (
           <section className="panel mt-6 p-6">
-            <h1 className="text-2xl font-bold text-white">{t('summaryTitle')}</h1>
+            <h1 className="text-2xl font-bold text-paper-50">{t('summaryTitle')}</h1>
             <dl className="mt-5 space-y-3 text-sm">
               <div className="flex justify-between gap-4 border-b border-white/10 pb-3">
-                <dt className="text-slate-400">{t('goalTitle')}</dt>
-                <dd className="text-right font-semibold text-white">{goalText || '—'}</dd>
+                <dt className="text-paper-300">{t('goalTitle')}</dt>
+                <dd className="text-right font-semibold text-paper-50">{goalText || '—'}</dd>
               </div>
               <div className="flex justify-between gap-4 border-b border-white/10 pb-3">
-                <dt className="text-slate-400">{t('hoursTitle')}</dt>
-                <dd className="text-right font-semibold text-white">{hoursText || '—'}</dd>
+                <dt className="text-paper-300">{t('hoursTitle')}</dt>
+                <dd className="text-right font-semibold text-paper-50">{hoursText || '—'}</dd>
               </div>
               <div className="flex justify-between gap-4 border-b border-white/10 pb-3">
-                <dt className="text-slate-400">{t('levelTitle')}</dt>
-                <dd className="text-right font-semibold text-white">{level ?? '—'}</dd>
+                <dt className="text-paper-300">{t('levelTitle')}</dt>
+                <dd className="text-right font-semibold text-paper-50">{level ?? '—'}</dd>
               </div>
               <div className="flex justify-between gap-4 border-b border-white/10 pb-3">
-                <dt className="text-slate-400">{t('interestsTitle')}</dt>
-                <dd className="text-right font-semibold text-white">
+                <dt className="text-paper-300">{t('interestsTitle')}</dt>
+                <dd className="text-right font-semibold text-paper-50">
                   {interests.length > 0
                     ? interests
                         .map((id) => INTERESTS.find((item) => item.id === id))
@@ -602,8 +602,8 @@ export default function OnboardingPage() {
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-400">{t('formatTitle')}</dt>
-                <dd className="text-right font-semibold text-white">
+                <dt className="text-paper-300">{t('formatTitle')}</dt>
+                <dd className="text-right font-semibold text-paper-50">
                   {FORMATS.find((item) => item.id === format)
                     ? pick(FORMATS.find((item) => item.id === format)!)
                     : '—'}

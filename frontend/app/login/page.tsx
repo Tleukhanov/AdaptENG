@@ -8,7 +8,7 @@ import { ApiError, errorMessage, login, register } from '@/lib/api';
 import { useSession } from '@/lib/session';
 
 const FOCUS_RING =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f]';
 
 export default function LoginPage() {
   const t = useTranslations();
@@ -31,8 +31,6 @@ export default function LoginPage() {
       } else {
         await register(email.trim(), password, name.trim());
       }
-      // Обновляем сессию в контексте ДО перехода: иначе целевая страница
-      // увидит "пользователя нет" и вернёт на страницу входа.
       await refresh();
       router.push('/menu');
       router.refresh();
@@ -47,117 +45,107 @@ export default function LoginPage() {
     <main className="page-dark relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-4 py-12">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(800px_420px_at_50%_-10%,#17386b_0%,transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(800px_420px_at_50%_-10%,rgba(194,65,12,0.18)_0%,transparent_70%)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-20 top-1/3 h-[320px] w-[320px] rounded-full bg-blue-500/10 blur-3xl"
+        className="pointer-events-none absolute -right-20 top-1/3 h-[320px] w-[320px] rounded-full bg-accent-500/10 blur-3xl"
       />
 
       <div className="relative w-full max-w-md">
         <div className="panel glow-soft p-6 sm:p-8">
           <span aria-hidden="true" className="adapteng-gradient block h-1 w-14 rounded-full" />
-          <h1 className="mt-4 text-2xl font-bold text-white">{t('auth.title')}</h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">{t('auth.subtitle')}</p>
-
-          <div className="mt-6 flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
-            <button
-              type="button"
-              aria-pressed={mode === 'login'}
-              onClick={() => setMode('login')}
-              className={`min-h-[44px] flex-1 rounded-lg text-sm font-semibold transition ${FOCUS_RING} ${
-                mode === 'login'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              {t('auth.loginBtn')}
-            </button>
-            <button
-              type="button"
-              aria-pressed={mode === 'register'}
-              onClick={() => setMode('register')}
-              className={`min-h-[44px] flex-1 rounded-lg text-sm font-semibold transition ${FOCUS_RING} ${
-                mode === 'register'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              {t('auth.registerBtn')}
-            </button>
-          </div>
+          <h1 className="mt-4 font-display text-2xl font-semibold text-paper-50">
+            {t('auth.title')}
+          </h1>
+          <p className="mt-1 text-sm text-paper-300">{t('auth.subtitle')}</p>
 
           <form onSubmit={submit} className="mt-6 space-y-4">
-            {mode === 'register' && (
+            {mode === 'register' ? (
               <label className="block">
-                <span className="text-sm font-medium text-slate-300">{t('auth.name')}</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-paper-300">
+                  {t('auth.name')}
+                </span>
                 <input
+                  type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  className="field mt-2"
+                  placeholder={t('auth.namePlaceholder')}
                   autoComplete="name"
-                  maxLength={80}
-                  className="field mt-1"
                 />
               </label>
-            )}
+            ) : null}
 
             <label className="block">
-              <span className="text-sm font-medium text-slate-300">{t('auth.email')}</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-paper-300">
+                {t('auth.email')}
+              </span>
               <input
                 type="email"
-                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
+                className="field mt-2"
                 placeholder="you@example.com"
-                className="field mt-1"
+                autoComplete="email"
+                required
               />
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium text-slate-300">{t('auth.password')}</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-paper-300">
+                {t('auth.password')}
+              </span>
               <input
                 type="password"
-                required
-                minLength={mode === 'register' ? 8 : 1}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                className="field mt-1"
+                className="field mt-2"
+                placeholder="••••••••"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                required
+                minLength={8}
               />
-              {mode === 'register' && (
-                <span className="mt-1 block text-xs text-slate-400">{t('auth.passwordHint')}</span>
-              )}
             </label>
 
-            {error && (
+            {error ? (
               <div
                 role="alert"
-                className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+                className="rounded-xl border border-accent-600/30 bg-accent-600/10 px-4 py-3 text-sm text-accent-100"
               >
                 {error}
               </div>
-            )}
+            ) : null}
 
             <button
               type="submit"
               disabled={busy}
-              className={`inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 ${FOCUS_RING} disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-slate-400 disabled:shadow-none`}
+              className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-accent-600 px-6 py-3 text-sm font-semibold text-paper-50 transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {busy ? t('auth.working') : mode === 'login' ? t('auth.loginBtn') : t('auth.registerBtn')}
+              {busy
+                ? t('auth.submitting')
+                : mode === 'login'
+                  ? t('auth.submitLogin')
+                  : t('auth.submitRegister')}
             </button>
           </form>
-        </div>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
-          {t('auth.privacyNote')}{' '}
-          <Link
-            href="/"
-            className={`rounded text-sky-300 underline decoration-sky-300/40 underline-offset-4 transition hover:text-sky-200 ${FOCUS_RING}`}
-          >
-            {t('auth.backHome')}
-          </Link>
-        </p>
+          <div className="mt-6 flex items-center justify-between text-sm">
+            <button
+              type="button"
+              onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+              className="font-semibold text-accent-500 transition hover:text-accent-600"
+            >
+              {mode === 'login' ? t('auth.switchToRegister') : t('auth.switchToLogin')}
+            </button>
+            <Link
+              href="/"
+              className="text-paper-300 transition hover:text-paper-50"
+            >
+              {t('auth.backHome')}
+            </Link>
+          </div>
+        </div>
       </div>
     </main>
   );

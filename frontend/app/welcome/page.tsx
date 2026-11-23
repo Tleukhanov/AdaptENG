@@ -146,7 +146,7 @@ export default function WelcomePage() {
 
   if (loading || sessionLoading) {
     return (
-      <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-[#0b1220] px-4">
+      <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center page-dark px-4">
         <p role="status" className="text-sm font-medium text-blue-200/80">
           {t('loading')}
         </p>
@@ -155,22 +155,22 @@ export default function WelcomePage() {
   }
 
   return (
-    <main className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden bg-[#0b1220] px-4 py-10 text-slate-900 sm:py-16">
+    <main className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden page-dark px-4 py-10 text-slate-900 sm:py-16">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_50%_-12%,#17386b_0%,transparent_72%)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-blue-500/10 blur-3xl"
+        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-accent-500/10 blur-3xl"
       />
 
       <div className="relative mx-auto w-full max-w-2xl">
         <header className="text-center">
-          <span className="inline-flex items-center rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold tracking-wide text-blue-200">
+          <span className="inline-flex items-center rounded-full border border-accent-400/30 bg-accent-500/10 px-3 py-1 text-xs font-semibold tracking-wide text-blue-200">
             {t('badge')}
           </span>
-          <h1 className="mt-5 text-3xl font-bold leading-tight text-white sm:text-4xl">
+          <h1 className="mt-5 text-3xl font-bold leading-tight text-paper-50 sm:text-4xl">
             {t('title')}
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-blue-100/70 sm:text-base">
@@ -190,7 +190,7 @@ export default function WelcomePage() {
               <button
                 type="button"
                 onClick={() => router.push('/lesson/0')}
-                className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+                className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2"
               >
                 {t('continue')}
               </button>
@@ -214,7 +214,7 @@ export default function WelcomePage() {
                 <span
                   key={index}
                   className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
-                    index <= step ? 'bg-blue-500' : 'bg-slate-200'
+                    index <= step ? 'bg-accent-500' : 'bg-slate-200'
                   }`}
                 />
               ))}
@@ -228,7 +228,7 @@ export default function WelcomePage() {
             >
               {step === 0 ? t('goalTitle') : step === 1 ? t('minutesTitle') : t('levelTitle')}
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            <p className="mt-2 text-sm leading-relaxed text-paper-300">
               {step === 0 ? t('goalHint') : step === 1 ? t('minutesHint') : t('levelHint')}
             </p>
 
@@ -282,7 +282,7 @@ export default function WelcomePage() {
                       type="button"
                       aria-pressed={selected}
                       onClick={() => chooseLevel(item)}
-                      className={`flex min-h-[72px] w-full flex-col items-start justify-center gap-0.5 rounded-2xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 ${
+                      className={`flex min-h-[72px] w-full flex-col items-start justify-center gap-0.5 rounded-2xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 ${
                         selected
                           ? 'border-blue-500 bg-blue-50 text-blue-950 shadow-[0_0_0_1px_rgba(59,130,246,0.35),0_18px_35px_-20px_rgba(37,99,235,0.85)]'
                           : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-slate-50'
@@ -291,7 +291,7 @@ export default function WelcomePage() {
                       <span className="text-base font-bold">{item}</span>
                       <span
                         className={`text-xs font-medium ${
-                          selected ? 'text-blue-700' : 'text-slate-500'
+                          selected ? 'text-blue-700' : 'text-paper-300'
                         }`}
                       >
                         {levelLabels[item]}
@@ -321,7 +321,7 @@ export default function WelcomePage() {
               <button
                 type="button"
                 onClick={goBack}
-                className="inline-flex min-h-[48px] items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
+                className="inline-flex min-h-[48px] items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-paper-300 transition hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2"
               >
                 <span aria-hidden="true">←</span>
                 {t('back')}
@@ -358,7 +358,7 @@ export default function WelcomePage() {
 }
 
 function optionClass(selected: boolean): string {
-  return `flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 ${
+  return `flex min-h-[56px] w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 ${
     selected
       ? 'border-blue-500 bg-blue-50 text-blue-950 shadow-[0_0_0_1px_rgba(59,130,246,0.35),0_18px_35px_-20px_rgba(37,99,235,0.85)]'
       : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-slate-50'
@@ -366,7 +366,7 @@ function optionClass(selected: boolean): string {
 }
 
 function primaryClass(disabled: boolean): string {
-  return `inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none ${
+  return `inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-accent-600 to-accent-500 px-6 py-3 text-sm font-semibold text-paper-50 shadow-lg shadow-blue-500/25 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-paper-300 disabled:shadow-none ${
     disabled ? '' : 'hover:-translate-y-0.5'
   }`;
 }
@@ -377,7 +377,7 @@ function Check({ selected }: { selected: boolean }) {
       aria-hidden="true"
       className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] transition ${
         selected
-          ? 'border-blue-500 bg-blue-500 text-white'
+          ? 'border-blue-500 bg-accent-500 text-paper-50'
           : 'border-slate-300 text-transparent'
       }`}
     >

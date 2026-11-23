@@ -810,11 +810,11 @@ export default function TutorSession({ mode, topic }: Props) {
       <Shell>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 pb-24 text-center">
           <MentorAvatar character={character} state="thinking" animated size="lg" />
-          <p role="status" className="text-sm font-medium text-blue-200/80">
+          <p role="status" className="text-sm font-medium text-paper-200/80">
             {isLesson ? t('lessonLoading') : t('loading')}
           </p>
-          <div className="h-1 w-40 overflow-hidden rounded-full bg-white/10">
-            <span className="block h-full w-1/2 animate-pulse motion-reduce:animate-none rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" />
+          <div className="h-1 w-40 overflow-hidden rounded-full bg-paper-50/10">
+            <span className="block h-full w-1/2 animate-pulse motion-reduce:animate-none rounded-full bg-gradient-to-r from-blue-500 to-accent-500" />
           </div>
         </div>
       </Shell>
@@ -848,25 +848,25 @@ export default function TutorSession({ mode, topic }: Props) {
 
   return (
     <Shell onPointerDown={unlockAudio}>
-      <header className="border-b border-white/10 px-4 pb-3 pt-4 sm:px-6">
+      <header className="border-b border-paper-50/10 px-4 pb-3 pt-4 sm:px-6">
         <div className="flex items-center gap-3 sm:gap-4">
           <MentorAvatar character={character} state={avatarState} animated size="lg" />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-300/70">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-paper-300/70">
               {isLesson ? t('lessonBadge') : t('badge')}
             </p>
-            <h1 className="truncate text-base font-bold text-white sm:text-lg">
+            <h1 className="truncate text-base font-bold text-paper-50 sm:text-lg">
               {character.name}
             </h1>
             {isLesson ? (
               <p className="mt-1 max-w-full truncate">
-                <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-blue-400/30 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-medium text-blue-100">
+                <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-accent-400/30 bg-accent-500/10 px-2.5 py-0.5 text-[11px] font-medium text-paper-100">
                   <span aria-hidden="true">🎯</span>
                   <span className="truncate">{activeTopic ?? t('newTopic')}</span>
                 </span>
               </p>
             ) : null}
-            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-blue-200/70">
+            <p className="mt-0.5 flex items-center gap-1.5 text-xs text-paper-200/70">
               <span
                 aria-hidden="true"
                 className={`inline-block h-1.5 w-1.5 rounded-full ${
@@ -906,14 +906,14 @@ export default function TutorSession({ mode, topic }: Props) {
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-xs font-medium text-blue-200/70">
+          <p className="text-xs font-medium text-paper-200/70">
             {t('progress', { current: Math.min(turnIndex, maxTurns), total: maxTurns })}
           </p>
           <button
             type="button"
             onClick={() => void submitFinish()}
             disabled={finishing || sending}
-            className="inline-flex min-h-[44px] items-center rounded-lg px-2.5 text-xs font-semibold text-blue-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center rounded-lg px-2.5 text-xs font-semibold text-paper-200 transition hover:bg-paper-50/10 hover:text-paper-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f] disabled:opacity-50"
           >
             {finishing ? t('finishing') : t('finish')}
           </button>
@@ -925,7 +925,7 @@ export default function TutorSession({ mode, topic }: Props) {
           aria-valuemin={0}
           aria-valuemax={maxTurns}
           aria-valuenow={Math.min(turnIndex, maxTurns)}
-          className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10"
+          className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-paper-50/10"
         >
           <span
             className="block h-full rounded-full bg-gradient-to-r from-blue-500 via-blue-400 to-cyan-300 transition-[width] duration-500"
@@ -935,11 +935,11 @@ export default function TutorSession({ mode, topic }: Props) {
       </header>
 
       {audioBlocked && !muted ? (
-        <div className="mx-4 mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-blue-400/30 bg-blue-500/10 px-4 py-3 sm:mx-6">
+        <div className="mx-4 mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-accent-400/30 bg-accent-500/10 px-4 py-3 sm:mx-6">
           <span aria-hidden="true" className="text-lg">
             🔊
           </span>
-          <p className="min-w-0 flex-1 text-xs leading-relaxed text-blue-100/80">
+          <p className="min-w-0 flex-1 text-xs leading-relaxed text-paper-100/80">
             {t('startHint')}
           </p>
           <button
@@ -948,7 +948,7 @@ export default function TutorSession({ mode, topic }: Props) {
               unlockAudio();
               replayLast();
             }}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-blue-500 px-4 text-sm font-semibold text-white transition hover:bg-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-accent-500 px-4 text-sm font-semibold text-paper-50 transition hover:bg-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f]"
           >
             {t('start')}
           </button>
@@ -969,7 +969,7 @@ export default function TutorSession({ mode, topic }: Props) {
                 className={`max-w-[85%] whitespace-pre-wrap break-words rounded-3xl rounded-br-lg px-4 py-3 text-sm leading-relaxed ${
                   bubble.failed
                     ? 'bg-red-500/20 text-red-50 ring-1 ring-red-400/40'
-                    : 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
+                    : 'bg-accent-600 text-paper-50 shadow-lg shadow-accent-950/40'
                 }`}
               >
                 {bubble.text}
@@ -982,7 +982,7 @@ export default function TutorSession({ mode, topic }: Props) {
             <div key={bubble.id} className="flex items-start gap-2.5">
               <MentorAvatar character={character} size="sm" />
               <div className="min-w-0 max-w-[85%] space-y-2">
-                <div className="whitespace-pre-wrap break-words rounded-3xl rounded-bl-lg border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-relaxed text-blue-50">
+                <div className="whitespace-pre-wrap break-words rounded-3xl rounded-bl-lg border border-paper-50/10 bg-white/[0.06] px-4 py-3 text-sm leading-relaxed text-blue-50">
                   {bubble.text}
                   {bubble.streaming ? (
                     <span
@@ -1028,13 +1028,13 @@ export default function TutorSession({ mode, topic }: Props) {
                 ) : null}
                 {bubble.interests && bubble.interests.length > 0 ? (
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-blue-200/60">
+                    <span className="text-[11px] font-medium text-paper-200/60">
                       {t('remembered')}
                     </span>
                     {bubble.interests.map((interest) => (
                       <span
                         key={interest}
-                        className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-medium text-blue-100"
+                        className="rounded-full border border-accent-400/30 bg-accent-500/10 px-2.5 py-0.5 text-[11px] font-medium text-paper-100"
                       >
                         {interest}
                       </span>
@@ -1057,7 +1057,7 @@ export default function TutorSession({ mode, topic }: Props) {
         {sending ? (
           <div className="flex items-start gap-2.5">
             <MentorAvatar character={character} size="sm" />
-            <div className="flex items-center gap-1 rounded-2xl rounded-bl-lg border border-white/10 bg-white/[0.06] px-4 py-3">
+            <div className="flex items-center gap-1 rounded-2xl rounded-bl-lg border border-paper-50/10 bg-white/[0.06] px-4 py-3">
               <span className="sr-only">{t('state.thinking')}</span>
               <span className="h-2 w-2 animate-bounce rounded-full bg-blue-300/70 motion-reduce:animate-none [animation-delay:-0.3s]" />
               <span className="h-2 w-2 animate-bounce rounded-full bg-blue-300/70 motion-reduce:animate-none [animation-delay:-0.15s]" />
@@ -1069,18 +1069,18 @@ export default function TutorSession({ mode, topic }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-white/10 bg-[#0b1425]/80 px-4 pb-4 pt-3 backdrop-blur sm:px-6">
+      <div className="border-t border-paper-50/10 bg-[#0b1425]/80 px-4 pb-4 pt-3 backdrop-blur sm:px-6">
         {canFinish ? (
-          <div className="mb-3 rounded-2xl border border-blue-400/30 bg-blue-500/10 px-4 py-3">
+          <div className="mb-3 rounded-2xl border border-accent-400/30 bg-accent-500/10 px-4 py-3">
             <p className="text-sm font-semibold text-blue-50">
               {isLesson ? t('lessonFinishTitle') : t('finishTitle')}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-blue-100/70">{t('finishHint')}</p>
+            <p className="mt-1 text-xs leading-relaxed text-paper-100/70">{t('finishHint')}</p>
             <button
               type="button"
               onClick={() => void submitFinish()}
               disabled={finishing}
-              className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:opacity-60 sm:w-auto"
+              className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-accent-600 to-accent-500 px-5 text-sm font-semibold text-paper-50 shadow-lg shadow-accent-950/40 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f] disabled:opacity-60 sm:w-auto"
             >
               {finishing ? t('finishing') : t('finish')}
             </button>
@@ -1112,7 +1112,7 @@ export default function TutorSession({ mode, topic }: Props) {
         ) : null}
 
         {voiceUnavailable && !muted ? (
-          <p className="mb-2 text-[11px] text-blue-200/50">{t('voiceUnavailable')}</p>
+          <p className="mb-2 text-[11px] text-paper-200/50">{t('voiceUnavailable')}</p>
         ) : null}
 
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
@@ -1122,7 +1122,7 @@ export default function TutorSession({ mode, topic }: Props) {
             placeholder={reachedLimit ? t('limitReached') : t('placeholder')}
             disabled={reachedLimit || finishing}
             aria-label={t('inputLabel')}
-            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-blue-50 outline-none transition placeholder:text-blue-200/40 focus:border-blue-400/60 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
+            className="min-w-0 flex-1 rounded-xl border border-paper-50/10 bg-white/[0.06] px-4 py-3 text-sm text-blue-50 outline-none transition placeholder:text-paper-200/40 focus:border-accent-400/60 focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60"
           />
           <button
             type="button"
@@ -1131,10 +1131,10 @@ export default function TutorSession({ mode, topic }: Props) {
             aria-label={t('mic')}
             title={t('mic')}
             aria-pressed={recorder.recording}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f] disabled:cursor-not-allowed disabled:opacity-50 ${
               recorder.recording
                 ? 'border-red-400/50 bg-red-500/20 text-red-200'
-                : 'border-white/10 bg-white/[0.06] text-blue-200 hover:bg-white/10'
+                : 'border-paper-50/10 bg-white/[0.06] text-paper-200 hover:bg-paper-50/10'
             }`}
           >
             <MicIcon />
@@ -1143,7 +1143,7 @@ export default function TutorSession({ mode, topic }: Props) {
             type="submit"
             disabled={sending || finishing || reachedLimit || input.trim().length === 0}
             aria-label={t('send')}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500 text-white transition hover:bg-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-blue-200/40"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-500 text-paper-50 transition hover:bg-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f] disabled:cursor-not-allowed disabled:bg-paper-50/10 disabled:text-paper-200/40"
           >
             <SendIcon />
           </button>
@@ -1153,7 +1153,7 @@ export default function TutorSession({ mode, topic }: Props) {
       {toast ? (
         <div
           role="status"
-          className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900/95 px-4 py-3 text-sm text-white shadow-xl ring-1 ring-white/10"
+          className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-900/95 px-4 py-3 text-sm text-paper-50 shadow-xl ring-1 ring-white/10"
         >
           {toast}
         </div>
@@ -1163,13 +1163,13 @@ export default function TutorSession({ mode, topic }: Props) {
 }
 
 const primaryButton =
-  'inline-flex min-h-[48px] items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-6 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
+  'inline-flex min-h-[48px] items-center justify-center rounded-xl bg-gradient-to-r from-accent-600 to-accent-500 px-6 text-sm font-semibold text-paper-50 shadow-lg shadow-accent-950/40 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f]';
 
 const secondaryButton =
-  'inline-flex min-h-[48px] items-center justify-center rounded-xl border border-white/15 px-6 text-sm font-semibold text-blue-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
+  'inline-flex min-h-[48px] items-center justify-center rounded-xl border border-paper-50/15 px-6 text-sm font-semibold text-paper-100 transition hover:bg-paper-50/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f]';
 
 const iconButton =
-  'flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-base text-blue-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40';
+  'flex h-11 w-11 items-center justify-center rounded-xl border border-paper-50/10 bg-white/[0.06] text-base text-paper-100 transition hover:bg-paper-50/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f] disabled:cursor-not-allowed disabled:opacity-40';
 
 function Shell({
   children,
@@ -1181,7 +1181,7 @@ function Shell({
   return (
     <main
       onPointerDown={onPointerDown}
-      className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] text-white"
+      className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] text-paper-50"
     >
       <div
         aria-hidden="true"
@@ -1189,7 +1189,7 @@ function Shell({
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-32 right-[-15%] h-[380px] w-[380px] rounded-full bg-blue-500/10 blur-3xl"
+        className="pointer-events-none absolute -bottom-32 right-[-15%] h-[380px] w-[380px] rounded-full bg-accent-500/10 blur-3xl"
       />
       <div className="relative mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col">
         {children}
@@ -1210,7 +1210,7 @@ function SummarySection({
   }
   return (
     <section className="mt-5">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-paper-300">{title}</h3>
       <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-slate-700">
         {items.map((item, index) => (
           <li key={`${item}-${index}`} className="flex gap-2">
@@ -1239,7 +1239,7 @@ function FinishScreen({
   const isLesson = mode === 'lesson';
 
   return (
-    <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 py-8 text-white sm:py-12">
+    <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 py-8 text-paper-50 sm:py-12">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_50%_-12%,rgba(37,99,235,0.32),transparent_70%)]"
@@ -1247,20 +1247,20 @@ function FinishScreen({
       <div className="relative mx-auto w-full max-w-2xl">
         <header className="flex flex-col items-center text-center">
           <MentorAvatar character={character} state="idle" animated size="lg" />
-          <span className="mt-4 inline-flex items-center rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold tracking-wide text-blue-200">
+          <span className="mt-4 inline-flex items-center rounded-full border border-accent-400/30 bg-accent-500/10 px-3 py-1 text-xs font-semibold tracking-wide text-paper-200">
             {isLesson ? t('result.lessonBadge') : t('result.badge')}
           </span>
-          <h1 className="mt-4 text-2xl font-bold leading-tight text-white sm:text-3xl">
+          <h1 className="mt-4 text-2xl font-bold leading-tight text-paper-50 sm:text-3xl">
             {isLesson ? t('result.lessonTitle') : t('result.title')}
           </h1>
-          <p className="mt-2 max-w-lg text-sm leading-relaxed text-blue-100/70">
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-paper-100/70">
             {t('result.subtitle')}
           </p>
         </header>
 
         <div className="mt-7 rounded-[28px] bg-white p-5 text-slate-900 shadow-[0_40px_90px_-30px_rgba(37,99,235,0.55)] ring-1 ring-white/20 sm:p-7">
           <div className="flex items-center gap-4 rounded-2xl bg-blue-50 p-4">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-blue-500 text-xl font-bold text-white">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-600 to-accent-500 text-xl font-bold text-paper-50">
               {summary.level}
             </span>
             <div className="min-w-0">
@@ -1285,7 +1285,7 @@ function FinishScreen({
 
           {summary.interests.length > 0 ? (
             <section className="mt-5">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-paper-300">
                 {t('result.interests')}
               </h3>
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1323,7 +1323,7 @@ function FinishScreen({
 
           {result.registered ? (
             <div className="mt-5 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-600 px-3.5 py-1.5 text-xs font-semibold text-paper-50">
                 ⭐ {t('result.xp', { xp: result.xp })}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1.5 text-xs font-semibold text-orange-700">
@@ -1341,7 +1341,7 @@ function FinishScreen({
               <button
                 type="button"
                 onClick={onNextLesson}
-                className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2"
+                className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-accent-600 to-accent-500 px-5 text-sm font-semibold text-paper-50 shadow-lg shadow-blue-500/25 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2"
               >
                 {t('nextLesson')}
               </button>
@@ -1357,7 +1357,7 @@ function FinishScreen({
               {result.registered ? null : (
                 <Link
                   href="/login"
-                  className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2"
+                  className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-accent-600 to-accent-500 px-5 text-sm font-semibold text-paper-50 shadow-lg shadow-blue-500/25 transition hover:from-blue-500 hover:to-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2"
                 >
                   {t('result.save')}
                 </Link>
@@ -1366,7 +1366,7 @@ function FinishScreen({
                 href="/menu"
                 className={`inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl px-5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 ${
                   result.registered
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-blue-400'
+                    ? 'bg-gradient-to-r from-accent-600 to-accent-500 text-paper-50 shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-blue-400'
                     : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >

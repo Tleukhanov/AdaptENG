@@ -17,7 +17,7 @@ export default function OfflineRetry() {
     <button
       type="button"
       onClick={() => window.location.reload()}
-      className="mt-7 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition hover:from-blue-500 hover:to-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+      className="mt-7 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-gradient-to-r from-accent-600 to-accent-500 px-6 py-3 text-sm font-semibold text-paper-50 shadow-lg shadow-accent-900/40 transition hover:from-blue-500 hover:to-accent-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f]"
     >
       {t('offline.retry')}
     </button>

@@ -117,27 +117,27 @@ export default function PwaProvider() {
           offline ? 'translate-y-0' : 'pointer-events-none translate-y-full'
         }`}
       >
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#0b1220]" />
+        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-paper-100" />
         {offline ? t('pwa.offline') : null}
       </div>
 
       {installEvent ? (
         <div className="fixed inset-x-4 bottom-4 z-50 sm:left-auto sm:w-80">
-          <div className="panel flex items-start gap-3 p-4 shadow-2xl shadow-blue-950/60">
+          <div className="panel flex items-start gap-3 p-4 shadow-2xl shadow-accent-950/60">
             <span
               aria-hidden
-              className="adapteng-gradient flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
+              className="adapteng-gradient flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-paper-50"
             >
               A
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white">{t('pwa.installTitle')}</p>
-              <p className="mt-1 text-xs leading-relaxed text-slate-300">{t('pwa.installHint')}</p>
+              <p className="text-sm font-semibold text-paper-50">{t('pwa.installTitle')}</p>
+              <p className="mt-1 text-xs leading-relaxed text-paper-200">{t('pwa.installHint')}</p>
               <div className="mt-3 flex items-center gap-2">
                 <button
                   type="button"
                   onClick={install}
-                  className="inline-flex min-h-[36px] items-center justify-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+                  className="inline-flex min-h-[36px] items-center justify-center rounded-lg bg-accent-600 px-3 py-1.5 text-xs font-semibold text-paper-50 transition hover:bg-accent-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f]"
                 >
                   {t('pwa.install')}
                 </button>
@@ -145,7 +145,7 @@ export default function PwaProvider() {
                   type="button"
                   onClick={dismiss}
                   aria-label={t('pwa.dismiss')}
-                  className="inline-flex min-h-[36px] items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+                  className="inline-flex min-h-[36px] items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-paper-300 transition hover:text-paper-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f]"
                 >
                   {t('pwa.dismiss')}
                 </button>

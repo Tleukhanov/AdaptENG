@@ -32,10 +32,10 @@ type TrainResult = {
 };
 
 const PRIMARY =
-  'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-600 px-5 text-sm font-semibold text-paper-50 shadow-lg shadow-accent-950/40 transition hover:bg-accent-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-50';
 
 const SECONDARY =
-  'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-white/15 px-5 text-sm font-semibold text-blue-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
+  'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-white/15 px-5 text-sm font-semibold text-blue-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
 
 function formatTime(totalSeconds: number): string {
   const safe = Math.max(0, totalSeconds);
@@ -292,36 +292,36 @@ export default function VocabPage() {
       : 0;
 
   return (
-    <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden px-4 py-8 text-slate-100 sm:py-10">
+    <main className="page-dark relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden px-4 py-8 text-paper-100 sm:py-10">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(37,99,235,0.28),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_20%_-10%,rgba(194,65,12,0.18),transparent_70%)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-sky-500/10 blur-3xl"
+        className="pointer-events-none absolute -bottom-24 right-[-10%] h-[380px] w-[380px] rounded-full bg-accent-500/10 blur-3xl"
       />
 
       <div className="relative mx-auto w-full max-w-3xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-sky-300">AdaptENG</p>
-            <h1 className="mt-1 text-3xl font-bold text-white">{t('title')}</h1>
-            <p className="mt-2 text-sm text-slate-400">{t('subtitle')}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-accent-500">AdaptENG</p>
+            <h1 className="mt-1 text-3xl font-bold text-paper-50">{t('title')}</h1>
+            <p className="mt-2 text-sm text-paper-300">{t('subtitle')}</p>
           </div>
           <Link
             href="/menu"
-            className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
+            className="inline-flex min-h-[36px] items-center rounded-lg px-2 py-2 text-sm font-semibold text-blue-300 transition hover:text-paper-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/40"
           >
             {t('toMenu')}
           </Link>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 backdrop-blur">
-            📚 {t('total')}: <span className="text-sky-300">{total}</span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-paper-200 backdrop-blur">
+            📚 {t('total')}: <span className="text-accent-500">{total}</span>
           </span>
-          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 backdrop-blur">
+          <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-paper-200 backdrop-blur">
             🔁 {t('due')}: <span className="text-amber-200">{due}</span>
           </span>
         </div>
@@ -375,7 +375,7 @@ export default function VocabPage() {
                 <button
                   type="button"
                   onClick={() => void load()}
-                  className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500"
+                  className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-xl bg-accent-600 px-4 text-sm font-semibold text-paper-50 transition hover:bg-accent-500"
                 >
                   {t('retry')}
                 </button>
@@ -386,12 +386,12 @@ export default function VocabPage() {
               <div className="panel mt-6 p-8 text-center">
                 <div
                   aria-hidden="true"
-                  className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white"
+                  className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-accent-500 text-2xl text-paper-50"
                 >
                   📖
                 </div>
-                <h2 className="text-xl font-bold text-white">{t('emptyTitle')}</h2>
-                <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-400">
+                <h2 className="text-xl font-bold text-paper-50">{t('emptyTitle')}</h2>
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-paper-300">
                   {t('emptyHint')}
                 </p>
                 <Link href="/lesson" className={`mt-6 ${PRIMARY}`}>
@@ -401,7 +401,7 @@ export default function VocabPage() {
             ) : null}
 
             {pageStatus === 'ready' && words.length > 0 && filtered.length === 0 ? (
-              <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-slate-400">
+              <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-paper-300">
                 {t('noResults')}
               </p>
             ) : null}
@@ -417,16 +417,16 @@ export default function VocabPage() {
                           type="button"
                           onClick={() => toggleExpanded(item.id)}
                           aria-expanded={isOpen}
-                          className="min-w-0 flex-1 rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+                          className="min-w-0 flex-1 rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
                         >
                           <span className="flex flex-wrap items-center gap-2">
-                            <span className="text-lg font-semibold text-white">{item.word}</span>
+                            <span className="text-lg font-semibold text-paper-50">{item.word}</span>
                             {item.status === 'known' ? (
                               <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
                                 {t('status.known')}
                               </span>
                             ) : item.status === 'learning' ? (
-                              <span className="rounded-full border border-sky-400/25 bg-sky-400/10 px-2 py-0.5 text-[11px] font-semibold text-sky-300">
+                              <span className="rounded-full border border-sky-400/25 bg-sky-400/10 px-2 py-0.5 text-[11px] font-semibold text-accent-500">
                                 {t('status.learning')}
                               </span>
                             ) : null}
@@ -444,11 +444,11 @@ export default function VocabPage() {
                             }`}
                           >
                             <span className="min-h-0 overflow-hidden">
-                              <span className="block text-sm font-medium text-slate-200">
+                              <span className="block text-sm font-medium text-paper-200">
                                 {item.translation}
                               </span>
                               {item.example ? (
-                                <span className="mt-1 block text-xs italic leading-relaxed text-slate-400">
+                                <span className="mt-1 block text-xs italic leading-relaxed text-paper-300">
                                   {item.example}
                                 </span>
                               ) : null}
@@ -460,7 +460,7 @@ export default function VocabPage() {
                           onClick={() => void handleDelete(item)}
                           aria-label={`${t('delete')}: ${item.word}`}
                           title={t('delete')}
-                          className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-400 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60"
+                          className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-paper-300 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60"
                         >
                           <TrashIcon />
                         </button>
@@ -475,23 +475,23 @@ export default function VocabPage() {
 
         {view === 'setup' ? (
           <div className="panel mt-6 p-6 sm:p-8">
-            <h2 className="text-2xl font-bold text-white">{t('setupTitle')}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-400">{t('setupHint')}</p>
+            <h2 className="text-2xl font-bold text-paper-50">{t('setupTitle')}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-paper-300">{t('setupHint')}</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => startTraining('10')}
-                className="rounded-2xl border border-white/10 bg-white/5 p-5 text-left transition hover:-translate-y-0.5 hover:border-blue-400/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                className="rounded-2xl border border-white/10 bg-white/5 p-5 text-left transition hover:-translate-y-0.5 hover:border-accent-400/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
               >
-                <span className="block text-2xl font-bold text-white">10:00</span>
+                <span className="block text-2xl font-bold text-paper-50">10:00</span>
                 <span className="mt-1 block text-sm font-semibold text-blue-200">{t('minutes10')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => startTraining('all')}
-                className="rounded-2xl border border-white/10 bg-white/5 p-5 text-left transition hover:-translate-y-0.5 hover:border-blue-400/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                className="rounded-2xl border border-white/10 bg-white/5 p-5 text-left transition hover:-translate-y-0.5 hover:border-accent-400/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
               >
-                <span className="block text-2xl font-bold text-white">
+                <span className="block text-2xl font-bold text-paper-50">
                   {formatTime(allSeconds)}
                 </span>
                 <span className="mt-1 block text-sm font-semibold text-blue-200">
@@ -512,7 +512,7 @@ export default function VocabPage() {
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-200/60">
                   {t('progressLabel')}
                 </span>
-                <span className="text-sm font-semibold text-white">
+                <span className="text-sm font-semibold text-paper-50">
                   {step + 1} / {queue.length}
                 </span>
               </div>
@@ -523,7 +523,7 @@ export default function VocabPage() {
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold tabular-nums ${
                     remaining <= 60
                       ? 'border-amber-400/40 bg-amber-400/10 text-amber-200'
-                      : 'border-white/10 bg-white/5 text-slate-200'
+                      : 'border-white/10 bg-white/5 text-paper-200'
                   }`}
                 >
                   <span aria-hidden="true">⏱</span>
@@ -532,7 +532,7 @@ export default function VocabPage() {
                 <button
                   type="button"
                   onClick={() => setView('list')}
-                  className="inline-flex min-h-[36px] items-center rounded-lg px-2 text-sm font-semibold text-blue-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                  className="inline-flex min-h-[36px] items-center rounded-lg px-2 text-sm font-semibold text-blue-200 transition hover:bg-white/10 hover:text-paper-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400"
                 >
                   {t('exit')}
                 </button>
@@ -543,11 +543,11 @@ export default function VocabPage() {
               <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-200/60">
                 {t('question')}
               </p>
-              <h2 className="mt-1 break-words text-3xl font-bold text-white">{current.word}</h2>
+              <h2 className="mt-1 break-words text-3xl font-bold text-paper-50">{current.word}</h2>
 
               <div className="mt-5 space-y-3">
                 <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-paper-300">
                     {t('translation')}
                   </span>
                   <input
@@ -560,7 +560,7 @@ export default function VocabPage() {
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-paper-300">
                     {t('sentence')}
                   </span>
                   <textarea
@@ -592,7 +592,7 @@ export default function VocabPage() {
               ) : (
                 <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-paper-300">
                       {t('score')}
                     </span>
                     <span
@@ -626,7 +626,7 @@ export default function VocabPage() {
                   </div>
 
                   {check.feedback ? (
-                    <p role="status" className="mt-3 text-sm leading-relaxed text-slate-200">
+                    <p role="status" className="mt-3 text-sm leading-relaxed text-paper-200">
                       {check.feedback}
                     </p>
                   ) : null}
@@ -642,7 +642,7 @@ export default function VocabPage() {
                     </div>
                   ) : null}
 
-                  <p className="mt-3 text-xs leading-relaxed text-slate-400">
+                  <p className="mt-3 text-xs leading-relaxed text-paper-300">
                     {t('correctTranslation')}:{' '}
                     <span className="font-semibold text-emerald-300">{current.translation}</span>
                   </p>
@@ -660,33 +660,33 @@ export default function VocabPage() {
           <div className="panel mt-6 p-6 sm:p-8">
             <div
               aria-hidden="true"
-              className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl text-white ${
+              className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl text-paper-50 ${
                 result.reason === 'time'
                   ? 'bg-gradient-to-br from-amber-500 to-rose-500'
-                  : 'bg-gradient-to-br from-blue-500 to-sky-400'
+                  : 'bg-gradient-to-br from-blue-500 to-accent-500'
               }`}
             >
               {result.reason === 'time' ? '⏰' : '🎉'}
             </div>
-            <h2 className="text-2xl font-bold text-white">
+            <h2 className="text-2xl font-bold text-paper-50">
               {result.reason === 'time' ? t('timeUp') : t('resultTitle')}
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-400">
+            <p className="mt-2 text-sm leading-relaxed text-paper-300">
               {result.reason === 'time' ? t('timeUpHint') : t('resultHint')}
             </p>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
               <div className="panel-muted p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-paper-300">
                   {t('resultWords')}
                 </p>
-                <p className="mt-1 text-2xl font-bold text-white">{result.items.length}</p>
+                <p className="mt-1 text-2xl font-bold text-paper-50">{result.items.length}</p>
               </div>
               <div className="panel-muted p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-paper-300">
                   {t('resultAvg')}
                 </p>
-                <p className="mt-1 text-2xl font-bold text-sky-300">{averageScore}</p>
+                <p className="mt-1 text-2xl font-bold text-accent-500">{averageScore}</p>
               </div>
             </div>
 
@@ -697,7 +697,7 @@ export default function VocabPage() {
                     key={item.id}
                     className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5"
                   >
-                    <span className="min-w-0 truncate text-sm font-medium text-slate-200">
+                    <span className="min-w-0 truncate text-sm font-medium text-paper-200">
                       {item.word}
                     </span>
                     <span

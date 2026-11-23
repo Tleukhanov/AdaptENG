@@ -24,8 +24,8 @@ export default function Logo({ className = '' }: { className?: string }) {
         />
         <path d="M13.2 20.1h7.6" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round" />
       </svg>
-      <span className="text-lg font-bold tracking-tight text-slate-900">
-        Adapt<span className="text-blue-600">ENG</span>
+      <span className="text-lg font-bold tracking-tight text-ink-900">
+        Adapt<span className="text-accent-600">ENG</span>
       </span>
     </span>
   );

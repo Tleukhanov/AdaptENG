@@ -54,16 +54,16 @@ type FinishResult = {
 
 /** Общая «стеклянная» панель для всех экранов урока. */
 const PANEL =
-  'rounded-3xl border border-white/10 bg-white/5 shadow-xl shadow-blue-950/30 backdrop-blur';
+  'rounded-3xl border border-white/10 bg-white/5 shadow-xl shadow-accent-950/30 backdrop-blur';
 
 const PRIMARY =
-  'inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex items-center justify-center rounded-xl bg-accent-600 px-5 py-3 text-sm font-semibold text-paper-50 shadow-lg shadow-accent-950/40 transition hover:bg-accent-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-60';
 
 const SECONDARY =
-  'inline-flex items-center justify-center rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-blue-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
+  'inline-flex items-center justify-center rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold text-blue-100 transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]';
 
 const GHOST_SM =
-  'rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 transition hover:border-white/20 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-60';
+  'rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-paper-200 transition hover:border-white/20 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-60';
 
 export default function LessonPage() {
   const locale = useLocale() as Locale;
@@ -454,14 +454,14 @@ export default function LessonPage() {
   const currentQuiz: QuizItem | null = deck ? deck.quiz[quizIndex] ?? null : null;
 
   return (
-    <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden bg-[linear-gradient(160deg,#0b1220_0%,#111c33_100%)] px-4 py-8 text-white">
+    <main className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden page-dark px-4 py-8 text-paper-50">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_480px_at_50%_-12%,rgba(37,99,235,0.28),transparent_72%)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-32 right-[-15%] h-[380px] w-[380px] rounded-full bg-blue-500/10 blur-3xl"
+        className="pointer-events-none absolute -bottom-32 right-[-15%] h-[380px] w-[380px] rounded-full bg-accent-500/10 blur-3xl"
       />
 
       <div className="relative mx-auto w-full max-w-4xl">
@@ -469,7 +469,7 @@ export default function LessonPage() {
           <div className="flex-1">
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
               <div
-                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-sky-400"
+                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-accent-500"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -479,7 +479,7 @@ export default function LessonPage() {
           </div>
           <Link
             href="/dashboard"
-            className="rounded-lg px-2 py-2 text-sm font-semibold text-blue-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+            className="rounded-lg px-2 py-2 text-sm font-semibold text-blue-200 transition hover:bg-white/10 hover:text-paper-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
           >
             {t('exit')}
           </Link>
@@ -496,7 +496,7 @@ export default function LessonPage() {
               <div className="mt-2 flex gap-2">
                 <Link
                   href="/progress"
-                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500"
+                  className="inline-flex items-center justify-center rounded-lg bg-accent-600 px-3 py-2 text-xs font-semibold text-paper-50 transition hover:bg-accent-500"
                 >
                   {t('error.toProgress')}
                 </Link>
@@ -505,7 +505,7 @@ export default function LessonPage() {
               <button
                 onClick={start}
                 disabled={starting}
-                className="mt-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 rounded-lg bg-accent-600 px-3 py-2 text-xs font-semibold text-paper-50 transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {starting ? t('generating.working') : t('error.retry')}
               </button>
@@ -517,23 +517,23 @@ export default function LessonPage() {
           <div className={`${PANEL} p-8 text-center sm:p-10`}>
             <div
               aria-hidden
-              className="mx-auto mb-5 flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white"
+              className="mx-auto mb-5 flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-accent-500 text-2xl text-paper-50"
             >
               ✨
             </div>
-            <h1 className="text-2xl font-bold text-white">{t('generating.title')}</h1>
+            <h1 className="text-2xl font-bold text-paper-50">{t('generating.title')}</h1>
             <p className="mt-2 text-blue-100/70" role="status" aria-live="polite">
               {t(GENERATION_TIPS[tipIndex % GENERATION_TIPS.length])}
             </p>
 
             <div className="mx-auto mt-6 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-1/3 animate-[loading_1.2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-blue-500 to-sky-400" />
+              <div className="h-full w-1/3 animate-[loading_1.2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-blue-500 to-accent-500" />
             </div>
 
-            <p className="mt-4 text-sm text-slate-400">
+            <p className="mt-4 text-sm text-paper-300">
               {t('generating.elapsed', { seconds: elapsed })}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-paper-300">
               {elapsed > 20 ? t('generating.slow') : t('generating.hint')}
             </p>
 
@@ -545,11 +545,11 @@ export default function LessonPage() {
 
         {status === 'cover' && !deck && (
           <div className={`${PANEL} p-10 text-center`}>
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-accent-500 text-2xl text-paper-50">
               🌟
             </div>
-            <h1 className="text-2xl font-bold text-white">{t('start')}</h1>
-            <p className="mt-2 text-slate-300">{t('generating.hint')}</p>
+            <h1 className="text-2xl font-bold text-paper-50">{t('start')}</h1>
+            <p className="mt-2 text-paper-200">{t('generating.hint')}</p>
             <button onClick={start} disabled={starting} className={`mt-6 ${PRIMARY}`}>
               {starting ? t('generating.working') : t('presentation.start')}
             </button>
@@ -559,12 +559,12 @@ export default function LessonPage() {
         {status === 'cover' && deck && (
           <div className={`${PANEL} p-8`}>
             <div className="mb-6 flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-accent-500 text-2xl text-paper-50">
                 {deck.cover.emoji}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">{deck.cover.title}</h1>
-                <p className="text-slate-300">{deck.cover.subtitle}</p>
+                <h1 className="text-2xl font-bold text-paper-50">{deck.cover.title}</h1>
+                <p className="text-paper-200">{deck.cover.subtitle}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -581,14 +581,14 @@ export default function LessonPage() {
         {status === 'slides' && deck && (
           <div className={`${PANEL} p-8`}>
             <div className="mb-6 flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-accent-500 text-2xl text-paper-50">
                 {deck.slides[slideIndex]?.emoji ?? deck.cover.emoji}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">
+                <h2 className="text-xl font-bold text-paper-50">
                   {deck.slides[slideIndex]?.headline ?? deck.cover.title}
                 </h2>
-                <p className="text-slate-300">
+                <p className="text-paper-200">
                   {deck.slides[slideIndex]?.body ?? deck.cover.subtitle}
                 </p>
               </div>
@@ -602,9 +602,9 @@ export default function LessonPage() {
         {status === 'cards' && deck && currentCard && (
           <div className={`${PANEL} p-8`}>
             <div className="mb-6 text-center">
-              <h2 className="text-2xl font-bold text-white">{currentCard.word}</h2>
+              <h2 className="text-2xl font-bold text-paper-50">{currentCard.word}</h2>
               {currentCard.transcription && (
-                <p className="text-slate-400">{currentCard.transcription}</p>
+                <p className="text-paper-300">{currentCard.transcription}</p>
               )}
               <AddToVocabButton
                 className="mt-3"
@@ -615,9 +615,9 @@ export default function LessonPage() {
             </div>
             <button
               onClick={flipCard}
-              className="w-full rounded-2xl border border-white/10 bg-white/5 p-8 text-center transition hover:border-white/20 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+              className="w-full rounded-2xl border border-white/10 bg-white/5 p-8 text-center transition hover:border-white/20 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
             >
-              <p className="text-lg text-slate-200">
+              <p className="text-lg text-paper-200">
                 {cardFlipped ? currentCard.translation : currentCard.example}
               </p>
             </button>
@@ -640,7 +640,7 @@ export default function LessonPage() {
 
         {status === 'cards' && deck && !currentCard && (
           <div className={`${PANEL} p-8 text-center`}>
-            <h2 className="text-xl font-bold text-white">{t('step.cards')}</h2>
+            <h2 className="text-xl font-bold text-paper-50">{t('step.cards')}</h2>
             <button onClick={skipCards} className={`mt-6 ${PRIMARY}`}>
               {t('presentation.next')}
             </button>
@@ -649,13 +649,13 @@ export default function LessonPage() {
 
         {status === 'quiz' && deck && currentQuiz && (
           <div className={`${PANEL} p-8`}>
-            <h2 className="mb-4 text-xl font-bold text-white">{currentQuiz.question}</h2>
+            <h2 className="mb-4 text-xl font-bold text-paper-50">{currentQuiz.question}</h2>
             <div className="space-y-2">
               {currentQuiz.options.map((opt, idx) => {
                 const isCorrect = idx === currentQuiz.correctIndex;
                 const isSelected = selectedOption === idx;
                 let cls =
-                  'w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/10 disabled:cursor-default disabled:hover:bg-white/5';
+                  'w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-paper-200 transition hover:bg-white/10 disabled:cursor-default disabled:hover:bg-white/5';
                 if (quizAnswered) {
                   if (isCorrect) {
                     cls =
@@ -678,7 +678,7 @@ export default function LessonPage() {
               })}
             </div>
             {quizAnswered && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-paper-200">
                 <p>{currentQuiz.explanation_ru ?? currentQuiz.explanation}</p>
               </div>
             )}
@@ -692,7 +692,7 @@ export default function LessonPage() {
 
         {status === 'quiz' && deck && !currentQuiz && (
           <div className={`${PANEL} p-8 text-center`}>
-            <h2 className="text-xl font-bold text-white">{t('step.quiz')}</h2>
+            <h2 className="text-xl font-bold text-paper-50">{t('step.quiz')}</h2>
             <button onClick={skipQuiz} className={`mt-6 ${PRIMARY}`}>
               {t('presentation.next')}
             </button>
@@ -701,10 +701,10 @@ export default function LessonPage() {
 
         {status === 'dialogue' && deck && (
           <div className={`${PANEL} p-8`}>
-            <h2 className="mb-2 text-xl font-bold text-white">
+            <h2 className="mb-2 text-xl font-bold text-paper-50">
               {deck.dialogue.title ?? t('step.dialogue')}
             </h2>
-            <p className="mb-4 text-sm text-slate-300">
+            <p className="mb-4 text-sm text-paper-200">
               {deck.dialogue.scene_ru ?? deck.dialogue.scene}
             </p>
             <div className="space-y-3">
@@ -716,8 +716,8 @@ export default function LessonPage() {
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
                       turn.speaker === 'student'
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/40'
-                        : 'border border-white/10 bg-white/5 text-slate-200'
+                        ? 'bg-accent-600 text-paper-50 shadow-lg shadow-accent-950/40'
+                        : 'border border-white/10 bg-white/5 text-paper-200'
                     }`}
                   >
                     {turn.line}
@@ -766,7 +766,7 @@ export default function LessonPage() {
               )}
               {micError && <p className="mt-2 text-xs text-rose-300">{micError}</p>}
               {voiceResult && !pronunciation && (
-                <div className="mt-3 text-xs text-slate-300">
+                <div className="mt-3 text-xs text-paper-200">
                   <p>
                     {t('dialogue.transcript') ?? 'Transcript'}: {voiceResult.transcript ?? '-'}
                   </p>
@@ -793,25 +793,25 @@ export default function LessonPage() {
 
         {status === 'finish' && finish && (
           <div className={`${PANEL} p-8 text-center`}>
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-sky-400 text-2xl text-white">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-accent-500 text-2xl text-paper-50">
               🎉
             </div>
-            <h1 className="text-2xl font-bold text-white">{t('finish.title')}</h1>
-            <p className="mt-2 text-slate-300">
+            <h1 className="text-2xl font-bold text-paper-50">{t('finish.title')}</h1>
+            <p className="mt-2 text-paper-200">
               {t('finish.score')}: {finish.score}%
             </p>
             {finish.xp !== undefined && (
-              <p className="text-slate-300">
+              <p className="text-paper-200">
                 {t('finish.xp')}: +{finish.xp}
               </p>
             )}
             {finish.next_topic && (
-              <p className="text-slate-300">
+              <p className="text-paper-200">
                 {t('finish.nextTopic')}: {finish.next_topic}
               </p>
             )}
             {finish.repeat_words && finish.repeat_words.length > 0 && (
-              <p className="mt-2 text-slate-300">
+              <p className="mt-2 text-paper-200">
                 {t('finish.repeat')}: {finish.repeat_words.join(', ')}
               </p>
             )}

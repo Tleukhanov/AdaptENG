@@ -21,13 +21,13 @@ function clampScore(value: number | undefined | null): number {
 /** Цвет оценки: зелёный — уверенно, синий — нормально, янтарный — слабое место. */
 function scoreTone(score: number): string {
   if (score >= 80) return 'text-emerald-300';
-  if (score >= 60) return 'text-sky-300';
+  if (score >= 60) return 'text-accent-500';
   return 'text-amber-300';
 }
 
 /** Подсветка слова: ниже 60 — янтарный, ниже 40 — красный. */
 function wordTone(score: number): string {
-  if (score >= 60) return 'border-white/10 bg-white/[0.06] text-slate-200';
+  if (score >= 60) return 'border-paper-50/10 bg-white/[0.06] text-paper-200';
   if (score >= 40) return 'border-amber-300/40 bg-amber-400/15 text-amber-100';
   return 'border-red-400/40 bg-red-500/20 text-red-100';
 }
@@ -76,12 +76,12 @@ export default function PronunciationCard({ assessment, notice, className }: Pro
     return (
       <section
         aria-label={t('title')}
-        className={`rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-3 ${className ?? ''}`}
+        className={`rounded-2xl border border-paper-50/10 bg-white/[0.04] px-3.5 py-3 ${className ?? ''}`}
       >
-        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-blue-200/70">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-paper-200/70">
           {t('title')}
         </h3>
-        <p role="status" className="mt-1.5 text-xs leading-relaxed text-slate-300">
+        <p role="status" className="mt-1.5 text-xs leading-relaxed text-paper-200">
           {notice}
         </p>
       </section>
@@ -99,14 +99,14 @@ export default function PronunciationCard({ assessment, notice, className }: Pro
   return (
     <section
       aria-label={t('title')}
-      className={`rounded-2xl border border-white/10 bg-white/[0.04] px-3.5 py-3.5 ${className ?? ''}`}
+      className={`rounded-2xl border border-paper-50/10 bg-white/[0.04] px-3.5 py-3.5 ${className ?? ''}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-blue-200/70">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-paper-200/70">
           {t('title')}
         </h3>
         {rough ? (
-          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-slate-300">
+          <span className="rounded-full border border-paper-50/10 bg-paper-50/5 px-2 py-0.5 text-[10px] font-medium text-paper-200">
             {t('rough')}
           </span>
         ) : null}
@@ -117,18 +117,18 @@ export default function PronunciationCard({ assessment, notice, className }: Pro
           <span className={`text-4xl font-bold leading-none ${scoreTone(accuracy)}`}>
             {accuracy}
           </span>
-          <span className="text-xs text-slate-400">/ 100</span>
+          <span className="text-xs text-paper-300">/ 100</span>
           <span className="sr-only">{t('accuracy')}</span>
         </p>
         <dl className="flex shrink-0 gap-3 text-right">
           <div>
-            <dt className="text-[10px] uppercase tracking-wide text-slate-400">
+            <dt className="text-[10px] uppercase tracking-wide text-paper-300">
               {t('fluency')}
             </dt>
             <dd className={`text-sm font-semibold ${scoreTone(fluency)}`}>{fluency}</dd>
           </div>
           <div>
-            <dt className="text-[10px] uppercase tracking-wide text-slate-400">
+            <dt className="text-[10px] uppercase tracking-wide text-paper-300">
               {t('completeness')}
             </dt>
             <dd className={`text-sm font-semibold ${scoreTone(completeness)}`}>
@@ -139,15 +139,15 @@ export default function PronunciationCard({ assessment, notice, className }: Pro
       </div>
 
       {assessment.transcript ? (
-        <p className="mt-2 text-xs leading-relaxed text-slate-300">
-          <span className="text-slate-400">{t('transcript')}: </span>
+        <p className="mt-2 text-xs leading-relaxed text-paper-200">
+          <span className="text-paper-300">{t('transcript')}: </span>
           {assessment.transcript}
         </p>
       ) : null}
 
       {words.length > 0 ? (
         <div className="mt-3">
-          <h4 className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+          <h4 className="text-[10px] font-semibold uppercase tracking-wide text-paper-300">
             {t('words')}
           </h4>
           <ul className="mt-1.5 flex flex-wrap gap-1.5">
@@ -173,7 +173,7 @@ export default function PronunciationCard({ assessment, notice, className }: Pro
 
       {problems.length > 0 ? (
         <div className="mt-3">
-          <h4 className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+          <h4 className="text-[10px] font-semibold uppercase tracking-wide text-paper-300">
             {t('phonemes')}
           </h4>
           <ul className="mt-1.5 flex flex-wrap gap-1.5">
@@ -196,7 +196,7 @@ export default function PronunciationCard({ assessment, notice, className }: Pro
       ) : null}
 
       {notice ? (
-        <p role="status" className="mt-2 text-[11px] leading-relaxed text-slate-400">
+        <p role="status" className="mt-2 text-[11px] leading-relaxed text-paper-300">
           {notice}
         </p>
       ) : null}

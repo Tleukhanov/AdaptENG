@@ -13,7 +13,7 @@ export default function SessionNav() {
   if (loading) {
     return (
       <div
-        className="h-9 w-20 animate-pulse rounded-xl border border-white/10 bg-white/10"
+        className="h-9 w-20 animate-pulse rounded-xl border border-paper-50/10 bg-paper-50/10"
         aria-hidden
       />
     );
@@ -29,7 +29,7 @@ export default function SessionNav() {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="hidden max-w-[160px] truncate text-xs text-slate-300 sm:inline">{label}</span>
+      <span className="hidden max-w-[160px] truncate text-xs text-paper-200 sm:inline">{label}</span>
       <button
         type="button"
         onClick={async () => {
@@ -37,7 +37,7 @@ export default function SessionNav() {
           router.push('/');
           router.refresh();
         }}
-        className="inline-flex min-h-[44px] items-center rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220]"
+        className="inline-flex min-h-[44px] items-center rounded-xl border border-paper-50/10 bg-paper-50/5 px-3 text-xs font-semibold text-paper-200 transition hover:border-paper-50/20 hover:bg-paper-50/10 hover:text-paper-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#14110f]"
       >
         {t('nav.logout')}
       </button>
