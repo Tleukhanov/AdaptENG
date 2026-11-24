@@ -225,3 +225,42 @@ body.is-offline {
 .tutor-avatar--thinking {
   animation: tutor-glow 1.7s ease-in-out infinite;
 }
+
+
+/* ---- Анимации появления (editorial reveal) ---- */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  opacity: 0;
+  animation: fade-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal-1 { --reveal-delay: 60ms; }
+.reveal-2 { --reveal-delay: 120ms; }
+.reveal-3 { --reveal-delay: 180ms; }
+.reveal-4 { --reveal-delay: 240ms; }
+.reveal-5 { --reveal-delay: 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    animation: none;
+    transform: none;
+  }
+}
+
+/* Тонкая разделительная линия в editorial-стиле. */
+.rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(26 22 18 / 0.25), transparent);
+}

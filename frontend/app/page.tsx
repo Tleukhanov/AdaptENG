@@ -42,16 +42,16 @@ export default async function LandingPage() {
       <section className="mx-auto max-w-6xl px-4 py-16 md:py-24">
         <div className="grid items-end gap-12 md:grid-cols-12">
           <div className="md:col-span-7">
-            <p className="font-display text-sm italic text-accent-600">
+            <p className="reveal reveal-1 font-display text-sm italic text-accent-600">
               — a personal tutor that adapts to you
             </p>
-            <h1 className="mt-4 font-display text-5xl font-semibold leading-[0.95] tracking-tight text-ink-900 md:text-7xl">
+            <h1 className="reveal reveal-2 mt-4 font-display text-5xl font-semibold leading-[0.95] tracking-tight text-ink-900 md:text-7xl">
               {t('hero.title')}
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-700">
+            <p className="reveal reveal-3 mt-6 max-w-xl text-lg leading-relaxed text-ink-700">
               {t('hero.subtitle')}
             </p>
-            <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="reveal reveal-4 mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
               <Link
                 href="/welcome"
                 className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-ink-900 px-8 py-3 text-sm font-semibold text-paper-50 transition hover:bg-accent-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-600/60 focus-visible:ring-offset-2 focus-visible:ring-offset-paper-100"

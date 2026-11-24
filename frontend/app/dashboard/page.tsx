@@ -139,7 +139,7 @@ export default function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink-500">
               {t('title')}
             </p>
-            <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-ink-900">
+            <h1 className="reveal reveal-1 mt-2 font-display text-4xl font-semibold tracking-tight text-ink-900">
               {t('welcome')}
             </h1>
           </div>
